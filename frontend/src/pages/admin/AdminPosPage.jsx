@@ -54,9 +54,23 @@ export const AdminPosPage = () => {
   const [archiveLoading, setArchiveLoading] = useState(false);
   const [archiveSearch, setArchiveSearch] = useState('');
 
+  // Store settings (UPI / QR)
+  const [storeSettings, setStoreSettings] = useState({ upi_id: '', upi_qr_image: '' });
+
   // Hardware barcode scanner buffer listener (rapid keystrokes)
   const barcodeBuffer = useRef('');
   const lastKeyTime = useRef(Date.now());
+
+  useEffect(() => {
+    api.get('/admin/settings.php').then(res => {
+      if (res.success && res.data) {
+        setStoreSettings({
+          upi_id: res.data.upi_id || '',
+          upi_qr_image: res.data.upi_qr_image || ''
+        });
+      }
+    }).catch(() => {});
+  }, []);
 
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -1218,7 +1232,10 @@ export const AdminPosPage = () => {
       <InvoiceModal
         isOpen={!!selectedInvoiceForModal}
         onClose={() => setSelectedInvoiceForModal(null)}
-        invoiceData={selectedInvoiceForModal}
+        invoiceData={selectedInvoiceForModal
+          ? { ...selectedInvoiceForModal, upi_id: storeSettings.upi_id, payment_qr_image: storeSettings.upi_qr_image }
+          : null
+        }
       />
 
       {/* =========================================================================

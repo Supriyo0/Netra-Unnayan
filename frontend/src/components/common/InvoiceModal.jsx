@@ -177,30 +177,31 @@ export const InvoiceModal = ({ isOpen, onClose, invoiceData }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/85 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 print:p-0 print:bg-white print:static print:overflow-visible">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/90 backdrop-blur-md flex items-start sm:items-center justify-center p-0 sm:p-4 print:p-0 print:bg-white print:static print:overflow-visible">
       
       {/* Screen Wrapper */}
       <div 
         id="printable-invoice-container" 
-        className="relative w-full max-w-4xl bg-white text-slate-900 rounded-2xl shadow-2xl overflow-hidden border border-slate-200 print:border-none print:shadow-none print:rounded-none print:max-w-none print:w-full print:m-0 print:p-0"
+        className="relative w-full sm:max-w-4xl bg-white text-slate-900 sm:rounded-2xl shadow-2xl overflow-hidden border-0 sm:border border-slate-200 print:border-none print:shadow-none print:rounded-none print:max-w-none print:w-full print:m-0 print:p-0 min-h-screen sm:min-h-0"
       >
         
         {/* Screen Top Action Bar (Hidden in Physical Print) */}
-        <div className="print:hidden bg-slate-950 text-white px-5 py-3.5 flex items-center justify-between border-b border-white/10">
-          <div className="flex items-center gap-2">
-            <ShieldCheck className="w-5 h-5 text-brand-cyan" />
-            <span className="font-extrabold text-sm font-heading tracking-wide">
-              {isGstInvoice ? 'Official Tax Invoice' : 'Retail Invoice / Bill of Supply'} &bull; {invoiceNumber}
+        <div className="print:hidden bg-slate-950 text-white px-3 sm:px-5 py-3 sm:py-3.5 flex items-center justify-between border-b border-white/10 sticky top-0 z-10">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <ShieldCheck className="w-4 h-4 text-brand-cyan shrink-0" />
+            <span className="font-extrabold text-xs sm:text-sm font-heading tracking-wide truncate">
+              {isGstInvoice ? 'Tax Invoice' : 'Bill of Supply'} &bull; <span className="hidden sm:inline">{invoiceNumber}</span>
             </span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 shrink-0">
             <button
               type="button"
               onClick={handlePrint}
-              className="px-4 py-2 rounded-xl bg-brand-cyan hover:bg-cyan-400 text-slate-950 font-black text-xs flex items-center gap-1.5 shadow-cyan-glow transition-all cursor-pointer"
+              className="px-2.5 sm:px-4 py-2 rounded-xl bg-brand-cyan hover:bg-cyan-400 text-slate-950 font-black text-[11px] sm:text-xs flex items-center gap-1 sm:gap-1.5 shadow-cyan-glow transition-all cursor-pointer"
             >
-              <Printer className="w-4 h-4" />
-              <span>Print / Save A4 PDF</span>
+              <Printer className="w-3.5 h-3.5" />
+              <span className="hidden xs:inline sm:inline">Print / Save PDF</span>
+              <span className="xs:hidden sm:hidden">Print</span>
             </button>
             <button
               type="button"
@@ -215,11 +216,13 @@ export const InvoiceModal = ({ isOpen, onClose, invoiceData }) => {
         {/* =========================================================================
             EXACT PIXEL-MATCH PRINTABLE INVOICE CANVAS (1-PAGE STRICT A4 DIMENSION)
            ========================================================================= */}
-        <div 
-          ref={printRef}
-          className="p-5 sm:p-7 bg-white text-slate-900 font-sans text-[11px] leading-tight selection:bg-cyan-100"
-          style={{ width: '100%', boxSizing: 'border-box' }}
-        >
+        {/* Mobile scale wrapper: shrinks the A4 canvas to fit small screens */}
+        <div className="print:contents overflow-x-hidden">
+          <div 
+            ref={printRef}
+            className="p-4 sm:p-5 md:p-7 bg-white text-slate-900 font-sans text-[9px] sm:text-[10px] md:text-[11px] leading-tight selection:bg-cyan-100"
+            style={{ width: '100%', boxSizing: 'border-box' }}
+          >
           
           {/* ================= 1. HEADER ROW ================= */}
           <div className="grid grid-cols-12 gap-3 items-center pb-2.5">
@@ -646,19 +649,19 @@ export const InvoiceModal = ({ isOpen, onClose, invoiceData }) => {
             {/* Col 3 (4 cols): Authorized Signatory */}
             <div className="col-span-4 flex items-center justify-end relative">
               <div className="flex flex-col items-center text-center pr-3 z-10">
-                {/* Signature Cursive Font */}
-                <div 
-                  style={{ 
-                    fontFamily: "'Dancing Script', 'Caveat', cursive", 
-                    fontSize: '26px', 
-                    color: '#002D5B', 
-                    fontWeight: 700, 
-                    lineHeight: 1 
-                  }}
-                  className="select-none tracking-wide"
-                >
-                  {cashier || 'Supriya Naskar'}
-                </div>
+                  {/* Signature — Proprietor Name in Cursive */}
+                  <div 
+                    style={{ 
+                      fontFamily: "'Dancing Script', 'Caveat', cursive", 
+                      fontSize: '26px', 
+                      color: '#002D5B', 
+                      fontWeight: 700, 
+                      lineHeight: 1 
+                    }}
+                    className="select-none tracking-wide"
+                  >
+                    Sagar Shaoo
+                  </div>
                 <div className="w-32 h-[1px] bg-slate-400 mt-1 mb-1" />
                 <div className="text-[9px] font-extrabold text-slate-900 uppercase tracking-wider">
                   Authorized Signatory
@@ -737,7 +740,7 @@ export const InvoiceModal = ({ isOpen, onClose, invoiceData }) => {
             </span>
           </div>
 
-        </div>
+        </div>{/* end mobile scale wrapper */}
 
       </div>
 

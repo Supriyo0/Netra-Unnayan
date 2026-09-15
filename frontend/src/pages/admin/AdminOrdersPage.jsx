@@ -24,6 +24,7 @@ export default function AdminOrdersPage() {
   const [trackingNumber, setTrackingNumber] = useState('');
   const [trackingUrl, setTrackingUrl] = useState('');
   const [estimatedDeliveryDate, setEstimatedDeliveryDate] = useState('');
+  const [storeSettings, setStoreSettings] = useState({ upi_id: '', upi_qr_image: '' });
 
   const statusList = [
     { value: 'all', label: 'All Orders' },
@@ -37,6 +38,17 @@ export default function AdminOrdersPage() {
     { value: 'delivered', label: 'Delivered' },
     { value: 'cancelled', label: 'Cancelled' },
   ];
+
+  useEffect(() => {
+    api.get('/admin/settings.php').then(res => {
+      if (res.success && res.data) {
+        setStoreSettings({
+          upi_id: res.data.upi_id || '',
+          upi_qr_image: res.data.upi_qr_image || ''
+        });
+      }
+    }).catch(() => {});
+  }, []);
 
   const fetchOrders = async () => {
     try {
@@ -1103,7 +1115,10 @@ export default function AdminOrdersPage() {
       <InvoiceModal
         isOpen={!!invoiceModalData}
         onClose={() => setInvoiceModalData(null)}
-        invoiceData={invoiceModalData}
+        invoiceData={invoiceModalData
+          ? { ...invoiceModalData, upi_id: storeSettings.upi_id, payment_qr_image: storeSettings.upi_qr_image }
+          : null
+        }
       />
 
     </div>

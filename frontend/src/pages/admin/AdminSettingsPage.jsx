@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { 
   Settings, Store, CreditCard, Stethoscope, Save, 
   CheckCircle2, AlertCircle, RefreshCw, MapPin, Phone, Mail,
-  Sliders, Eye, Power, Send, ShieldCheck, Truck, Home, Award, Upload
+  Sliders, Eye, Power, Send, ShieldCheck, Truck, Home, Award, Upload,
+  QrCode, ImagePlus, Trash2, ExternalLink
 } from 'lucide-react';
 import api from '../../api/client';
 
@@ -10,6 +11,7 @@ export default function AdminSettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [testingSmtp, setTestingSmtp] = useState(false);
+  const [uploadingQr, setUploadingQr] = useState(false);
   const [feedback, setFeedback] = useState({ type: '', message: '' });
 
   const [settings, setSettings] = useState({
@@ -53,7 +55,9 @@ export default function AdminSettingsPage() {
       { icon: 'Truck', title: 'SECURE CHECKOUT', desc: 'Instant UPI QR & Verified COD Orders' }
     ]),
     // ImgBB Cloud Storage
-    imgbb_api_key: ''
+    imgbb_api_key: '',
+    // Payment QR Image (uploaded to ImgBB)
+    upi_qr_image: ''
   });
 
   const defaultTrustFeatures = [
@@ -132,6 +136,37 @@ export default function AdminSettingsPage() {
       setFeedback({ type: 'error', message: err.message || 'Error updating settings' });
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleQrImageUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      setFeedback({ type: 'error', message: 'Please select a valid image file (PNG, JPG, WEBP).' });
+      return;
+    }
+    setUploadingQr(true);
+    setFeedback({ type: '', message: '' });
+    try {
+      const apiKey = settings.imgbb_api_key || '';
+      const formData = new FormData();
+      formData.append('image', file);
+      const url = `https://api.imgbb.com/1/upload?key=${apiKey || '6e4d42a55c7c49e54fc28ef59e56f6b3'}`;
+      const res = await fetch(url, { method: 'POST', body: formData });
+      const json = await res.json();
+      if (json.success && json.data?.url) {
+        setSettings(prev => ({ ...prev, upi_qr_image: json.data.url }));
+        setFeedback({ type: 'success', message: 'Payment QR image uploaded successfully! Save settings to apply.' });
+        setTimeout(() => setFeedback({ type: '', message: '' }), 4000);
+      } else {
+        setFeedback({ type: 'error', message: 'ImgBB upload failed. Check your API key in settings.' });
+      }
+    } catch (err) {
+      setFeedback({ type: 'error', message: 'Failed to upload QR image: ' + err.message });
+    } finally {
+      setUploadingQr(false);
+      e.target.value = '';
     }
   };
 
@@ -653,6 +688,97 @@ export default function AdminSettingsPage() {
               name="standard_shipping_fee"
               value={settings.standard_shipping_fee || '70'}
               onChange={handleChange}
+              className="w-full glass-input rounded-xl px-3.5 py-2 text-xs font-mono"
+            />
+          </div>
+        </div>
+
+        {/* UPI Payment QR Image Upload */}
+        <div className="mt-4 p-4 rounded-2xl bg-white/5 border border-white/10 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <QrCode className="w-4 h-4 text-brand-cyan" />
+              <span className="text-xs font-bold text-white">Payment QR Image</span>
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-brand-cyan/10 border border-brand-cyan/20 text-brand-cyan font-mono">OPTIONAL</span>
+            </div>
+            {settings.upi_qr_image && (
+              <button
+                type="button"
+                onClick={() => setSettings(prev => ({ ...prev, upi_qr_image: '' }))}
+                className="flex items-center gap-1 text-[10px] font-bold text-rose-400 hover:text-rose-300 transition-colors"
+              >
+                <Trash2 className="w-3 h-3" />
+                Remove QR
+              </button>
+            )}
+          </div>
+          <p className="text-[11px] text-slate-400">
+            Upload your pre-generated UPI/PhonePe/GPay QR image. If provided, this exact image is printed on invoices instead of the auto-generated one. Leave blank to auto-generate from UPI VPA above.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 items-start">
+            {/* Upload Button */}
+            <label className="flex-1 flex flex-col items-center justify-center gap-2 p-4 rounded-xl border-2 border-dashed border-brand-cyan/30 hover:border-brand-cyan/60 bg-brand-cyan/5 cursor-pointer transition-all group">
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleQrImageUpload}
+                className="hidden"
+                disabled={uploadingQr}
+              />
+              {uploadingQr ? (
+                <>
+                  <RefreshCw className="w-6 h-6 text-brand-cyan animate-spin" />
+                  <span className="text-[11px] text-brand-cyan font-semibold">Uploading to ImgBB...</span>
+                </>
+              ) : (
+                <>
+                  <ImagePlus className="w-6 h-6 text-brand-cyan group-hover:scale-110 transition-transform" />
+                  <span className="text-[11px] text-brand-cyan font-semibold">Click to Upload QR Image</span>
+                  <span className="text-[10px] text-slate-400">PNG / JPG / WEBP — max 10MB</span>
+                </>
+              )}
+            </label>
+
+            {/* Preview */}
+            {settings.upi_qr_image ? (
+              <div className="flex flex-col items-center gap-2">
+                <div className="w-28 h-28 rounded-xl overflow-hidden border border-brand-cyan/40 bg-white p-1">
+                  <img
+                    src={settings.upi_qr_image}
+                    alt="Payment QR"
+                    className="w-full h-full object-contain"
+                    onError={(e) => { e.target.src = '/logo_symbol.png'; }}
+                  />
+                </div>
+                <a
+                  href={settings.upi_qr_image}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1 text-[10px] text-brand-cyan hover:underline"
+                >
+                  <ExternalLink className="w-3 h-3" />
+                  View Full Size
+                </a>
+              </div>
+            ) : (
+              <div className="w-28 h-28 rounded-xl border border-dashed border-white/10 bg-white/5 flex flex-col items-center justify-center gap-1">
+                <QrCode className="w-8 h-8 text-slate-600" />
+                <span className="text-[10px] text-slate-500">No QR yet</span>
+              </div>
+            )}
+          </div>
+
+          {/* Manual URL paste fallback */}
+          <div>
+            <label className="block text-[11px] font-medium text-slate-300 mb-1">
+              Or paste QR image URL directly
+            </label>
+            <input
+              type="url"
+              name="upi_qr_image"
+              value={settings.upi_qr_image || ''}
+              onChange={handleChange}
+              placeholder="https://i.ibb.co/xxxx/payment-qr.png"
               className="w-full glass-input rounded-xl px-3.5 py-2 text-xs font-mono"
             />
           </div>

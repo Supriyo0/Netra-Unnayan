@@ -115,12 +115,10 @@ export const Navbar = () => {
 
   return (
     <>
-      {/* Main Glass Header Bar */}
+      {/* Main Glass Header Bar — True iPhone iOS Glassmorphism */}
       <header className={`sticky top-0 z-40 transition-all duration-300 ${
-        isDark 
-          ? 'bg-[#060D17]/95 backdrop-blur-xl border-b border-white/10' 
-          : 'bg-white/95 backdrop-blur-xl border-b border-slate-200/90 shadow-sm'
-      } ${scrolled ? 'shadow-md py-1' : 'py-2'}`}>
+        isDark ? 'navbar-glass-dark' : 'navbar-glass-light'
+      } ${scrolled ? 'scrolled py-1' : 'py-2'}`}>
         <div className="w-full max-w-[1520px] mx-auto px-4 sm:px-8">
           <div className="flex items-center justify-between h-16 md:h-18 gap-4">
             
@@ -240,10 +238,8 @@ export const Navbar = () => {
               {/* Search Toggle Icon */}
               <button 
                 onClick={() => setSearchOpen(!searchOpen)}
-                className={`w-9 h-9 rounded-full flex items-center justify-center transition-all border shrink-0 ${
-                  isDark 
-                    ? 'text-slate-200 border-white/10 bg-white/5 hover:bg-white/10 hover:text-brand-cyan' 
-                    : 'text-slate-700 border-slate-200 bg-white hover:bg-slate-50 hover:text-brand-cyan shadow-sm'
+                className={`w-9 h-9 rounded-full flex items-center justify-center transition-all shrink-0 ${
+                  isDark ? 'glass-action-btn-dark' : 'glass-action-btn-light'
                 }`}
                 title="Search frames &amp; styles"
                 aria-label="Search"
@@ -254,10 +250,10 @@ export const Navbar = () => {
               {/* Theme Toggle Button */}
               <button
                 onClick={toggleTheme}
-                className={`w-9 h-9 rounded-full flex items-center justify-center transition-all border shrink-0 ${
+                className={`w-9 h-9 rounded-full flex items-center justify-center transition-all shrink-0 ${
                   isDark
-                    ? 'text-amber-400 border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 shadow-[0_0_12px_rgba(245,158,11,0.2)]'
-                    : 'text-sky-600 border-sky-300 bg-sky-50 hover:bg-sky-100 shadow-[0_0_12px_rgba(2,132,199,0.15)]'
+                    ? 'glass-action-btn-dark text-amber-400'
+                    : 'glass-action-btn-light text-sky-600'
                 }`}
                 title={isDark ? 'Switch to Crisp Optical Light Theme' : 'Switch to Midnight Dark Theme'}
                 aria-label="Toggle Theme"
@@ -272,12 +268,12 @@ export const Navbar = () => {
               {/* Wishlist Button (Protected: Strictly requires login) */}
               <Link 
                 to={user ? "/wishlist" : "/login?redirect=/wishlist"}
-                className={`relative w-9 h-9 rounded-full flex items-center justify-center transition-all border shrink-0 ${
+                className={`relative w-9 h-9 rounded-full flex items-center justify-center transition-all shrink-0 ${
                   wishlistCount > 0
-                    ? 'bg-rose-500/15 border-rose-500/40 text-rose-500'
+                    ? 'bg-rose-500/15 border border-rose-500/40 text-rose-500 shadow-[0_0_16px_rgba(244,63,94,0.25)]'
                     : isDark
-                    ? 'text-slate-200 border-white/10 bg-white/5 hover:bg-white/10 hover:text-rose-400'
-                    : 'text-slate-700 border-slate-200 bg-white hover:bg-slate-50 hover:text-rose-600 shadow-sm'
+                    ? 'glass-action-btn-dark text-slate-300'
+                    : 'glass-action-btn-light text-slate-600'
                 }`}
                 title="View Wishlist"
                 aria-label="Wishlist"
@@ -293,12 +289,12 @@ export const Navbar = () => {
               {/* Shopping Cart Button (Protected: Strictly requires login) */}
               <Link 
                 to={user ? "/cart" : "/login?redirect=/cart"}
-                className={`h-9 px-2.5 sm:px-3 rounded-full flex items-center gap-1.5 transition-all border shrink-0 ${
+                className={`h-9 px-2.5 sm:px-3 rounded-full flex items-center gap-1.5 transition-all shrink-0 ${
                   itemCount > 0
-                    ? 'bg-brand-cyan/15 border-brand-cyan/40 text-brand-cyan shadow-cyan-glow'
+                    ? 'bg-brand-cyan/15 border border-brand-cyan/40 text-brand-cyan shadow-[0_0_20px_rgba(0,180,216,0.25)]'
                     : isDark
-                    ? 'text-slate-200 border-white/10 bg-white/5 hover:bg-white/10'
-                    : 'text-slate-700 border-slate-200 bg-white hover:bg-slate-50 shadow-sm'
+                    ? 'glass-action-btn-dark text-slate-300'
+                    : 'glass-action-btn-light text-slate-600'
                 }`}
                 title="View Cart"
               >
