@@ -126,6 +126,8 @@ export const Footer = () => {
             <Link to="/refund-policy" className="hover:text-slate-900 dark:hover:text-slate-200">Refund Policy</Link>
             <span>&bull;</span>
             <Link to="/privacy" className="hover:text-slate-900 dark:hover:text-slate-200">Privacy Policy</Link>
+            <span>&bull;</span>
+            <Link to="/admin" className="text-brand-cyan hover:underline font-semibold">Staff &amp; Admin Portal</Link>
           </div>
           <div className="text-slate-500 text-center md:text-right text-[11px] sm:text-xs">
             &copy; {new Date().getFullYear()} Netra Unnayan. Clarity You Can Trust. <br className="sm:hidden" />

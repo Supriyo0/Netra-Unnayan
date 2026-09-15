@@ -313,17 +313,28 @@ export const Navbar = () => {
                 )}
               </Link>
 
-              {/* STRICTLY ONLY WHEN ADMIN IS LOGGED IN: POS BILLING SECTION BUTTON */}
+              {/* STRICTLY ONLY WHEN ADMIN IS LOGGED IN: ADMIN PANEL & POS BILLING SECTION BUTTONS */}
               {user && isAdmin && (
-                <Link
-                  to="/admin/pos"
-                  className="hidden xl:inline-flex h-9 px-3 rounded-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 text-xs font-black uppercase tracking-wider shadow-md shadow-amber-500/20 items-center gap-1.5 whitespace-nowrap shrink-0 transition-transform hover:-translate-y-0.5"
-                  title="Open Optical POS Billing Counter"
-                >
-                  <ShoppingCart className="w-3.5 h-3.5" />
-                  <span>POS Counter</span>
-                  <span className="w-1.5 h-1.5 rounded-full bg-red-600 animate-pulse" />
-                </Link>
+                <>
+                  <Link
+                    to="/admin"
+                    className="hidden lg:inline-flex h-9 px-3 rounded-full bg-brand-cyan/20 border border-brand-cyan/50 text-brand-cyan hover:bg-brand-cyan hover:text-slate-950 text-xs font-black uppercase tracking-wider shadow-cyan-glow items-center gap-1.5 whitespace-nowrap shrink-0 transition-all hover:scale-105"
+                    title="Open Admin Executive Dashboard"
+                  >
+                    <Shield className="w-3.5 h-3.5" />
+                    <span>Admin Panel</span>
+                  </Link>
+
+                  <Link
+                    to="/admin/pos"
+                    className="hidden xl:inline-flex h-9 px-3 rounded-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 text-xs font-black uppercase tracking-wider shadow-md shadow-amber-500/20 items-center gap-1.5 whitespace-nowrap shrink-0 transition-transform hover:-translate-y-0.5"
+                    title="Open Optical POS Billing Counter"
+                  >
+                    <ShoppingCart className="w-3.5 h-3.5" />
+                    <span>POS Counter</span>
+                    <span className="w-1.5 h-1.5 rounded-full bg-red-600 animate-pulse" />
+                  </Link>
+                </>
               )}
 
               {/* User Account / Profile Button (With generous right padding, never touches edge) */}
@@ -813,91 +824,101 @@ export const Navbar = () => {
         )}
       </header>
 
-      {/* Mobile Sticky Bottom Bar - Ultra-Modern Glassmorphic Design */}
-      <nav className={`md:hidden fixed bottom-0 left-0 right-0 z-40 border-t flex items-center justify-around py-2.5 px-1.5 transition-all mobile-glass-nav ${
-        isDark 
-          ? 'bg-[#060D17]/80 border-white/10 shadow-[0_-8px_30px_rgba(0,0,0,0.6)]' 
-          : 'bg-white/80 border-slate-200/90 shadow-[0_-8px_30px_rgba(0,180,216,0.12)]'
-      }`}>
-        <Link 
-          to="/" 
-          className={`flex flex-col items-center gap-1 text-[10px] font-bold ${
-            location.pathname === '/' ? 'text-brand-cyan' : isDark ? 'text-slate-400' : 'text-slate-600'
-          }`}
-        >
-          <HomeIcon className="w-5 h-5" />
-          <span>Home</span>
-        </Link>
-
-        <Link 
-          to="/catalog" 
-          className={`flex flex-col items-center gap-1 text-[10px] font-bold ${
-            location.pathname.startsWith('/catalog') ? 'text-brand-cyan' : isDark ? 'text-slate-400' : 'text-slate-600'
-          }`}
-        >
-          <Glasses className="w-5 h-5" />
-          <span>Frames</span>
-        </Link>
-
-        {/* ONLY IF ADMIN: show POS counter icon in bottom navigation! */}
-        {user && isAdmin ? (
+      {/* Mobile Sticky Floating Dock - Ultra-Modern iPhone Frosted Glassmorphic Design */}
+      <div className="md:hidden fixed bottom-3 inset-x-3 z-40 max-w-md mx-auto pointer-events-none">
+        <nav className={`pointer-events-auto rounded-[26px] py-2 px-2 flex items-center justify-around transition-all duration-300 mobile-glass-dock ${
+          isDark ? 'mobile-glass-dock-dark' : 'mobile-glass-dock-light'
+        }`}>
           <Link 
-            to="/admin/pos" 
-            className={`flex flex-col items-center gap-1 text-[10px] font-black ${
-              location.pathname === '/admin/pos' ? 'text-amber-400' : 'text-amber-500'
+            to="/" 
+            className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-2xl text-[10px] font-extrabold transition-all duration-200 ${
+              location.pathname === '/' 
+                ? 'text-brand-cyan bg-brand-cyan/20 shadow-[0_0_15px_rgba(0,180,216,0.35)] scale-105' 
+                : isDark ? 'text-slate-300 hover:text-white' : 'text-slate-600 hover:text-slate-900'
             }`}
           >
-            <ShoppingCart className="w-5 h-5" />
-            <span>POS Bill</span>
+            <HomeIcon className="w-5 h-5" />
+            <span>Home</span>
           </Link>
-        ) : (
+
           <Link 
-            to={user ? "/wishlist" : "/login?redirect=/wishlist"} 
-            className={`relative flex flex-col items-center gap-1 text-[10px] font-bold ${
-              location.pathname === '/wishlist' ? 'text-brand-cyan' : isDark ? 'text-slate-400' : 'text-slate-600'
+            to="/catalog" 
+            className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-2xl text-[10px] font-extrabold transition-all duration-200 ${
+              location.pathname.startsWith('/catalog') || location.pathname.startsWith('/shop')
+                ? 'text-brand-cyan bg-brand-cyan/20 shadow-[0_0_15px_rgba(0,180,216,0.35)] scale-105' 
+                : isDark ? 'text-slate-300 hover:text-white' : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <Glasses className="w-5 h-5" />
+            <span>Frames</span>
+          </Link>
+
+          {/* If Admin: POS Billing counter button */}
+          {user && isAdmin ? (
+            <Link 
+              to="/admin/pos" 
+              className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-2xl text-[10px] font-black transition-all duration-200 ${
+                location.pathname === '/admin/pos' 
+                  ? 'text-amber-300 bg-amber-500/25 shadow-[0_0_15px_rgba(245,158,11,0.4)] scale-105' 
+                  : 'text-amber-400 hover:text-amber-300'
+              }`}
+            >
+              <ShoppingCart className="w-5 h-5" />
+              <span>POS Bill</span>
+            </Link>
+          ) : (
+            <Link 
+              to={user ? "/wishlist" : "/login?redirect=/wishlist"} 
+              className={`relative flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-2xl text-[10px] font-extrabold transition-all duration-200 ${
+                location.pathname === '/wishlist' 
+                  ? 'text-rose-400 bg-rose-500/20 shadow-[0_0_15px_rgba(244,63,94,0.35)] scale-105' 
+                  : isDark ? 'text-slate-300 hover:text-white' : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <div className="relative">
+                <Heart className={`w-5 h-5 ${wishlistCount > 0 ? 'fill-rose-500 text-rose-500' : ''}`} />
+                {wishlistCount > 0 && (
+                  <span className="absolute -top-1 -right-2 w-3.5 h-3.5 rounded-full bg-rose-500 text-white text-[8.5px] font-black flex items-center justify-center shadow-xs">
+                    {wishlistCount}
+                  </span>
+                )}
+              </div>
+              <span>Wishlist</span>
+            </Link>
+          )}
+
+          <Link 
+            to={user ? "/cart" : "/login?redirect=/cart"} 
+            className={`relative flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-2xl text-[10px] font-extrabold transition-all duration-200 ${
+              location.pathname === '/cart' 
+                ? 'text-brand-cyan bg-brand-cyan/20 shadow-[0_0_15px_rgba(0,180,216,0.35)] scale-105' 
+                : isDark ? 'text-slate-300 hover:text-white' : 'text-slate-600 hover:text-slate-900'
             }`}
           >
             <div className="relative">
-              <Heart className={`w-5 h-5 ${wishlistCount > 0 ? 'fill-rose-500 text-rose-500' : ''}`} />
-              {wishlistCount > 0 && (
-                <span className="absolute -top-1 -right-2 w-3.5 h-3.5 rounded-full bg-rose-500 text-white text-[9px] font-black flex items-center justify-center">
-                  {wishlistCount}
+              <ShoppingBag className="w-5 h-5" />
+              {itemCount > 0 && (
+                <span className="absolute -top-1 -right-2 w-3.5 h-3.5 rounded-full bg-brand-cyan text-slate-950 text-[8.5px] font-black flex items-center justify-center shadow-xs">
+                  {itemCount}
                 </span>
               )}
             </div>
-            <span>Wishlist</span>
+            <span>Cart</span>
           </Link>
-        )}
 
-        <Link 
-          to={user ? "/cart" : "/login?redirect=/cart"} 
-          className={`relative flex flex-col items-center gap-1 text-[10px] font-bold ${
-            location.pathname === '/cart' ? 'text-brand-cyan' : isDark ? 'text-slate-400' : 'text-slate-600'
-          }`}
-        >
-          <div className="relative">
-            <ShoppingBag className="w-5 h-5" />
-            {itemCount > 0 && (
-              <span className="absolute -top-1 -right-2 w-3.5 h-3.5 rounded-full bg-brand-cyan text-slate-950 text-[9px] font-black flex items-center justify-center">
-                {itemCount}
-              </span>
-            )}
-          </div>
-          <span>Cart</span>
-        </Link>
-
-        <Link 
-          to={user ? (isAdmin ? '/admin' : '/account') : '/login'} 
-          className={`flex flex-col items-center gap-1 text-[10px] font-bold ${
-            location.pathname.startsWith('/account') || location.pathname.startsWith('/admin') || location.pathname === '/login' 
-              ? 'text-brand-cyan' 
-              : isDark ? 'text-slate-400' : 'text-slate-600'
-          }`}
-        >
-          <User className="w-5 h-5" />
-          <span>{user ? (isAdmin ? 'Admin' : 'Account') : 'Login'}</span>
-        </Link>
-      </nav>
+          <Link 
+            to={user ? (isAdmin ? '/admin' : '/account') : '/login'} 
+            className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-2xl text-[10px] font-extrabold transition-all duration-200 ${
+              location.pathname.startsWith('/account') || location.pathname.startsWith('/admin') || location.pathname === '/login' 
+                ? 'text-brand-cyan bg-brand-cyan/20 shadow-[0_0_15px_rgba(0,180,216,0.35)] scale-105' 
+                : isDark ? 'text-slate-300 hover:text-white' : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            {isAdmin ? <Shield className="w-5 h-5 text-amber-400" /> : <User className="w-5 h-5" />}
+            <span>{user ? (isAdmin ? 'Admin' : 'Account') : 'Login'}</span>
+          </Link>
+        </nav>
+      </div>
     </>
   );
 };

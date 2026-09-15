@@ -133,23 +133,6 @@ function getOptionalAuth(): ?array {
     $payload = JWT::decode($token);
     if (!$payload) return null;
 
-    if (($payload['type'] ?? '') === 'admin') {
-        try {
-            $pdo = Database::getConnection();
-            $stmt = $pdo->prepare('SELECT id, full_name, email, phone FROM admins WHERE id = ?');
-            $stmt->execute([$payload['id']]);
-            $admin = $stmt->fetch();
-            if ($admin) {
-                $cStmt = $pdo->prepare('SELECT id FROM customers WHERE email = ? OR (phone = ? AND phone != "") LIMIT 1');
-                $cStmt->execute([$admin['email'], $admin['phone']]);
-                $cId = $cStmt->fetchColumn();
-                if ($cId) {
-                    return ['id' => (int)$cId, 'type' => 'customer', 'email' => $admin['email'], 'name' => $admin['full_name']];
-                }
-            }
-        } catch (Exception $e) {}
-    }
-
     return $payload;
 }
 
