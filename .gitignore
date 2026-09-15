@@ -5,6 +5,7 @@ frontend/node_modules/
 # Production builds
 dist/
 frontend/dist/
+dist_deploy/
 
 # Local Environment & Secrets
 .env

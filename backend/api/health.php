@@ -1,8 +1,8 @@
 <?php
 // Netra Unnayan - System Health & Diagnostics Endpoint
-require_once __DIR__ . '/../../middleware/cors.php';
-require_once __DIR__ . '/../../config/database.php';
-require_once __DIR__ . '/../../helpers/response.php';
+require_once __DIR__ . '/../middleware/cors.php';
+require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../helpers/response.php';
 
 $response = [
     'app'         => 'Netra Unnayan Optical Platform',
@@ -33,7 +33,7 @@ try {
 }
 
 // Check uploads directory
-$uploadDir = realpath(__DIR__ . '/../../../public_assets/uploads') ?: (__DIR__ . '/../../../public_assets/uploads');
+$uploadDir = realpath(__DIR__ . '/../../public_assets/uploads') ?: (__DIR__ . '/../../public_assets/uploads');
 $response['uploads_writable'] = is_writable($uploadDir) || is_writable(dirname($uploadDir));
 
 Response::json($response);

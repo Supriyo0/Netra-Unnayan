@@ -1,0 +1,10 @@
+{
+  "name": "netra-unnayan-root",
+  "scripts": {
+    "build": "npm --prefix frontend run build",
+    "deploy": "npm --prefix frontend run build && node scripts/deploy_to_hostinger.js"
+  },
+  "devDependencies": {
+    "basic-ftp": "^6.2.1"
+  }
+}
