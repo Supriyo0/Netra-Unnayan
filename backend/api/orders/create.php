@@ -108,6 +108,9 @@ try {
         $updateStock = $pdo->prepare('UPDATE products SET stock_quantity = ? WHERE id = ?');
         $updateStock->execute([$newQty, $product['id']]);
 
+        $frameSize = trim($item['frame_size'] ?? $item['selected_size'] ?? 'Medium');
+        $frameColor = trim($item['frame_color'] ?? $item['selected_color'] ?? 'Matte Black');
+
         $orderItemsToInsert[] = [
             'product_id'   => $product['id'],
             'product_name' => $product['name'],
@@ -117,6 +120,8 @@ try {
             'lens_type'    => $lensType ?: null,
             'lens_price'   => $lensPrice,
             'total_price'  => $lineTotal,
+            'frame_size'   => $frameSize,
+            'frame_color'  => $frameColor,
             'prev_qty'     => $prevQty,
             'new_qty'      => $newQty
         ];
@@ -219,10 +224,27 @@ try {
     ');
 
     foreach ($orderItemsToInsert as $oi) {
-        $itemInsert->execute([
-            $orderId, $oi['product_id'], $oi['product_name'], $oi['product_sku'],
-            $oi['unit_price'], $oi['quantity'], $oi['lens_type'], $oi['lens_price'], $oi['total_price']
-        ]);
+        try {
+            $itemInsert = $pdo->prepare('
+                INSERT INTO order_items (order_id, product_id, product_name, product_sku, unit_price, quantity, lens_type, lens_price, total_price, frame_size, frame_color)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ');
+            $itemInsert->execute([
+                $orderId, $oi['product_id'], $oi['product_name'], $oi['product_sku'],
+                $oi['unit_price'], $oi['quantity'], $oi['lens_type'], $oi['lens_price'], $oi['total_price'],
+                $oi['frame_size'], $oi['frame_color']
+            ]);
+        } catch (Exception $e) {
+            $itemInsert = $pdo->prepare('
+                INSERT INTO order_items (order_id, product_id, product_name, product_sku, unit_price, quantity, lens_type, lens_price, total_price)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ');
+            $displayName = $oi['product_name'] . " [Size: {$oi['frame_size']} | Color: {$oi['frame_color']}]";
+            $itemInsert->execute([
+                $orderId, $oi['product_id'], $displayName, $oi['product_sku'],
+                $oi['unit_price'], $oi['quantity'], $oi['lens_type'], $oi['lens_price'], $oi['total_price']
+            ]);
+        }
         $orderItemId = (int)$pdo->lastInsertId();
 
         // Audit inventory reduction

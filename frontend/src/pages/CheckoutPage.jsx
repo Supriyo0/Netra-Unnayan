@@ -126,7 +126,9 @@ export const CheckoutPage = () => {
           product_id: item.product_id,
           quantity: item.quantity,
           lens_type: item.lens_type,
-          lens_price: item.lens_price
+          lens_price: item.lens_price,
+          frame_size: item.selected_size || item.frame_size || 'Medium',
+          frame_color: item.selected_color || item.frame_color || 'Matte Black'
         })),
         prescription: firstRx
       };
@@ -568,7 +570,10 @@ export const CheckoutPage = () => {
                 <div key={i} className="flex items-center justify-between text-xs py-1.5 border-b border-slate-100 dark:border-white/5">
                   <div className="space-y-0.5 max-w-[200px]">
                     <div className="font-bold text-slate-900 dark:text-white truncate">{it.name}</div>
-                    <div className="text-[10px] text-slate-500 dark:text-slate-400">Qty: {it.quantity} &bull; {it.lens_type || 'Frame Only'}</div>
+                    <div className="text-[10px] text-slate-500 dark:text-slate-400">
+                      Qty: {it.quantity} &bull; Size: <strong className="text-brand-cyan">{it.selected_size || it.frame_size || 'M'}</strong>{it.selected_color && <span> &bull; <strong className="text-slate-800 dark:text-slate-200">{it.selected_color}</strong></span>}
+                      {it.lens_type && <span> &bull; {it.lens_type}</span>}
+                    </div>
                   </div>
                   <div className="font-mono text-slate-900 dark:text-white font-bold">
                     ₹{(it.unit_price + (it.lens_price || 0)) * it.quantity}

@@ -138,4 +138,19 @@ try {
     $log[] = "Best sellers category error: " . $e->getMessage();
 }
 
+// 9. Add frame_size and frame_color to order_items
+try {
+    $pdo->exec("ALTER TABLE `order_items` ADD COLUMN `frame_size` VARCHAR(50) NULL AFTER `quantity`");
+    $log[] = 'Added frame_size to order_items.';
+} catch (Exception $e) {
+    $log[] = 'order_items.frame_size already exists.';
+}
+
+try {
+    $pdo->exec("ALTER TABLE `order_items` ADD COLUMN `frame_color` VARCHAR(100) NULL AFTER `frame_size`");
+    $log[] = 'Added frame_color to order_items.';
+} catch (Exception $e) {
+    $log[] = 'order_items.frame_color already exists.';
+}
+
 Response::json(['status' => 'completed', 'log' => $log]);

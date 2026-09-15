@@ -72,6 +72,9 @@ try {
 
         $pdo->prepare('UPDATE products SET stock_quantity = ? WHERE id = ?')->execute([$newQty, $prod['id']]);
 
+        $frameSize = trim($item['frame_size'] ?? $item['size'] ?? 'Medium');
+        $frameColor = trim($item['frame_color'] ?? $item['color'] ?? 'Matte Black');
+
         $itemsToInsert[] = [
             'product_id'   => $prod['id'],
             'product_name' => $prod['name'],
@@ -81,6 +84,8 @@ try {
             'lens_type'    => $lensType ?: null,
             'lens_price'   => $lensPrice,
             'total_price'  => $lineTotal,
+            'frame_size'   => $frameSize,
+            'frame_color'  => $frameColor,
             'prev_qty'     => $prevQty,
             'new_qty'      => $newQty
         ];
@@ -116,20 +121,33 @@ try {
     $orderId = (int)$pdo->lastInsertId();
 
     // Insert Order Items & Audit Ledger
-    $oiStmt = $pdo->prepare('
-        INSERT INTO order_items (order_id, product_id, product_name, product_sku, unit_price, quantity, lens_type, lens_price, total_price)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    ');
     $invStmt = $pdo->prepare('
         INSERT INTO inventory_transactions (product_id, transaction_type, quantity, previous_quantity, new_quantity, reference_type, reference_id, notes, created_by_admin_id)
         VALUES (?, "OFFLINE_SALE", ?, ?, ?, "INVOICE", ?, ?, ?)
     ');
 
     foreach ($itemsToInsert as $oi) {
-        $oiStmt->execute([
-            $orderId, $oi['product_id'], $oi['product_name'], $oi['product_sku'],
-            $oi['unit_price'], $oi['quantity'], $oi['lens_type'], $oi['lens_price'], $oi['total_price']
-        ]);
+        try {
+            $oiStmt = $pdo->prepare('
+                INSERT INTO order_items (order_id, product_id, product_name, product_sku, unit_price, quantity, lens_type, lens_price, total_price, frame_size, frame_color)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ');
+            $oiStmt->execute([
+                $orderId, $oi['product_id'], $oi['product_name'], $oi['product_sku'],
+                $oi['unit_price'], $oi['quantity'], $oi['lens_type'], $oi['lens_price'], $oi['total_price'],
+                $oi['frame_size'], $oi['frame_color']
+            ]);
+        } catch (Exception $e) {
+            $oiStmt = $pdo->prepare('
+                INSERT INTO order_items (order_id, product_id, product_name, product_sku, unit_price, quantity, lens_type, lens_price, total_price)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ');
+            $displayName = $oi['product_name'] . " [Size: {$oi['frame_size']} | Color: {$oi['frame_color']}]";
+            $oiStmt->execute([
+                $orderId, $oi['product_id'], $displayName, $oi['product_sku'],
+                $oi['unit_price'], $oi['quantity'], $oi['lens_type'], $oi['lens_price'], $oi['total_price']
+            ]);
+        }
 
         $invStmt->execute([
             $oi['product_id'], -$oi['quantity'], $oi['prev_qty'], $oi['new_qty'],

@@ -124,24 +124,31 @@ export const AdminPosPage = () => {
     }
   };
 
-  // Search input with debounce
+  // Search input with debounce & catalog browser
+  const fetchSearchProducts = async (term = '') => {
+    setIsSearching(true);
+    try {
+      const endpoint = term.trim() 
+        ? `/products?search=${encodeURIComponent(term.trim())}&limit=20` 
+        : `/products?limit=20`;
+      const res = await api.get(endpoint);
+      if (res.success) {
+        setSearchResults(res.data?.products || []);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
   useEffect(() => {
     if (!searchInput.trim()) {
       setSearchResults([]);
       return;
     }
-    const timer = setTimeout(async () => {
-      setIsSearching(true);
-      try {
-        const res = await api.get(`/products?search=${encodeURIComponent(searchInput.trim())}&limit=8`);
-        if (res.success) {
-          setSearchResults(res.data?.products || []);
-        }
-      } catch (e) {
-        console.error(e);
-      } finally {
-        setIsSearching(false);
-      }
+    const timer = setTimeout(() => {
+      fetchSearchProducts(searchInput);
     }, 180);
     return () => clearTimeout(timer);
   }, [searchInput]);
@@ -150,17 +157,49 @@ export const AdminPosPage = () => {
     if (e.key === 'Enter') {
       e.preventDefault();
       if (searchResults.length > 0) {
-        addProductToBill(searchResults[0]);
+        addProductToBill(searchResults[0], true);
       } else if (searchInput.trim()) {
         lookupAndAddByCode(searchInput.trim());
       }
     }
   };
 
-  const addProductToBill = (product, keepOpen = false) => {
+  const addProductToBill = (product, keepOpen = false, customSize = null, customColor = null) => {
     playBeep();
+
+    let sizesList = ['Small', 'Medium', 'Large'];
+    if (product.available_sizes) {
+      try {
+        const parsed = typeof product.available_sizes === 'string' ? JSON.parse(product.available_sizes) : product.available_sizes;
+        if (Array.isArray(parsed) && parsed.length > 0) sizesList = parsed;
+        else sizesList = product.available_sizes.split(',').map(s => s.trim()).filter(Boolean);
+      } catch {
+        sizesList = product.available_sizes.split(',').map(s => s.trim()).filter(Boolean);
+      }
+    } else if (product.frame_size) {
+      sizesList = [product.frame_size];
+    }
+
+    let colorsList = ['Matte Black', 'Tortoise Amber', 'Gunmetal Grey', 'Rose Gold', 'Silver', 'Gold'];
+    if (product.available_colors) {
+      try {
+        const parsed = typeof product.available_colors === 'string' ? JSON.parse(product.available_colors) : product.available_colors;
+        if (Array.isArray(parsed) && parsed.length > 0) colorsList = parsed;
+        else colorsList = product.available_colors.split(',').map(c => c.trim()).filter(Boolean);
+      } catch {
+        colorsList = product.available_colors.split(',').map(c => c.trim()).filter(Boolean);
+      }
+    } else if (product.frame_color) {
+      colorsList = [product.frame_color];
+    }
+
+    const chosenSize = customSize || product.frame_size || sizesList[0] || 'Medium';
+    const chosenColor = customColor || product.frame_color || colorsList[0] || 'Matte Black';
+
     setPosItems((prev) => {
-      const existingIdx = prev.findIndex(p => p.product_id === product.id || p.sku === product.sku);
+      const existingIdx = prev.findIndex(
+        p => p.product_id === product.id && p.frame_size === chosenSize && p.frame_color === chosenColor
+      );
       if (existingIdx > -1) {
         const updated = [...prev];
         updated[existingIdx].quantity += 1;
@@ -177,6 +216,10 @@ export const AdminPosPage = () => {
             : Number(product.price),
           stock_quantity: product.stock_quantity,
           quantity: 1,
+          frame_size: chosenSize,
+          frame_color: chosenColor,
+          available_sizes: sizesList,
+          available_colors: colorsList,
           lens_type: '',
           lens_price: 0
         }
@@ -186,6 +229,22 @@ export const AdminPosPage = () => {
       setSearchInput('');
       setSearchResults([]);
     }
+  };
+
+  const updateItemSize = (index, size) => {
+    setPosItems(prev => {
+      const updated = [...prev];
+      updated[index].frame_size = size;
+      return updated;
+    });
+  };
+
+  const updateItemColor = (index, color) => {
+    setPosItems(prev => {
+      const updated = [...prev];
+      updated[index].frame_color = color;
+      return updated;
+    });
   };
 
   const updateItemQty = (index, qty) => {
@@ -297,7 +356,9 @@ export const AdminPosPage = () => {
           unit_price: item.unit_price,
           quantity: item.quantity,
           lens_type: item.lens_type,
-          lens_price: item.lens_price
+          lens_price: item.lens_price,
+          frame_size: item.frame_size || 'Medium',
+          frame_color: item.frame_color || 'Matte Black'
         }))
       };
 
@@ -316,7 +377,12 @@ export const AdminPosPage = () => {
           customerName: inv.customer_name,
           customerPhone: inv.customer_phone,
           customerAddress: customerAddress,
-          items: posItems,
+          items: posItems.map(it => ({
+            ...it,
+            product_name: it.name,
+            selected_size: it.frame_size,
+            selected_color: it.frame_color
+          })),
           subtotal: inv.subtotal,
           discountAmount: inv.discount_amount,
           totalAmount: inv.total_amount,
@@ -459,6 +525,7 @@ export const AdminPosPage = () => {
                     placeholder="Search frame by name, brand, SKU or barcode (e.g. Titanium, Sovereign, Aviator, NU-FRM-00101)..."
                     value={searchInput}
                     onChange={(e) => setSearchInput(e.target.value)}
+                    onFocus={() => { if (searchResults.length === 0) fetchSearchProducts(searchInput); }}
                     onKeyDown={handleSearchKeyDown}
                     className="w-full glass-input rounded-xl pl-11 pr-20 py-3 text-xs font-medium"
                     autoFocus
@@ -480,6 +547,20 @@ export const AdminPosPage = () => {
                   </div>
                 </div>
 
+                {/* Browse Catalog Dropdown Toggle */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (searchResults.length > 0) setSearchResults([]);
+                    else fetchSearchProducts(searchInput);
+                  }}
+                  className="px-3.5 py-3 rounded-xl bg-slate-100 dark:bg-white/5 hover:bg-brand-cyan/20 text-slate-700 dark:text-slate-200 hover:text-brand-cyan border border-slate-300 dark:border-white/10 font-bold text-xs flex items-center justify-center gap-1.5 shrink-0 transition-all shadow-sm"
+                  title="Browse optical catalog dropdown to select multiple items"
+                >
+                  <Sparkles className="w-4 h-4 text-brand-cyan" />
+                  <span>{searchResults.length > 0 ? 'Close Catalog' : 'Browse Catalog'}</span>
+                </button>
+
                 <button
                   type="button"
                   onClick={startCamera}
@@ -487,7 +568,7 @@ export const AdminPosPage = () => {
                   title="Scan barcode with device camera"
                 >
                   <Camera className="w-4 h-4" />
-                  <span>Scan with Camera</span>
+                  <span>Scan Camera</span>
                 </button>
               </div>
 
@@ -508,7 +589,10 @@ export const AdminPosPage = () => {
                   <button
                     key={tag}
                     type="button"
-                    onClick={() => setSearchInput(tag)}
+                    onClick={() => {
+                      setSearchInput(tag);
+                      fetchSearchProducts(tag);
+                    }}
                     className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-white/5 hover:bg-brand-cyan/15 dark:hover:bg-brand-cyan/20 text-slate-700 dark:text-slate-300 hover:text-brand-cyan border border-slate-200 dark:border-white/10 transition-colors text-[11px]"
                   >
                     {tag}
@@ -516,13 +600,13 @@ export const AdminPosPage = () => {
                 ))}
               </div>
 
-              {/* Instant Search Suggestions Dropdown */}
+              {/* Instant Search Suggestions Dropdown with Multiple Selection */}
               {searchResults.length > 0 && (
                 <div className="absolute top-full left-0 right-0 z-30 mt-2 bg-white dark:bg-slate-900 rounded-2xl border-2 border-brand-cyan/40 shadow-2xl overflow-hidden divide-y divide-slate-100 dark:divide-white/10 max-h-96 overflow-y-auto">
                   <div className="p-3 bg-slate-50 dark:bg-slate-950 text-[11px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider flex items-center justify-between sticky top-0 z-10 backdrop-blur-md border-b border-slate-200 dark:border-white/10">
                     <span className="flex items-center gap-2">
                       <Sparkles className="w-3.5 h-3.5 text-brand-cyan" />
-                      <span>{searchResults.length} Products Found &bull; Click to select multiple items</span>
+                      <span>{searchResults.length} Products Found &bull; Click to add multiple items</span>
                     </span>
                     <button
                       type="button"
@@ -539,12 +623,14 @@ export const AdminPosPage = () => {
                     return (
                       <div
                         key={p.id}
-                        onClick={() => addProductToBill(p, true)}
-                        className={`p-3.5 hover:bg-brand-cyan/10 cursor-pointer flex items-center justify-between text-xs transition-colors group ${
+                        className={`p-3.5 hover:bg-brand-cyan/10 flex items-center justify-between text-xs transition-colors group ${
                           qtyInCart > 0 ? 'bg-brand-cyan/5 dark:bg-brand-cyan/[0.08] border-l-4 border-brand-cyan' : ''
                         }`}
                       >
-                        <div className="flex items-center gap-3 min-w-0">
+                        <div 
+                          onClick={() => addProductToBill(p, true)}
+                          className="flex items-center gap-3 min-w-0 flex-1 cursor-pointer"
+                        >
                           <div className="w-11 h-11 rounded-xl bg-slate-100 dark:bg-black/50 p-1 flex items-center justify-center shrink-0 border border-slate-200 dark:border-white/10 overflow-hidden">
                             <img 
                               src={p.primary_image || p.image_url || '/logo_symbol.png'} 
@@ -570,10 +656,11 @@ export const AdminPosPage = () => {
                               )}
                             </div>
                             <span className="text-slate-500 dark:text-slate-400 text-[11px] font-mono block mt-0.5">
-                              SKU: <strong className="text-brand-cyan">{p.sku}</strong> &bull; Size: {p.frame_size || 'M'} &bull; Shape: {p.frame_shape || '—'}
+                              SKU: <strong className="text-brand-cyan">{p.sku}</strong> &bull; Size: {p.frame_size || 'Medium'} &bull; Shape: {p.frame_shape || '—'}
                             </span>
                           </div>
                         </div>
+
                         <div className="flex items-center gap-3 shrink-0 ml-3">
                           <div className="text-right">
                             <span className="font-extrabold text-slate-900 dark:text-white block font-mono text-sm">
@@ -583,29 +670,50 @@ export const AdminPosPage = () => {
                               {p.stock_quantity > 0 ? `${p.stock_quantity} in stock` : 'Out of stock'}
                             </span>
                           </div>
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              addProductToBill(p, true);
-                            }}
-                            className={`px-3 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1 shadow-sm transition-all ${
-                              qtyInCart > 0 
-                                ? 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold'
-                                : 'bg-brand-cyan hover:bg-brand-cyan/90 text-slate-950'
-                            }`}
-                            title="Add to bill (keeps dropdown open for multiple selection)"
-                          >
-                            <Plus className="w-3.5 h-3.5" />
-                            <span>{qtyInCart > 0 ? '+1 More' : 'Add'}</span>
-                          </button>
+
+                          {qtyInCart > 0 ? (
+                            <div className="flex items-center gap-1 bg-brand-cyan/20 border border-brand-cyan/40 rounded-xl p-0.5">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const idx = posItems.findIndex(it => it.product_id === p.id || it.sku === p.sku);
+                                  if (idx > -1) updateItemQty(idx, qtyInCart - 1);
+                                }}
+                                className="w-6 h-6 rounded-lg bg-white/20 hover:bg-white/30 text-slate-900 dark:text-white font-black text-xs flex items-center justify-center transition-colors"
+                                title="Decrease quantity"
+                              >
+                                -
+                              </button>
+                              <span className="w-5 text-center font-extrabold text-xs text-slate-900 dark:text-white font-mono">
+                                {qtyInCart}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => addProductToBill(p, true)}
+                                className="w-6 h-6 rounded-lg bg-brand-cyan hover:bg-brand-cyan/90 text-slate-950 font-black text-xs flex items-center justify-center transition-colors"
+                                title="Add one more"
+                              >
+                                +
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => addProductToBill(p, true)}
+                              className="px-3.5 py-1.5 rounded-xl font-extrabold text-xs flex items-center gap-1 shadow-sm bg-brand-cyan hover:bg-brand-cyan/90 text-slate-950 transition-all"
+                              title="Add to bill (keeps dropdown open)"
+                            >
+                              <Plus className="w-3.5 h-3.5" />
+                              <span>Add to Bill</span>
+                            </button>
+                          )}
                         </div>
                       </div>
                     );
                   })}
                   <div className="p-3 bg-slate-50 dark:bg-slate-950 sticky bottom-0 z-10 flex items-center justify-between border-t border-slate-200 dark:border-white/10">
-                    <span className="text-xs text-slate-400 font-medium">
-                      Select multiple products then click Done:
+                    <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                      Select as many frames as needed:
                     </span>
                     <button
                       type="button"
@@ -662,7 +770,35 @@ export const AdminPosPage = () => {
                       <tr key={idx} className="hover:bg-white/[0.02]">
                         <td className="py-3.5 font-sans">
                           <strong className="text-white block font-bold text-sm">{it.name}</strong>
-                          <span className="text-brand-cyan text-[10px] font-mono">{it.sku}</span>
+                          <div className="flex items-center gap-2.5 flex-wrap mt-1">
+                            <span className="text-brand-cyan text-[10px] font-mono">{it.sku}</span>
+                            {/* Size Selector */}
+                            <div className="flex items-center gap-1">
+                              <span className="text-[10px] text-slate-400 font-medium">Size:</span>
+                              <select
+                                value={it.frame_size || 'Medium'}
+                                onChange={(e) => updateItemSize(idx, e.target.value)}
+                                className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-slate-900 border border-white/20 text-white focus:border-brand-cyan outline-none cursor-pointer"
+                              >
+                                {(it.available_sizes?.length > 0 ? it.available_sizes : ['Small', 'Medium', 'Large', 'Extra Large']).map(s => (
+                                  <option key={s} value={s}>{s}</option>
+                                ))}
+                              </select>
+                            </div>
+                            {/* Color Selector */}
+                            <div className="flex items-center gap-1">
+                              <span className="text-[10px] text-slate-400 font-medium">Color:</span>
+                              <select
+                                value={it.frame_color || 'Matte Black'}
+                                onChange={(e) => updateItemColor(idx, e.target.value)}
+                                className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-slate-900 border border-white/20 text-white focus:border-brand-cyan outline-none cursor-pointer"
+                              >
+                                {(it.available_colors?.length > 0 ? it.available_colors : ['Matte Black', 'Tortoise Amber', 'Gunmetal Grey', 'Rose Gold', 'Silver', 'Gold', 'Transparent Crystal']).map(c => (
+                                  <option key={c} value={c}>{c}</option>
+                                ))}
+                              </select>
+                            </div>
+                          </div>
                         </td>
                         <td className="py-3.5 text-slate-300">
                           ₹{it.unit_price}

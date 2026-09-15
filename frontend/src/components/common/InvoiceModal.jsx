@@ -36,7 +36,56 @@ export const InvoiceModal = ({ isOpen, onClose, invoiceData }) => {
   } = invoiceData;
 
   const handlePrint = () => {
-    window.print();
+    if (!printRef.current) {
+      window.print();
+      return;
+    }
+    const printContent = printRef.current.innerHTML;
+    const printWindow = window.open('', '_blank', 'width=850,height=1000');
+    if (!printWindow) {
+      window.print();
+      return;
+    }
+    printWindow.document.open();
+    printWindow.document.write(`<!DOCTYPE html>
+<html>
+  <head>
+    <title>Invoice - ${invoiceNumber} | Netra Unnayan</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=Outfit:wght@600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      body { background: #FFFFFF; color: #0F172A; font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif; font-size: 11px; padding: 16px; }
+      table { width: 100%; border-collapse: collapse; }
+      th, td { padding: 6px 10px; text-align: left; }
+      .print\\:hidden { display: none !important; }
+      @page { size: A4 portrait; margin: 10mm; }
+      @media print {
+        body { padding: 0; background: #FFFFFF; }
+        button { display: none !important; }
+      }
+    </style>
+    ${Array.from(document.querySelectorAll('link[rel="stylesheet"], style')).map(el => el.outerHTML).join('\n')}
+  </head>
+  <body class="bg-white text-slate-900">
+    <div style="max-width: 800px; margin: 0 auto; background: #FFFFFF;">
+      ${printContent}
+    </div>
+    <script>
+      window.onload = function() {
+        setTimeout(function() {
+          window.focus();
+          window.print();
+          window.close();
+        }, 300);
+      };
+    </script>
+  </body>
+</html>`);
+    printWindow.document.close();
   };
 
   return (
@@ -212,6 +261,18 @@ export const InvoiceModal = ({ isOpen, onClose, invoiceData }) => {
                         <td className="py-2.5 px-3.5 text-slate-400 font-mono">{idx + 1}</td>
                         <td className="py-2.5 px-3.5">
                           <div className="font-bold text-slate-950">{it.product_name || it.name || 'Optical Eyewear'}</div>
+                          <div className="flex items-center gap-2 flex-wrap text-[10px] text-slate-600 mt-0.5">
+                            {(it.selected_size || it.frame_size || it.size) && (
+                              <span className="px-1.5 py-0.2 rounded bg-slate-100 border border-slate-200 font-medium">
+                                Size: <strong className="text-slate-900">{it.selected_size || it.frame_size || it.size}</strong>
+                              </span>
+                            )}
+                            {(it.selected_color || it.frame_color || it.color) && (
+                              <span className="px-1.5 py-0.2 rounded bg-slate-100 border border-slate-200 font-medium">
+                                Colour: <strong className="text-slate-900">{it.selected_color || it.frame_color || it.color}</strong>
+                              </span>
+                            )}
+                          </div>
                           {it.lens_type && (
                             <div className="text-[10px] text-cyan-800 font-semibold mt-0.5">
                               + Lens Optics: {it.lens_type} {it.lens_price > 0 ? `(₹${it.lens_price})` : ''}

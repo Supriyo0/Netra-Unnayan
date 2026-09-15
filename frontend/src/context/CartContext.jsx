@@ -139,6 +139,7 @@ export const CartProvider = ({ children }) => {
           prescription: prescription || null,
           frame_size: selectedSize,
           selected_size: selectedSize,
+          frame_color: selectedColor,
           selected_color: selectedColor,
           frame_shape: product.frame_shape,
           dimensions_label: product.dimensions_label
