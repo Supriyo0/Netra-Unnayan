@@ -430,7 +430,7 @@ export const AdminAppointmentsPage = () => {
                           <button
                             onClick={() => handleApprove(b)}
                             disabled={processingId === b.id}
-                            className="btn-primary py-1.5 px-2.5 rounded-lg text-xs font-bold inline-flex items-center gap-1 shadow-cyan-glow"
+                            className="btn-primary py-1.5 px-3 rounded-lg text-xs font-bold inline-flex items-center gap-1 shadow-cyan-glow"
                             title="Confirm booking and dispatch email to customer"
                           >
                             <CheckCircle2 className="w-3.5 h-3.5" />
@@ -442,7 +442,7 @@ export const AdminAppointmentsPage = () => {
                           <button
                             onClick={() => openRescheduleModal(b)}
                             disabled={processingId === b.id}
-                            className="py-1.5 px-2.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs font-semibold inline-flex items-center gap-1"
+                            className="py-1.5 px-3 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 text-amber-700 dark:text-amber-300 border border-amber-500/40 text-xs font-bold inline-flex items-center gap-1 shadow-sm"
                             title="Propose new date / slot to customer"
                           >
                             <Calendar className="w-3.5 h-3.5" />
@@ -453,7 +453,7 @@ export const AdminAppointmentsPage = () => {
                         {b.customer_email && (
                           <button
                             onClick={() => openEmailModal(b)}
-                            className="p-1.5 rounded-lg bg-brand-cyan/10 hover:bg-brand-cyan/20 text-brand-cyan border border-brand-cyan/30 text-xs inline-flex items-center"
+                            className="p-1.5 rounded-lg bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-800 dark:text-cyan-300 border border-cyan-500/40 text-xs inline-flex items-center shadow-sm"
                             title={`Send custom email to ${b.customer_name}`}
                           >
                             <Mail className="w-3.5 h-3.5" />
@@ -464,7 +464,7 @@ export const AdminAppointmentsPage = () => {
                           <button
                             onClick={() => handleCancel(b)}
                             disabled={processingId === b.id}
-                            className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 text-xs inline-flex items-center"
+                            className="p-1.5 rounded-lg bg-rose-500/15 hover:bg-rose-500/25 text-rose-700 dark:text-rose-300 border border-rose-500/40 text-xs inline-flex items-center shadow-sm"
                             title="Cancel Booking"
                           >
                             <XCircle className="w-3.5 h-3.5" />
@@ -472,7 +472,7 @@ export const AdminAppointmentsPage = () => {
                         )}
 
                         {isConfirmed && (
-                          <span className="text-[11px] text-emerald-400 font-bold inline-flex items-center ml-2 gap-1">
+                          <span className="text-[11px] text-emerald-700 dark:text-emerald-400 font-bold inline-flex items-center ml-2 gap-1">
                             <CheckCircle2 className="w-3.5 h-3.5" /> Confirmed
                           </span>
                         )}

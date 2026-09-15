@@ -10,6 +10,57 @@ $admin = requireAdminAuth(['super_admin', 'manager', 'billing_staff']);
 $pdo = Database::getConnection();
 
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+    // Single Order Details
+    if (!empty($_GET['id'])) {
+        $orderId = (int)$_GET['id'];
+        $stmt = $pdo->prepare("
+            SELECT 
+                o.*,
+                (SELECT COUNT(*) FROM order_items WHERE order_id = o.id) as item_count,
+                (SELECT invoice_number FROM invoices WHERE order_id = o.id LIMIT 1) as invoice_number
+            FROM orders o
+            WHERE o.id = ?
+        ");
+        $stmt->execute([$orderId]);
+        $ord = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$ord) {
+            Response::notFound('Order not found.');
+        }
+
+        $iStmt = $pdo->prepare('
+            SELECT oi.*, p.primary_image, p.sku as product_sku_code, p.lens_width, p.bridge_width, p.temple_length 
+            FROM order_items oi 
+            LEFT JOIN products p ON oi.product_id = p.id 
+            WHERE oi.order_id = ?
+        ');
+        $iStmt->execute([$orderId]);
+        $ord['items'] = $iStmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $rxStmt = $pdo->prepare('SELECT * FROM order_prescriptions WHERE order_id = ? ORDER BY id DESC');
+        $rxStmt->execute([$orderId]);
+        $prescriptions = $rxStmt->fetchAll(PDO::FETCH_ASSOC);
+        $ord['prescriptions'] = $prescriptions;
+        $ord['prescription'] = $prescriptions[0] ?? null;
+
+        $payStmt = $pdo->prepare('SELECT * FROM payments WHERE order_id = ? ORDER BY id DESC LIMIT 1');
+        $payStmt->execute([$orderId]);
+        $ord['payment'] = $payStmt->fetch(PDO::FETCH_ASSOC);
+
+        $histStmt = $pdo->prepare('
+            SELECT h.*, a.full_name as staff_name 
+            FROM order_status_history h 
+            LEFT JOIN admins a ON h.updated_by_admin_id = a.id 
+            WHERE h.order_id = ? 
+            ORDER BY h.id DESC
+        ');
+        $histStmt->execute([$orderId]);
+        $ord['status_history'] = $histStmt->fetchAll(PDO::FETCH_ASSOC);
+
+        Response::success($ord, 'Order details retrieved');
+        exit;
+    }
+
     // List orders
     $status = trim($_GET['status'] ?? '');
     $search = trim($_GET['search'] ?? '');
@@ -40,23 +91,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         FROM orders o
         WHERE $whereSql
         ORDER BY o.id DESC
-        LIMIT 50
+        LIMIT 100
     ");
     $stmt->execute($params);
-    $orders = $stmt->fetchAll();
+    $orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     foreach ($orders as &$ord) {
-        $iStmt = $pdo->prepare('SELECT * FROM order_items WHERE order_id = ?');
+        $iStmt = $pdo->prepare('SELECT oi.*, p.primary_image FROM order_items oi LEFT JOIN products p ON oi.product_id = p.id WHERE oi.order_id = ?');
         $iStmt->execute([$ord['id']]);
-        $ord['items'] = $iStmt->fetchAll();
+        $ord['items'] = $iStmt->fetchAll(PDO::FETCH_ASSOC);
 
         $rxStmt = $pdo->prepare('SELECT * FROM order_prescriptions WHERE order_id = ?');
         $rxStmt->execute([$ord['id']]);
-        $ord['prescription'] = $rxStmt->fetch();
+        $ord['prescriptions'] = $rxStmt->fetchAll(PDO::FETCH_ASSOC);
+        $ord['prescription'] = $ord['prescriptions'][0] ?? null;
 
         $payStmt = $pdo->prepare('SELECT * FROM payments WHERE order_id = ? ORDER BY id DESC LIMIT 1');
         $payStmt->execute([$ord['id']]);
-        $ord['payment'] = $payStmt->fetch();
+        $ord['payment'] = $payStmt->fetch(PDO::FETCH_ASSOC);
     }
 
     Response::success($orders, 'Orders list retrieved');
