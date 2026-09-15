@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { 
-  User, Package, FileText, MapPin, Calendar, Eye, 
+  User, Package, FileText, MapPin, Calendar, Eye, EyeOff,
   LogOut, Shield, Plus, Check, Clock, ChevronRight, X, 
   ExternalLink, Truck, CheckCircle2, AlertCircle, Phone, 
   Home as HomeIcon, Stethoscope, Trash2, Star, Sparkles, Edit2,
-  Upload, Camera, Lock, Save
+  Upload, Camera, Lock, Save, Key, Award, Glasses, Heart, RefreshCw
 } from 'lucide-react';
 import api from '../api/client';
 import { useAuth } from '../context/AuthContext';
@@ -62,11 +62,36 @@ export const AccountPage = () => {
     full_name: user?.full_name || '',
     email: user?.email || '',
     phone: user?.phone || '',
+    alternate_phone: '',
+    gender: 'Unisex',
+    dob: '',
+    optical_preference: 'Prescription Eyeglasses',
     avatar_url: user?.avatar_url || ''
   });
   const [profileSaving, setProfileSaving] = useState(false);
   const [profileFeedback, setProfileFeedback] = useState({ type: '', message: '' });
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+
+  // Password Change State
+  const [passwordForm, setPasswordForm] = useState({
+    current_password: '',
+    new_password: '',
+    confirm_password: ''
+  });
+  const [passwordSaving, setPasswordSaving] = useState(false);
+  const [passwordFeedback, setPasswordFeedback] = useState({ type: '', message: '' });
+  const [showCurrentPass, setShowCurrentPass] = useState(false);
+  const [showNewPass, setShowNewPass] = useState(false);
+
+  // Preset Designer Avatars
+  const presetAvatars = [
+    { name: 'Executive Blue', url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80' },
+    { name: 'Smart Titanium', url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&auto=format&fit=crop&q=80' },
+    { name: 'Chic Cat-Eye', url: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&auto=format&fit=crop&q=80' },
+    { name: 'Classic Aviator', url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&auto=format&fit=crop&q=80' },
+    { name: 'Doctor Specialist', url: 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=200&auto=format&fit=crop&q=80' },
+    { name: 'Minimalist Wave', url: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=200&auto=format&fit=crop&q=80' }
+  ];
 
   // Sync tab change with URL query param
   const handleTabChange = (tab) => {
@@ -111,11 +136,16 @@ export const AccountPage = () => {
           setAddresses(addrRes.value.data || []);
         }
         if (profRes.status === 'fulfilled' && profRes.value?.success && profRes.value.data) {
+          const d = profRes.value.data;
           setProfileForm({
-            full_name: profRes.value.data.full_name || '',
-            email: profRes.value.data.email || '',
-            phone: profRes.value.data.phone || '',
-            avatar_url: profRes.value.data.avatar_url || ''
+            full_name: d.full_name || '',
+            email: d.email || '',
+            phone: d.phone || '',
+            alternate_phone: d.alternate_phone || '',
+            gender: d.gender || 'Unisex',
+            dob: d.dob || '',
+            optical_preference: d.optical_preference || 'Prescription Eyeglasses',
+            avatar_url: d.avatar_url || ''
           });
         }
       } catch (err) {
@@ -150,16 +180,49 @@ export const AccountPage = () => {
     }
   };
 
+  const handlePasswordChange = async (e) => {
+    e.preventDefault();
+    if (passwordForm.new_password !== passwordForm.confirm_password) {
+      setPasswordFeedback({ type: 'error', message: 'New passwords do not match.' });
+      return;
+    }
+    if (passwordForm.new_password.length < 6) {
+      setPasswordFeedback({ type: 'error', message: 'New password must be at least 6 characters.' });
+      return;
+    }
+    setPasswordSaving(true);
+    setPasswordFeedback({ type: '', message: '' });
+    try {
+      const res = await api.post('/account/profile.php', {
+        action: 'change_password',
+        current_password: passwordForm.current_password,
+        new_password: passwordForm.new_password
+      });
+      if (res.success) {
+        setPasswordFeedback({ type: 'success', message: 'Password updated successfully!' });
+        setPasswordForm({ current_password: '', new_password: '', confirm_password: '' });
+        setTimeout(() => setPasswordFeedback({ type: '', message: '' }), 5000);
+      } else {
+        setPasswordFeedback({ type: 'error', message: res.message || 'Failed to update password.' });
+      }
+    } catch (err) {
+      setPasswordFeedback({ type: 'error', message: err.message || 'Error updating password.' });
+    } finally {
+      setPasswordSaving(false);
+    }
+  };
+
   const handleAvatarFileChange = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploadingAvatar(true);
     try {
       const formData = new FormData();
-      formData.append('image', file);
-      const res = await api.post('/upload.php', formData);
+      formData.append('file', file);
+      const res = await api.post('/upload_imgbb.php', formData);
       if (res.success && res.data?.url) {
         setProfileForm(prev => ({ ...prev, avatar_url: res.data.url }));
+        setProfileFeedback({ type: 'success', message: 'Photo uploaded! Click "Save Profile Changes" to apply.' });
       } else {
         const reader = new FileReader();
         reader.onload = () => {
@@ -294,51 +357,113 @@ export const AccountPage = () => {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       
       {/* Profile Overview Header */}
-      <div className="glass-card rounded-3xl p-6 sm:p-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 border border-white/10 shadow-2xl">
-        <div className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-brand-cyan to-brand-blue flex items-center justify-center text-slate-950 font-black text-2xl shadow-cyan-glow">
-            {user.full_name?.charAt(0) || 'U'}
+      <div className="glass-card bg-white/95 dark:bg-[#071322]/95 rounded-3xl p-6 sm:p-8 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 border border-slate-200 dark:border-white/10 shadow-2xl">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5">
+          <div className="relative group shrink-0">
+            <div className="w-20 h-20 sm:w-22 sm:h-22 rounded-2xl overflow-hidden border-2 border-brand-cyan shadow-cyan-glow bg-gradient-to-tr from-brand-cyan to-brand-teal flex items-center justify-center text-slate-950 font-black text-3xl">
+              {profileForm.avatar_url || user.avatar_url ? (
+                <img 
+                  src={profileForm.avatar_url || user.avatar_url} 
+                  alt={user.full_name || 'Customer Avatar'} 
+                  className="w-full h-full object-cover"
+                  onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                />
+              ) : (
+                <span>{user.full_name?.charAt(0) || 'U'}</span>
+              )}
+            </div>
+            <button
+              onClick={() => handleTabChange('profile')}
+              className="absolute -bottom-1.5 -right-1.5 p-1.5 rounded-xl bg-brand-cyan hover:bg-cyan-400 text-slate-950 shadow-md transition-transform hover:scale-110"
+              title="Change Profile Picture"
+            >
+              <Camera className="w-3.5 h-3.5 stroke-[2.5]" />
+            </button>
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] text-brand-teal uppercase font-bold tracking-widest bg-brand-teal/10 px-2 py-0.5 rounded-full border border-brand-teal/20">
-                Verified Optical Profile
+
+          <div className="space-y-1.5">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-[10px] text-teal-700 dark:text-brand-teal uppercase font-black tracking-widest bg-teal-500/15 px-2.5 py-0.5 rounded-full border border-teal-500/30 flex items-center gap-1">
+                <Sparkles className="w-3 h-3" />
+                <span>Verified Optical Profile</span>
+              </span>
+              <span className="text-[10px] text-amber-700 dark:text-amber-300 uppercase font-black tracking-widest bg-amber-500/15 px-2.5 py-0.5 rounded-full border border-amber-500/30 flex items-center gap-1">
+                <Award className="w-3 h-3" />
+                <span>Netra Club Gold Tier</span>
               </span>
               {user.role === 'admin' && (
-                <span className="text-[10px] text-amber-400 uppercase font-bold tracking-widest bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
+                <span className="text-[10px] text-cyan-700 dark:text-cyan-300 uppercase font-black tracking-widest bg-cyan-500/15 px-2.5 py-0.5 rounded-full border border-cyan-500/30">
                   Staff Administrator
                 </span>
               )}
             </div>
-            <h1 className="text-xl sm:text-2xl font-extrabold text-white mt-1">
-              {user.full_name}
+
+            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white">
+              {profileForm.full_name || user.full_name}
             </h1>
-            <p className="text-xs text-slate-400 mt-0.5 font-mono">
-              {user.phone} &bull; {user.email}
-            </p>
+            
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-600 dark:text-slate-400 font-mono">
+              <span className="flex items-center gap-1 text-slate-900 dark:text-white font-bold">
+                <Phone className="w-3.5 h-3.5 text-brand-cyan" />
+                {profileForm.phone || user.phone || 'No phone'}
+              </span>
+              <span>&bull;</span>
+              <span>{profileForm.email || user.email || 'No email'}</span>
+              <span>&bull;</span>
+              <span className="text-cyan-600 dark:text-brand-cyan font-bold">ID: #NU-CUST-{user.id}</span>
+            </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          {user.role === 'admin' && (
-            <Link
-              to="/admin"
-              className="btn-primary text-xs py-2 px-4 rounded-xl flex items-center gap-1.5 shadow-cyan-glow"
+        {/* Quick Stats & Action Shortcuts */}
+        <div className="flex flex-wrap items-center gap-3 self-stretch lg:self-auto justify-between lg:justify-end border-t lg:border-t-0 pt-4 lg:pt-0 border-slate-100 dark:border-white/10">
+          <div className="grid grid-cols-3 gap-2 text-center">
+            <div 
+              onClick={() => handleTabChange('orders')}
+              className="px-3 py-2 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 cursor-pointer hover:border-brand-cyan transition-all"
             >
-              <Shield className="w-3.5 h-3.5" /> Staff Control Panel
-            </Link>
-          )}
-          <button 
-            onClick={handleLogout}
-            className="btn-secondary text-xs py-2 px-4 rounded-xl flex items-center gap-1.5 text-rose-300 hover:text-rose-200 border-rose-500/20"
-          >
-            <LogOut className="w-3.5 h-3.5" /> Log Out
-          </button>
+              <div className="text-base font-black text-slate-900 dark:text-white font-mono">{orders.length}</div>
+              <div className="text-[9px] font-bold text-slate-500 uppercase">Orders</div>
+            </div>
+            <div 
+              onClick={() => handleTabChange('prescriptions')}
+              className="px-3 py-2 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 cursor-pointer hover:border-brand-cyan transition-all"
+            >
+              <div className="text-base font-black text-brand-cyan font-mono">{prescriptions.length}</div>
+              <div className="text-[9px] font-bold text-slate-500 uppercase">Rx Vault</div>
+            </div>
+            <div 
+              onClick={() => handleTabChange('bookings')}
+              className="px-3 py-2 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 cursor-pointer hover:border-brand-cyan transition-all"
+            >
+              <div className="text-base font-black text-emerald-600 dark:text-emerald-400 font-mono">{totalBookingsCount}</div>
+              <div className="text-[9px] font-bold text-slate-500 uppercase">Bookings</div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {user.role === 'admin' && (
+              <Link
+                to="/admin"
+                className="btn-primary text-xs py-2.5 px-4 rounded-xl flex items-center gap-1.5 shadow-cyan-glow font-bold"
+              >
+                <Shield className="w-3.5 h-3.5" /> Staff Panel
+              </Link>
+            )}
+            <button 
+              onClick={handleLogout}
+              className="p-2.5 rounded-xl bg-rose-500/15 hover:bg-rose-500 text-rose-600 dark:text-rose-300 hover:text-white border border-rose-500/40 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
+              title="Sign out of account"
+            >
+              <LogOut className="w-4 h-4" />
+              <span className="hidden sm:inline">Log Out</span>
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Tabs Navigation */}
-      <div className="flex gap-2 overflow-x-auto pb-2 border-b border-white/10 text-xs scrollbar-none">
+      <div className="flex gap-2 overflow-x-auto pb-2 border-b border-slate-200 dark:border-white/10 text-xs scrollbar-none">
         <button
           onClick={() => handleTabChange('orders')}
           className={`px-4 py-2.5 rounded-xl font-bold flex items-center gap-2 transition-all shrink-0 ${
@@ -1002,73 +1127,56 @@ export const AccountPage = () => {
 
       {/* TAB 5: PROFILE & SETTINGS */}
       {activeTab === 'profile' && (
-        <div className="max-w-3xl space-y-6">
-          <div className="glass-card rounded-3xl p-6 sm:p-8 space-y-6 border border-white/10">
-            <div>
-              <h2 className="text-xl font-black text-white flex items-center gap-2">
-                <User className="w-6 h-6 text-brand-cyan" />
-                <span>My Profile &amp; Personal Info</span>
-              </h2>
-              <p className="text-xs text-slate-400 mt-1">
-                Manage your name, profile photo, phone number, and contact email
-              </p>
+        <div className="max-w-4xl space-y-6">
+          
+          {/* Main Profile Info Card */}
+          <div className="glass-card bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 space-y-6 border border-slate-200 dark:border-white/10 shadow-xl">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-white/10 pb-4">
+              <div>
+                <h2 className="text-xl font-black text-slate-900 dark:text-white flex items-center gap-2">
+                  <User className="w-6 h-6 text-brand-cyan" />
+                  <span>Optical Identity &amp; Personal Info</span>
+                </h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                  Manage your personal details, profile picture, WhatsApp notifications, and eyewear preferences
+                </p>
+              </div>
+              <span className="text-[10px] font-mono font-bold px-3 py-1 rounded-full bg-cyan-500/10 text-cyan-700 dark:text-brand-cyan border border-cyan-500/20 self-start sm:self-auto">
+                Member ID: #NU-CUST-{user.id}
+              </span>
             </div>
 
             {profileFeedback.message && (
-              <div className={`p-4 rounded-2xl flex items-center gap-3 text-xs font-semibold ${
+              <div className={`p-4 rounded-2xl flex items-center gap-3 text-xs font-bold shadow-sm ${
                 profileFeedback.type === 'success'
-                  ? 'bg-emerald-950/40 border border-emerald-500/40 text-emerald-200'
-                  : 'bg-rose-950/40 border border-rose-500/40 text-rose-200'
+                  ? 'bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-500/40 text-emerald-800 dark:text-emerald-200'
+                  : 'bg-rose-50 dark:bg-rose-950/40 border border-rose-300 dark:border-rose-500/40 text-rose-800 dark:text-rose-200'
               }`}>
-                {profileFeedback.type === 'success' ? <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" /> : <AlertCircle className="w-5 h-5 text-rose-400 shrink-0" />}
+                {profileFeedback.type === 'success' ? <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" /> : <AlertCircle className="w-5 h-5 text-rose-600 dark:text-rose-400 shrink-0" />}
                 <span>{profileFeedback.message}</span>
               </div>
             )}
 
             <form onSubmit={handleProfileSave} className="space-y-6">
-              {/* Avatar Section */}
-              <div className="flex flex-col sm:flex-row items-center gap-6 p-5 rounded-2xl bg-white/5 border border-white/10">
-                <div className="relative group">
-                  <div className="w-24 h-24 rounded-full overflow-hidden border-2 border-brand-cyan shadow-cyan-glow bg-slate-800 flex items-center justify-center text-white text-2xl font-black">
-                    {profileForm.avatar_url ? (
-                      <img 
-                        src={profileForm.avatar_url} 
-                        alt={profileForm.full_name || 'Avatar'} 
-                        className="w-full h-full object-cover"
-                        onError={(e) => { e.currentTarget.src = ''; }}
-                      />
-                    ) : (
-                      <span>{profileForm.full_name?.charAt(0) || 'U'}</span>
-                    )}
-                  </div>
-                  <label className="absolute bottom-0 right-0 p-2 rounded-full bg-brand-cyan text-slate-950 hover:bg-brand-cyan/90 cursor-pointer shadow-lg transition-transform hover:scale-110">
-                    <Camera className="w-4 h-4" />
-                    <input 
-                      type="file" 
-                      accept="image/*" 
-                      onChange={handleAvatarFileChange} 
-                      className="hidden" 
-                      disabled={uploadingAvatar}
-                    />
-                  </label>
-                </div>
-
-                <div className="space-y-2 flex-1 text-center sm:text-left">
-                  <h3 className="text-sm font-bold text-white">Profile Photo</h3>
-                  <p className="text-xs text-slate-400">
-                    Upload a portrait picture or paste an image link below.
-                  </p>
-                  <div className="flex flex-col sm:flex-row gap-2">
-                    <input
-                      type="url"
-                      placeholder="Paste picture URL (e.g. https://...)"
-                      value={profileForm.avatar_url}
-                      onChange={(e) => setProfileForm(prev => ({ ...prev, avatar_url: e.target.value }))}
-                      className="glass-input rounded-xl px-3 py-2 text-xs flex-1"
-                    />
-                    <label className="btn-secondary text-xs px-4 py-2 rounded-xl flex items-center justify-center gap-1.5 cursor-pointer shrink-0">
-                      <Upload className="w-3.5 h-3.5" />
-                      <span>{uploadingAvatar ? 'Uploading...' : 'Browse File'}</span>
+              
+              {/* Profile Photo & Avatar Gallery */}
+              <div className="p-5 rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 space-y-4">
+                <div className="flex flex-col sm:flex-row items-center gap-5">
+                  <div className="relative group shrink-0">
+                    <div className="w-24 h-24 rounded-2xl overflow-hidden border-2 border-brand-cyan shadow-cyan-glow bg-gradient-to-tr from-brand-cyan to-brand-teal flex items-center justify-center text-slate-950 text-3xl font-black">
+                      {profileForm.avatar_url ? (
+                        <img 
+                          src={profileForm.avatar_url} 
+                          alt={profileForm.full_name || 'Avatar'} 
+                          className="w-full h-full object-cover"
+                          onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                        />
+                      ) : (
+                        <span>{profileForm.full_name?.charAt(0) || 'U'}</span>
+                      )}
+                    </div>
+                    <label className="absolute -bottom-2 -right-2 p-2 rounded-xl bg-brand-cyan hover:bg-cyan-400 text-slate-950 cursor-pointer shadow-lg transition-transform hover:scale-110">
+                      <Camera className="w-4 h-4 stroke-[2.5]" />
                       <input 
                         type="file" 
                         accept="image/*" 
@@ -1078,13 +1186,75 @@ export const AccountPage = () => {
                       />
                     </label>
                   </div>
+
+                  <div className="space-y-2 flex-1 text-center sm:text-left">
+                    <div className="flex items-center justify-center sm:justify-between flex-wrap gap-2">
+                      <h3 className="text-sm font-bold text-slate-900 dark:text-white">Profile Photo &amp; Avatar</h3>
+                      {profileForm.avatar_url && (
+                        <button
+                          type="button"
+                          onClick={() => setProfileForm(prev => ({ ...prev, avatar_url: '' }))}
+                          className="text-[11px] text-rose-600 dark:text-rose-400 hover:underline font-bold"
+                        >
+                          Remove Photo
+                        </button>
+                      )}
+                    </div>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      Upload a portrait from your device or paste any image link directly.
+                    </p>
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <input
+                        type="url"
+                        placeholder="Paste image URL (https://...)"
+                        value={profileForm.avatar_url}
+                        onChange={(e) => setProfileForm(prev => ({ ...prev, avatar_url: e.target.value }))}
+                        className="glass-input rounded-xl px-3 py-2 text-xs flex-1 font-mono"
+                      />
+                      <label className="btn-primary text-xs px-4 py-2 rounded-xl flex items-center justify-center gap-1.5 cursor-pointer shrink-0 shadow-cyan-glow">
+                        <Upload className="w-3.5 h-3.5" />
+                        <span>{uploadingAvatar ? 'Uploading...' : 'Upload Image'}</span>
+                        <input 
+                          type="file" 
+                          accept="image/*" 
+                          onChange={handleAvatarFileChange} 
+                          className="hidden" 
+                          disabled={uploadingAvatar}
+                        />
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Preset Avatar Gallery */}
+                <div className="pt-2 border-t border-slate-200 dark:border-white/10">
+                  <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-2">
+                    Or Choose an Eyewear Designer Avatar:
+                  </span>
+                  <div className="flex flex-wrap items-center gap-2.5">
+                    {presetAvatars.map((av, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => setProfileForm(prev => ({ ...prev, avatar_url: av.url }))}
+                        className={`group flex items-center gap-2 p-1.5 pr-3 rounded-full border transition-all cursor-pointer ${
+                          profileForm.avatar_url === av.url
+                            ? 'bg-cyan-500/15 border-brand-cyan text-cyan-800 dark:text-brand-cyan font-bold shadow-sm'
+                            : 'bg-white dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 hover:border-brand-cyan/50'
+                        }`}
+                      >
+                        <img src={av.url} alt={av.name} className="w-6 h-6 rounded-full object-cover" />
+                        <span className="text-[11px]">{av.name}</span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
 
               {/* Form Inputs Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1.5">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
                     Full Legal Name *
                   </label>
                   <input
@@ -1098,8 +1268,8 @@ export const AccountPage = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1.5">
-                    Phone Number (WhatsApp &amp; OTP) *
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                    Primary Phone (WhatsApp &amp; OTP) *
                   </label>
                   <input
                     type="tel"
@@ -1111,8 +1281,21 @@ export const AccountPage = () => {
                   />
                 </div>
 
-                <div className="sm:col-span-2">
-                  <label className="block text-xs font-bold text-slate-300 mb-1.5">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                    Alternate / Delivery Phone
+                  </label>
+                  <input
+                    type="tel"
+                    value={profileForm.alternate_phone}
+                    onChange={(e) => setProfileForm(prev => ({ ...prev, alternate_phone: e.target.value }))}
+                    placeholder="Secondary contact for couriers"
+                    className="w-full glass-input rounded-xl px-4 py-2.5 text-xs font-mono"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
                     Account Email Address
                   </label>
                   <input
@@ -1122,8 +1305,55 @@ export const AccountPage = () => {
                     placeholder="rahul.sen@example.com"
                     className="w-full glass-input rounded-xl px-4 py-2.5 text-xs font-mono"
                   />
-                  <p className="text-[10px] text-slate-400 mt-1">
-                    Used for automated optical prescription dispatches and order invoices.
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center justify-between">
+                    <span>Date of Birth</span>
+                    <span className="text-[10px] text-amber-600 dark:text-amber-400 font-bold">★ Birthday Frame Perks</span>
+                  </label>
+                  <input
+                    type="date"
+                    value={profileForm.dob}
+                    onChange={(e) => setProfileForm(prev => ({ ...prev, dob: e.target.value }))}
+                    className="w-full glass-input rounded-xl px-4 py-2.5 text-xs font-mono"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                    Gender Identity
+                  </label>
+                  <select
+                    value={profileForm.gender}
+                    onChange={(e) => setProfileForm(prev => ({ ...prev, gender: e.target.value }))}
+                    className="w-full glass-input rounded-xl px-4 py-2.5 text-xs font-bold"
+                  >
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                    <option value="Unisex">Unisex / All Frames</option>
+                    <option value="Other">Prefer not to specify</option>
+                  </select>
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                    Primary Eyewear Preference / Requirement
+                  </label>
+                  <select
+                    value={profileForm.optical_preference}
+                    onChange={(e) => setProfileForm(prev => ({ ...prev, optical_preference: e.target.value }))}
+                    className="w-full glass-input rounded-xl px-4 py-2.5 text-xs font-bold"
+                  >
+                    <option value="Prescription Eyeglasses">Prescription Eyeglasses (CR-39 Single Vision)</option>
+                    <option value="Progressive / Bifocal">Progressive / Bifocal Multi-Focus</option>
+                    <option value="Blue-Cut Screen Glasses">Blue-Cut Digital Screen Protection (0 Power / Powered)</option>
+                    <option value="Polarized Sunglasses">Polarized UV400 Sunglasses</option>
+                    <option value="Pure Titanium Designer Frames">Pure Japanese Titanium Designer Frames</option>
+                    <option value="Contact Lenses">Daily / Monthly Soft Contact Lenses</option>
+                  </select>
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1">
+                    Helps our optometry team suggest ideal lens coatings and frame dimensions.
                   </p>
                 </div>
               </div>
@@ -1132,7 +1362,7 @@ export const AccountPage = () => {
                 <button
                   type="submit"
                   disabled={profileSaving}
-                  className="btn-primary text-xs py-3 px-8 rounded-xl font-bold flex items-center gap-2 shadow-cyan-glow"
+                  className="btn-primary text-xs py-3 px-8 rounded-xl font-bold flex items-center gap-2 shadow-cyan-glow cursor-pointer"
                 >
                   <Save className="w-4 h-4" />
                   <span>{profileSaving ? 'Saving Changes...' : 'Save Profile Changes'}</span>
@@ -1140,6 +1370,149 @@ export const AccountPage = () => {
               </div>
             </form>
           </div>
+
+          {/* Security & Password Change Card */}
+          <div className="glass-card bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 space-y-6 border border-slate-200 dark:border-white/10 shadow-xl">
+            <div className="flex items-center gap-2.5 border-b border-slate-100 dark:border-white/10 pb-4">
+              <Key className="w-5 h-5 text-amber-500" />
+              <div>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">Security &amp; Account Password</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Update your account login password</p>
+              </div>
+            </div>
+
+            {passwordFeedback.message && (
+              <div className={`p-4 rounded-2xl flex items-center gap-3 text-xs font-bold shadow-sm ${
+                passwordFeedback.type === 'success'
+                  ? 'bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-500/40 text-emerald-800 dark:text-emerald-200'
+                  : 'bg-rose-50 dark:bg-rose-950/40 border border-rose-300 dark:border-rose-500/40 text-rose-800 dark:text-rose-200'
+              }`}>
+                {passwordFeedback.type === 'success' ? <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" /> : <AlertCircle className="w-5 h-5 text-rose-600 dark:text-rose-400 shrink-0" />}
+                <span>{passwordFeedback.message}</span>
+              </div>
+            )}
+
+            <form onSubmit={handlePasswordChange} className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                    Current Password *
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showCurrentPass ? "text" : "password"}
+                      required
+                      value={passwordForm.current_password}
+                      onChange={(e) => setPasswordForm(prev => ({ ...prev, current_password: e.target.value }))}
+                      placeholder="••••••••"
+                      className="w-full glass-input rounded-xl px-4 py-2.5 text-xs pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowCurrentPass(!showCurrentPass)}
+                      className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-white"
+                    >
+                      {showCurrentPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                    New Password *
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showNewPass ? "text" : "password"}
+                      required
+                      minLength={6}
+                      value={passwordForm.new_password}
+                      onChange={(e) => setPasswordForm(prev => ({ ...prev, new_password: e.target.value }))}
+                      placeholder="Min 6 characters"
+                      className="w-full glass-input rounded-xl px-4 py-2.5 text-xs pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowNewPass(!showNewPass)}
+                      className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-white"
+                    >
+                      {showNewPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                    Confirm New Password *
+                  </label>
+                  <input
+                    type="password"
+                    required
+                    minLength={6}
+                    value={passwordForm.confirm_password}
+                    onChange={(e) => setPasswordForm(prev => ({ ...prev, confirm_password: e.target.value }))}
+                    placeholder="Repeat new password"
+                    className="w-full glass-input rounded-xl px-4 py-2.5 text-xs"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end pt-2">
+                <button
+                  type="submit"
+                  disabled={passwordSaving}
+                  className="px-6 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black flex items-center gap-1.5 shadow-md shadow-amber-500/20 cursor-pointer transition-all"
+                >
+                  <Lock className="w-3.5 h-3.5" />
+                  <span>{passwordSaving ? 'Updating Password...' : 'Update Password'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+
+          {/* VIP Membership Perks & Digital Warranty Card */}
+          <div className="p-6 rounded-3xl bg-gradient-to-r from-amber-500/10 via-brand-cyan/10 to-teal-500/10 border border-amber-500/30 space-y-4">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div className="flex items-center gap-2">
+                <Award className="w-6 h-6 text-amber-500" />
+                <h3 className="text-base font-black text-slate-900 dark:text-white">Netra Clarity Club — Gold Privileges</h3>
+              </div>
+              <span className="text-xs font-mono font-bold px-2.5 py-1 rounded-full bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/40">
+                ACTIVE
+              </span>
+            </div>
+
+            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+              As a registered optical customer at Netra Unnayan, you enjoy complimentary clinic services at our Digha Eye Care Center:
+            </p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+              <div className="p-3 rounded-2xl bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-white/10 space-y-1">
+                <div className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                  <Sparkles className="w-4 h-4 text-brand-cyan" />
+                  <span>Free Ultrasonic Clean</span>
+                </div>
+                <p className="text-[11px] text-slate-500">Deep ultrasonic wave cleansing for all frames</p>
+              </div>
+
+              <div className="p-3 rounded-2xl bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-white/10 space-y-1">
+                <div className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                  <span>Frame Alignment</span>
+                </div>
+                <p className="text-[11px] text-slate-500">Free screw tightening &amp; soft nose pad replacement</p>
+              </div>
+
+              <div className="p-3 rounded-2xl bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-white/10 space-y-1">
+                <div className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                  <Shield className="w-4 h-4 text-amber-500" />
+                  <span>1-Year Lens Warranty</span>
+                </div>
+                <p className="text-[11px] text-slate-500">Guaranteed optical anti-reflection coatings</p>
+              </div>
+            </div>
+          </div>
+
         </div>
       )}
 
