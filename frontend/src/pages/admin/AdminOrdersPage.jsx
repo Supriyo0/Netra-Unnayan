@@ -5,6 +5,7 @@ import {
   Printer, Send, ShieldAlert, ArrowUpDown, Trash2
 } from 'lucide-react';
 import api from '../../api/client';
+import { InvoiceModal } from '../../components/common/InvoiceModal';
 
 export default function AdminOrdersPage() {
   const [orders, setOrders] = useState([]);
@@ -12,6 +13,7 @@ export default function AdminOrdersPage() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [selectedOrder, setSelectedOrder] = useState(null);
+  const [invoiceModalData, setInvoiceModalData] = useState(null);
   const [modalLoading, setModalLoading] = useState(false);
   const [statusNote, setStatusNote] = useState('');
   const [isCustomerVisible, setIsCustomerVisible] = useState(true);
@@ -206,6 +208,53 @@ export default function AdminOrdersPage() {
     }
   };
 
+  const handleOpenInvoice = (order) => {
+    if (!order) return;
+    const invData = {
+      invoiceNumber: order.invoice_number || `NU/INV/${new Date().getFullYear()}/${order.id}`,
+      orderNumber: order.order_number || `NU-ORD-${order.id}`,
+      invoiceDate: order.created_at ? new Date(order.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : new Date().toLocaleDateString('en-GB'),
+      type: order.order_type === 'POS_OFFLINE' ? 'POS' : 'ORDER',
+      isGstInvoice: false,
+      status: order.order_status || 'Paid & Delivered',
+      paymentMode: order.payment_mode || order.payment_method || 'UPI',
+      paymentStatus: order.payment_status || 'Paid',
+      customerName: order.customer_name || 'Walk-in Customer',
+      customerPhone: order.customer_phone || '',
+      customerEmail: order.customer_email || '',
+      customerAddress: order.shipping_address_line1 
+        ? `${order.shipping_address_line1}${order.shipping_city ? `, ${order.shipping_city}` : ''}${order.shipping_state ? `, ${order.shipping_state}` : ''} ${order.shipping_pincode ? `— ${order.shipping_pincode}` : ''}`
+        : (order.shipping_address || 'In-store Counter Pickup (Digha Flagship)'),
+      items: (order.items && order.items.length > 0 ? order.items : [
+        {
+          product_name: 'Optical Eyewear Frame / Eyeglasses',
+          product_sku: order.order_number || 'NU-EYEWEAR',
+          unit_price: Number(order.total_amount || 0),
+          quantity: 1,
+          lens_type: 'Single Vision Precision Optics',
+          lens_price: 0,
+          total_price: Number(order.total_amount || 0)
+        }
+      ]).map(it => ({
+        product_name: it.product_name || it.name || 'Optical Eyewear Frame',
+        product_sku: it.product_sku || it.sku || 'NU-FRAME',
+        unit_price: Number(it.unit_price || it.price || 0),
+        quantity: Number(it.quantity || 1),
+        lens_type: it.lens_type || 'Standard Optical Lens',
+        lens_price: Number(it.lens_price || 0),
+        total_price: Number(it.total_price || ((it.unit_price || 0) * (it.quantity || 1)))
+      })),
+      subtotal: Number(order.subtotal || order.total_amount || 0),
+      discountAmount: Number(order.discount_amount || 0),
+      shippingFee: Number(order.shipping_fee || 0),
+      taxAmount: Number(order.tax_amount || 0),
+      totalAmount: Number(order.total_amount || order.subtotal || 0),
+      prescription: order.prescription || (order.prescriptions && order.prescriptions[0]) || null,
+      notes: order.notes || 'Thank you for choosing Netra Unnayan for your vision care!'
+    };
+    setInvoiceModalData(invData);
+  };
+
   const getOrderStatusBadge = (statusStr) => {
     const s = (statusStr || 'Pending').toLowerCase();
     if (s.includes('delivered') || s.includes('completed')) {
@@ -368,8 +417,15 @@ export default function AdminOrdersPage() {
                       <td className="px-5 py-4 text-right">
                         <div className="flex items-center justify-end gap-1.5">
                           <button
+                            onClick={() => handleOpenInvoice(order)}
+                            className="p-2 rounded-xl bg-teal-500/15 hover:bg-teal-600 text-teal-700 dark:text-teal-300 hover:text-white border border-teal-500/30 transition-all cursor-pointer shadow-xs"
+                            title="Print Official A4 Tax / POS Invoice"
+                          >
+                            <Printer className="w-4 h-4 stroke-[2.2]" />
+                          </button>
+                          <button
                             onClick={() => openOrderDetail(order.id)}
-                            className="px-3.5 py-2 rounded-xl bg-brand-cyan hover:bg-cyan-400 text-slate-950 font-black text-xs inline-flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
+                            className="px-3 py-2 rounded-xl bg-brand-cyan hover:bg-cyan-400 text-slate-950 font-black text-xs inline-flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
                             title="View and manage order"
                           >
                             <Eye className="w-3.5 h-3.5 stroke-[2.5]" />
@@ -829,11 +885,11 @@ export default function AdminOrdersPage() {
               </button>
               <div className="flex items-center gap-3">
                 <button
-                  onClick={() => window.print()}
-                  className="px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/20 text-slate-900 dark:text-white font-bold text-xs flex items-center gap-1.5 border border-slate-300 dark:border-white/20 transition-all cursor-pointer"
+                  onClick={() => handleOpenInvoice(selectedOrder)}
+                  className="px-4 py-2.5 rounded-xl bg-teal-500/15 hover:bg-teal-600 text-teal-700 dark:text-teal-300 hover:text-white font-bold text-xs flex items-center gap-1.5 border border-teal-500/30 transition-all cursor-pointer shadow-xs"
                 >
                   <Printer className="w-4 h-4" />
-                  <span>Print Order Slip</span>
+                  <span>Print Official Invoice / Slip</span>
                 </button>
                 <button
                   onClick={() => setSelectedOrder(null)}
@@ -900,6 +956,13 @@ export default function AdminOrdersPage() {
           </div>
         </div>
       )}
+
+      {/* A4 TAX / POS INVOICE MODAL */}
+      <InvoiceModal
+        isOpen={!!invoiceModalData}
+        onClose={() => setInvoiceModalData(null)}
+        invoiceData={invoiceModalData}
+      />
 
     </div>
   );
