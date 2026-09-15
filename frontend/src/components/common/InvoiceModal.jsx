@@ -28,7 +28,7 @@ export const InvoiceModal = ({ isOpen, onClose, invoiceData }) => {
   const [verifyQrDataUrl, setVerifyQrDataUrl] = useState('');
   const [upiQrDataUrl, setUpiQrDataUrl] = useState('');
 
-  if (!isOpen || !invoiceData) return null;
+  const activeData = invoiceData || {};
 
   const {
     invoiceNumber = 'NU/INV/2026/00123',
@@ -55,9 +55,9 @@ export const InvoiceModal = ({ isOpen, onClose, invoiceData }) => {
     notes = '',
     payment_qr = '',
     payment_qr_image = ''
-  } = invoiceData;
+  } = activeData;
 
-  const calculatedSubtotal = Number(subtotal || items.reduce((acc, it) => acc + (Number(it.unit_price || it.price || 0) * (it.quantity || 1)), 0));
+  const calculatedSubtotal = Number(subtotal || (items && items.length > 0 ? items.reduce((acc, it) => acc + (Number(it.unit_price || it.price || 0) * (it.quantity || 1)), 0) : 0));
   const calculatedDiscount = Number(discountAmount || 0);
   const calculatedShipping = Number(shippingFee || 0);
   const calculatedTotal = Number(totalAmount || Math.max(0, calculatedSubtotal - calculatedDiscount + calculatedShipping));
@@ -75,7 +75,7 @@ export const InvoiceModal = ({ isOpen, onClose, invoiceData }) => {
   // Generate offline base64 QR codes synchronously/instantly
   useEffect(() => {
     let isMounted = true;
-    if (invoiceVerifyUrl) {
+    if (isOpen && invoiceData && invoiceVerifyUrl) {
       QRCode.toDataURL(invoiceVerifyUrl, {
         width: 140,
         margin: 1,
@@ -84,7 +84,7 @@ export const InvoiceModal = ({ isOpen, onClose, invoiceData }) => {
         if (isMounted) setVerifyQrDataUrl(url);
       }).catch(err => console.error('Verify QR error:', err));
     }
-    if (upiPayload && !adminUploadedQr) {
+    if (isOpen && invoiceData && upiPayload && !adminUploadedQr) {
       QRCode.toDataURL(upiPayload, {
         width: 160,
         margin: 1,
@@ -94,13 +94,15 @@ export const InvoiceModal = ({ isOpen, onClose, invoiceData }) => {
       }).catch(err => console.error('UPI QR error:', err));
     }
     return () => { isMounted = false; };
-  }, [invoiceVerifyUrl, upiPayload, adminUploadedQr]);
+  }, [isOpen, invoiceData, invoiceVerifyUrl, upiPayload, adminUploadedQr]);
+
+  if (!isOpen || !invoiceData) return null;
 
   const handlePrint = () => {
     window.print();
   };
 
-  const rx = prescription || invoiceData.rx || null;
+  const rx = prescription || activeData.rx || null;
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-black/85 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 print:p-0 print:bg-white print:static">
