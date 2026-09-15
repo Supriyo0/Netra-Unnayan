@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { 
   Boxes, AlertTriangle, Plus, Search, RefreshCw, ArrowUpRight, 
-  ArrowDownRight, FileText, CheckCircle2, History, Filter, X, Barcode 
+  ArrowDownRight, FileText, CheckCircle2, History, Filter, X, Barcode, Edit3 
 } from 'lucide-react';
 import api from '../../api/client';
 import { BarcodeModal } from '../../components/common/BarcodeModal';
@@ -304,13 +305,24 @@ export default function AdminInventoryPage() {
                           )}
                         </td>
                         <td className="px-5 py-4 text-right">
-                          <button
-                            onClick={() => openAdjustModal(item)}
-                            className="btn-secondary py-1.5 px-3 text-xs inline-flex items-center gap-1.5"
-                          >
-                            <Plus className="w-3 h-3" />
-                            Adjust Stock
-                          </button>
+                          <div className="flex items-center justify-end gap-1.5">
+                            <button
+                              onClick={() => openAdjustModal(item)}
+                              className="btn-secondary py-1.5 px-3 text-xs inline-flex items-center gap-1.5"
+                              title="Adjust Stock Quantity"
+                            >
+                              <Plus className="w-3 h-3" />
+                              <span>Adjust</span>
+                            </button>
+                            <Link
+                              to={`/admin/products/edit/${item.id}`}
+                              className="btn-secondary py-1.5 px-3 text-xs inline-flex items-center gap-1.5 hover:text-brand-cyan hover:border-brand-cyan/40"
+                              title="Edit Frame Details & Price"
+                            >
+                              <Edit3 className="w-3 h-3 text-brand-cyan" />
+                              <span>Edit</span>
+                            </Link>
+                          </div>
                         </td>
                       </tr>
                     );

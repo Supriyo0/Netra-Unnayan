@@ -211,4 +211,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     }
 
     Response::error('Invalid action requested.', 400);
+
+} elseif ($_SERVER['REQUEST_METHOD'] === 'DELETE') {
+    $customerId = (int)($_GET['customer_id'] ?? $_GET['id'] ?? 0);
+    if (!$customerId) {
+        $input = json_decode(file_get_contents('php://input'), true) ?? [];
+        $customerId = (int)($input['customer_id'] ?? $input['id'] ?? 0);
+    }
+    if (!$customerId) Response::error('Customer ID required.', 400);
+
+    // Fetch customer email
+    $cStmt = $pdo->prepare('SELECT email FROM customers WHERE id = ?');
+    $cStmt->execute([$customerId]);
+    $cEmail = $cStmt->fetchColumn();
+
+    // Deactivate customer and scramble password hash so they cannot log in again
+    $pdo->prepare('UPDATE customers SET is_active = 0, password_hash = CONCAT("DISABLED_", MD5(RAND())) WHERE id = ?')->execute([$customerId]);
+
+    // Also deactivate any linked staff account
+    if ($cEmail) {
+        $pdo->prepare('UPDATE admins SET is_active = 0 WHERE email = ?')->execute([$cEmail]);
+    }
+
+    Response::success(['customer_id' => $customerId], 'User account has been deleted/disabled. They cannot login again.');
 }

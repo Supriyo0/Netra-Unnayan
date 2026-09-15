@@ -111,4 +111,31 @@ try {
     $log[] = 'customers.avatar_url already exists.';
 }
 
+// 8. Ensure 'Best Sellers & Signature Drops' category exists
+try {
+    $checkCat = $pdo->prepare("SELECT id FROM categories WHERE slug = 'best-sellers-signature-drops'");
+    $checkCat->execute();
+    $catId = $checkCat->fetchColumn();
+    if (!$catId) {
+        $pdo->exec("
+            INSERT INTO `categories` (`name`, `slug`, `description`, `image_url`, `display_order`, `is_active`, `seo_title`, `seo_description`)
+            VALUES ('Best Sellers & Signature Drops', 'best-sellers-signature-drops', 'Curated best-selling luxury optical frames and exclusive limited signature drops.', 'https://images.unsplash.com/photo-1591076482161-42ce6da69f67?w=800&auto=format&fit=crop&q=80', 0, 1, 'Best Sellers & Signature Drops | Netra Unnayan', 'Explore top trending and best-selling luxury optical frames.')
+        ");
+        $catId = (int)$pdo->lastInsertId();
+        $log[] = "Created 'Best Sellers & Signature Drops' category with ID $catId.";
+    } else {
+        $log[] = "'Best Sellers & Signature Drops' category already exists (ID $catId).";
+    }
+
+    // Ensure top 8 products have is_featured = 1 for immediate Best Sellers drop
+    $topIds = $pdo->query("SELECT id FROM products WHERE is_active = 1 ORDER BY id DESC LIMIT 8")->fetchAll(PDO::FETCH_COLUMN);
+    if (!empty($topIds)) {
+        $idList = implode(',', array_map('intval', $topIds));
+        $pdo->exec("UPDATE products SET is_featured = 1 WHERE id IN ($idList)");
+        $log[] = "Marked top 8 products ($idList) as is_featured = 1 for Best Sellers.";
+    }
+} catch (Exception $e) {
+    $log[] = "Best sellers category error: " . $e->getMessage();
+}
+
 Response::json(['status' => 'completed', 'log' => $log]);

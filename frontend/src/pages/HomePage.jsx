@@ -162,7 +162,10 @@ export const HomePage = () => {
       try {
         const [bannerRes, prodRes, catRes, docRes, settingsRes] = await Promise.all([
           api.get('/banners.php'),
-          api.get('/products?featured=1&limit=8'),
+          api.get('/products?category=best-sellers-signature-drops&limit=8').then(res => {
+            if (res.success && res.data?.products?.length > 0) return res;
+            return api.get('/products?featured=1&limit=8');
+          }),
           api.get('/categories'),
           api.get('/doctors'),
           api.get('/settings.php').catch(() => ({ success: false }))
@@ -574,8 +577,8 @@ export const HomePage = () => {
             <h2 className="bestsellers-title">BEST SELLERS &amp; SIGNATURE DROPS</h2>
             <span className="bestsellers-sub">Precision Crafted Japanese Titanium &amp; Italian Acetate</span>
           </div>
-          <Link to="/catalog" className="section-view-all">
-            <span>Explore All Frames</span> &gt;
+          <Link to="/shop?category=best-sellers-signature-drops" className="section-view-all">
+            <span>Explore All Signature Drops</span> &gt;
           </Link>
         </div>
 
@@ -651,6 +654,17 @@ export const HomePage = () => {
               </div>
             );
           })}
+        </div>
+
+        {/* View All Signature Drops Button */}
+        <div className="flex justify-center pt-8 pb-2">
+          <Link 
+            to="/shop?category=best-sellers-signature-drops" 
+            className="btn-primary inline-flex items-center gap-2.5 px-8 py-3.5 rounded-2xl text-xs font-black uppercase tracking-wider shadow-cyan-glow transition-transform hover:scale-105"
+          >
+            <span>View All Best Sellers &amp; Signature Drops</span>
+            <ChevronRight className="w-4 h-4" />
+          </Link>
         </div>
       </section>
 

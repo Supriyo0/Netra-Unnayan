@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   Users, Search, Phone, Mail, ShoppingBag, FileText, 
   RefreshCw, UserCheck, Calendar, Eye, Shield, ShieldCheck, 
-  ArrowUpRight, X, Power, CheckCircle2, AlertCircle, Sparkles
+  ArrowUpRight, X, Power, CheckCircle2, AlertCircle, Sparkles, Trash2
 } from 'lucide-react';
 import api from '../../api/client';
 

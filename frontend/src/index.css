@@ -50,18 +50,22 @@ h1, h2, h3, h4, .font-heading {
   background: #00B4D8;
 }
 
-/* Dark Mode Defaults */
-html.dark, :root:not(.light) {
-  color-scheme: dark;
-  background-color: #060D17;
-  color: #F1F5F9;
-}
-
-/* Light Mode Overrides */
-html.light {
+/* Default Theme: Clean Optical Light White (#FFFFFF / #F8FAFC) */
+:root,
+html,
+html.light,
+body.light {
   color-scheme: light;
   background-color: #F8FAFC;
   color: #0F172A;
+}
+
+/* Dark Mode: When switched to dark */
+html.dark,
+body.dark {
+  color-scheme: dark;
+  background-color: #060D17;
+  color: #F1F5F9;
 }
 
 /* Glassmorphism Styles - Dark */

@@ -11,6 +11,7 @@ import { useWishlist } from '../context/WishlistContext';
 import { SizeGuideModal } from '../components/optical/SizeGuideModal';
 import { PrescriptionModal } from '../components/optical/PrescriptionModal';
 import { VirtualTryOnModal } from '../components/optical/VirtualTryOnModal';
+import { useTheme } from '../context/ThemeContext';
 
 export const ProductDetailPage = () => {
   const params = useParams();
@@ -18,6 +19,7 @@ export const ProductDetailPage = () => {
   const navigate = useNavigate();
   const { addToCart } = useCart();
   const { isInWishlist, toggleWishlist } = useWishlist();
+  const { isDark } = useTheme();
 
   const [product, setProduct] = useState(null);
   const [activeImage, setActiveImage] = useState(0);
@@ -27,6 +29,8 @@ export const ProductDetailPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [shareCopied, setShareCopied] = useState(false);
+  const [relatedProducts, setRelatedProducts] = useState([]);
+  const [relatedLoading, setRelatedLoading] = useState(false);
 
   // Modals
   const [sizeModalOpen, setSizeModalOpen] = useState(false);
@@ -151,6 +155,33 @@ export const ProductDetailPage = () => {
     };
     fetchProduct();
   }, [identifier]);
+
+  // Fetch Related Products based on category
+  useEffect(() => {
+    if (!product?.id) return;
+    const fetchRelated = async () => {
+      setRelatedLoading(true);
+      try {
+        let endpoint = '/products?limit=12';
+        if (product.category_slug) {
+          endpoint = `/products?category=${encodeURIComponent(product.category_slug)}&limit=12`;
+        } else if (product.category_id) {
+          endpoint = `/products?category_id=${encodeURIComponent(product.category_id)}&limit=12`;
+        }
+        const res = await api.get(endpoint);
+        if (res.success && Array.isArray(res.data)) {
+          // Filter out current active product
+          const list = res.data.filter(p => Number(p.id) !== Number(product.id));
+          setRelatedProducts(list.slice(0, 6));
+        }
+      } catch (err) {
+        console.warn('Failed to fetch related products:', err);
+      } finally {
+        setRelatedLoading(false);
+      }
+    };
+    fetchRelated();
+  }, [product?.id, product?.category_slug, product?.category_id]);
 
   if (loading) {
     return (
@@ -611,8 +642,172 @@ export const ProductDetailPage = () => {
             </div>
           </div>
 
+          {/* Related Eyewear in this Collection (Below Buy Now & Cart) */}
+          {relatedProducts.length > 0 && (
+            <div className="pt-4 border-t border-slate-200 dark:border-white/10 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-brand-cyan" />
+                  <span>Related Eyewear</span>
+                </span>
+                <Link
+                  to={product.category_slug ? `/shop?category=${product.category_slug}` : '/shop'}
+                  className="text-[11px] text-brand-cyan hover:underline font-medium"
+                >
+                  View Collection &rarr;
+                </Link>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2.5">
+                {relatedProducts.slice(0, 2).map((rel) => {
+                  const relReg = Number(rel.price);
+                  const relSale = rel.discount_price ? Number(rel.discount_price) : relReg;
+                  return (
+                    <Link
+                      key={rel.id}
+                      to={`/product/${rel.slug || rel.sku || rel.id}`}
+                      className="group p-2.5 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/[0.03] hover:border-brand-cyan/50 hover:bg-white/10 transition-all flex items-center gap-2.5"
+                    >
+                      <img
+                        src={rel.primary_image || 'https://images.unsplash.com/photo-1591076482161-42ce6da69f67?w=200&auto=format&fit=crop&q=80'}
+                        alt={rel.name}
+                        className="w-12 h-12 rounded-lg object-cover bg-white dark:bg-slate-900 shrink-0 group-hover:scale-105 transition-transform"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <div className="text-xs font-bold text-slate-900 dark:text-white truncate group-hover:text-brand-cyan transition-colors">
+                          {rel.name}
+                        </div>
+                        <div className="text-[10px] text-slate-500 dark:text-slate-400 capitalize">
+                          {rel.frame_shape || 'Optical'} · {rel.frame_material || 'Acetate'}
+                        </div>
+                        <div className="text-xs font-bold text-brand-cyan mt-0.5">
+                          ₹{relSale}
+                        </div>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
         </div>
       </div>
+
+      {/* Full-width Related & Recommended Eyewear Grid */}
+      {relatedProducts.length > 0 && (
+        <section className="mt-16 pt-12 border-t border-slate-200 dark:border-white/10">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
+            <div>
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-brand-cyan/10 text-brand-cyan border border-brand-cyan/20 mb-2">
+                <Sparkles className="w-3.5 h-3.5" /> Curated Eyewear
+              </div>
+              <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+                Related Eyewear You May Also Like
+              </h2>
+              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
+                Handcrafted frames sharing the same optical category, aesthetic proportions, and craftsmanship
+              </p>
+            </div>
+            <Link
+              to={product.category_slug ? `/shop?category=${product.category_slug}` : '/shop'}
+              className="inline-flex items-center gap-1 text-xs sm:text-sm font-bold text-brand-cyan hover:underline shrink-0"
+            >
+              <span>Explore Entire Collection</span>
+              <ChevronRight className="w-4 h-4" />
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
+            {relatedProducts.map((rel) => {
+              const relReg = Number(rel.price);
+              const relSale = rel.discount_price ? Number(rel.discount_price) : relReg;
+              const relDiscountPct = rel.discount_percent || Math.round(((relReg - relSale) / relReg) * 100) || 0;
+              const inWish = isInWishlist(rel.id);
+
+              return (
+                <div
+                  key={rel.id}
+                  className="group glass-card rounded-2xl overflow-hidden border border-slate-200 dark:border-white/10 hover:border-brand-cyan/50 transition-all duration-300 flex flex-col justify-between"
+                >
+                  <div className="relative aspect-[4/3] bg-slate-100 dark:bg-slate-900/60 p-4 flex items-center justify-center overflow-hidden">
+                    {relDiscountPct > 0 ? (
+                      <span className="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-full text-[10px] font-extrabold tracking-wider bg-rose-500 text-white shadow-sm z-10">
+                        {relDiscountPct}% OFF
+                      </span>
+                    ) : (
+                      <span className="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-full text-[10px] font-extrabold tracking-wider bg-brand-cyan text-slate-950 shadow-sm z-10">
+                        CURATED
+                      </span>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={() => toggleWishlist(rel)}
+                      className={`absolute top-2.5 right-2.5 w-8 h-8 rounded-full flex items-center justify-center transition-all z-10 ${
+                        inWish
+                          ? 'bg-rose-500 text-white shadow-md'
+                          : 'bg-white/80 dark:bg-black/50 text-slate-600 dark:text-slate-300 hover:text-rose-500 border border-slate-200 dark:border-white/10'
+                      }`}
+                      title={inWish ? 'Remove from Wishlist' : 'Add to Wishlist'}
+                    >
+                      <Heart className={`w-3.5 h-3.5 ${inWish ? 'fill-white' : ''}`} />
+                    </button>
+
+                    <Link to={`/product/${rel.slug || rel.sku || rel.id}`} className="w-full h-full flex items-center justify-center">
+                      <img
+                        src={rel.primary_image || 'https://images.unsplash.com/photo-1591076482161-42ce6da69f67?w=500&auto=format&fit=crop&q=80'}
+                        alt={rel.name}
+                        loading="lazy"
+                        className="max-h-full max-w-full object-contain group-hover:scale-110 transition-transform duration-500"
+                      />
+                    </Link>
+                  </div>
+
+                  <div className="p-4 flex-1 flex flex-col justify-between space-y-3">
+                    <div>
+                      <div className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1">
+                        {rel.sku || 'NETRA EYEWEAR'}
+                      </div>
+                      <h3 className="font-bold text-sm text-slate-900 dark:text-white line-clamp-1 group-hover:text-brand-cyan transition-colors">
+                        <Link to={`/product/${rel.slug || rel.sku || rel.id}`}>{rel.name}</Link>
+                      </h3>
+                      <div className="text-[11px] text-slate-500 dark:text-slate-400 capitalize mt-0.5">
+                        {rel.frame_shape || 'Standard'} · {rel.gender || 'Unisex'}
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-base font-extrabold text-slate-900 dark:text-white">₹{relSale}</span>
+                        {relReg > relSale && (
+                          <span className="text-xs text-slate-400 line-through">₹{relReg}</span>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-2 mt-3 pt-3 border-t border-slate-200 dark:border-white/5">
+                        <button
+                          type="button"
+                          onClick={() => addToCart(rel, 1)}
+                          className="flex-1 btn-secondary py-2 text-xs font-bold flex items-center justify-center gap-1.5"
+                        >
+                          <ShoppingBag className="w-3.5 h-3.5" /> Add
+                        </button>
+                        <Link
+                          to={`/product/${rel.slug || rel.sku || rel.id}`}
+                          className="btn-primary py-2 px-3 text-xs font-bold flex items-center justify-center"
+                        >
+                          View
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       {/* Sizing Modal */}
       <SizeGuideModal

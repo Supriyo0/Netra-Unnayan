@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   Package, Search, Filter, Eye, CheckCircle2, AlertTriangle, 
   Clock, Truck, DollarSign, RefreshCw, X, FileText, ChevronRight,
-  Printer, Send, ShieldAlert, ArrowUpDown
+  Printer, Send, ShieldAlert, ArrowUpDown, Trash2
 } from 'lucide-react';
 import api from '../../api/client';
 
@@ -159,6 +159,25 @@ export default function AdminOrdersPage() {
     }
   };
 
+  const handleDeleteOrder = async (order) => {
+    const confirmDelete = window.confirm(
+      `Are you sure you want to permanently delete Order #${order.order_number} and its associated invoice records?\n\nThis action cannot be undone.`
+    );
+    if (!confirmDelete) return;
+
+    try {
+      const res = await api.delete(`/admin/orders.php?id=${order.id}`);
+      if (res.success || res.data?.success) {
+        setOrders(prev => prev.filter(o => o.id !== order.id));
+        if (selectedOrder?.id === order.id) setSelectedOrder(null);
+      } else {
+        alert(res.message || 'Failed to delete order.');
+      }
+    } catch (err) {
+      alert(err.message || 'Error deleting order.');
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -301,13 +320,23 @@ export default function AdminOrdersPage() {
                       })}
                     </td>
                     <td className="px-5 py-4 text-right">
-                      <button
-                        onClick={() => openOrderDetail(order.id)}
-                        className="btn-primary py-1.5 px-3 text-xs inline-flex items-center gap-1.5"
-                      >
-                        <Eye className="w-3.5 h-3.5" />
-                        Manage
-                      </button>
+                      <div className="flex items-center justify-end gap-1.5">
+                        <button
+                          onClick={() => openOrderDetail(order.id)}
+                          className="btn-primary py-1.5 px-3 text-xs inline-flex items-center gap-1.5"
+                          title="View and manage order"
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                          <span>Manage</span>
+                        </button>
+                        <button
+                          onClick={() => handleDeleteOrder(order)}
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 transition-colors border border-transparent hover:border-rose-500/20"
+                          title="Delete Order & Invoices"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -729,20 +758,29 @@ export default function AdminOrdersPage() {
             </div>
 
             {/* Modal Footer */}
-            <div className="p-4 bg-neutral-50 dark:bg-neutral-900 border-t border-neutral-200 dark:border-neutral-800 flex justify-end gap-3">
+            <div className="p-4 bg-neutral-50 dark:bg-neutral-900 border-t border-neutral-200 dark:border-neutral-800 flex items-center justify-between gap-3">
               <button
-                onClick={() => window.print()}
-                className="btn-secondary py-2 px-4 text-xs flex items-center gap-1.5"
+                onClick={() => handleDeleteOrder(selectedOrder)}
+                className="py-2 px-3 text-xs text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 rounded-lg flex items-center gap-1.5 border border-rose-500/20"
               >
-                <Printer className="w-4 h-4" />
-                Print Order Slip
+                <Trash2 className="w-4 h-4" />
+                <span>Delete Order &amp; Invoices</span>
               </button>
-              <button
-                onClick={() => setSelectedOrder(null)}
-                className="btn-secondary py-2 px-4 text-xs"
-              >
-                Close
-              </button>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => window.print()}
+                  className="btn-secondary py-2 px-4 text-xs flex items-center gap-1.5"
+                >
+                  <Printer className="w-4 h-4" />
+                  Print Order Slip
+                </button>
+                <button
+                  onClick={() => setSelectedOrder(null)}
+                  className="btn-secondary py-2 px-4 text-xs"
+                >
+                  Close
+                </button>
+              </div>
             </div>
           </div>
         </div>

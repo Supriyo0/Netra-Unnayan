@@ -30,6 +30,9 @@ if (!empty($_GET['category'])) {
     if (is_numeric($cat)) {
         $where[] = 'p.category_id = :cat_id';
         $params[':cat_id'] = (int)$cat;
+    } elseif ($cat === 'best-sellers-signature-drops') {
+        $where[] = '(c.slug = :cat_slug OR p.is_featured = 1)';
+        $params[':cat_slug'] = $cat;
     } else {
         $where[] = 'c.slug = :cat_slug';
         $params[':cat_slug'] = $cat;

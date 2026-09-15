@@ -300,6 +300,13 @@ export const AdminProductsPage = () => {
                       {/* Actions */}
                       <td className="p-3.5 text-right space-x-1 whitespace-nowrap">
                         <Link
+                          to={`/admin/products/edit/${p.id}`}
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-brand-cyan hover:bg-brand-cyan/10 inline-flex"
+                          title="Edit Frame Details, Images & Pricing"
+                        >
+                          <Edit3 className="w-4 h-4" />
+                        </Link>
+                        <Link
                           to={`/product/${p.sku}`}
                           target="_blank"
                           className="p-1.5 rounded-lg text-slate-400 hover:text-brand-cyan hover:bg-white/5 inline-flex"

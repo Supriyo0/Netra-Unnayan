@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useParams, Link } from 'react-router-dom';
 import { 
   ArrowLeft, Sparkles, Upload, Save, CheckCircle2, 
-  AlertCircle, Camera, Barcode, Eye, Layers, ShieldCheck, Tag, Users
+  AlertCircle, Camera, Barcode, Eye, Layers, ShieldCheck, Tag, Users, RefreshCw
 } from 'lucide-react';
 import api from '../../api/client';
 import { ImageUploadDropzone } from '../../components/common/ImageUploadDropzone';
@@ -10,10 +10,14 @@ import { CameraFrameCaptureModal } from '../../components/common/CameraFrameCapt
 
 export const AdminAddProductPage = () => {
   const navigate = useNavigate();
+  const { id: editProductId } = useParams();
+  const isEditMode = Boolean(editProductId);
 
   // Tab State
   const [activeTab, setActiveTab] = useState('specs'); // 'specs' | 'geometry' | 'pricing' | 'tryon'
   const [isCameraModalOpen, setIsCameraModalOpen] = useState(false);
+  const [loadingEdit, setLoadingEdit] = useState(isEditMode);
+  const [categoriesList, setCategoriesList] = useState([]);
 
   // Form Fields
   const [name, setName] = useState('');
@@ -59,6 +63,82 @@ export const AdminAddProductPage = () => {
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
+  useEffect(() => {
+    // Load categories
+    api.get('/categories').then(res => {
+      if (res.success && res.data) {
+        setCategoriesList(res.data);
+      }
+    }).catch(console.error);
+
+    // If in edit mode, fetch product details
+    if (editProductId) {
+      setLoadingEdit(true);
+      api.get(`/products/detail.php?id=${editProductId}`).then(res => {
+        if (res.success && res.data) {
+          const p = res.data;
+          setName(p.name || '');
+          setCategoryId(String(p.category_id || '1'));
+          setBrandName(p.brand_name || 'Netra Signature');
+          setGender(p.gender || 'Unisex');
+          setDescription(p.description || '');
+          setPrice(String(p.price || ''));
+          setDiscountPrice(p.discount_price ? String(p.discount_price) : '');
+          setStockQuantity(String(p.stock_quantity ?? '0'));
+          setLowStockThreshold(String(p.low_stock_threshold ?? '5'));
+          setSku(p.sku || '');
+          setBarcode(p.barcode || '');
+          setFrameShape(p.frame_shape || 'Rectangle');
+          setFrameMaterial(p.frame_material || 'Beta Titanium');
+          setFrameSize(p.frame_size || 'Medium');
+          setFrameColor(p.frame_color || 'Matte Black');
+          setLensWidth(String(p.lens_width || '52'));
+          setBridgeWidth(String(p.bridge_width || '18'));
+          setTempleLength(String(p.temple_length || '140'));
+          setTotalWidth(String(p.total_frame_width || '138'));
+          setIsTryonEnabled(p.is_tryon_enabled === 1);
+          setIsPrescriptionCompatible(p.is_prescription_compatible === 1);
+          setIsFeatured(p.is_featured === 1);
+          setIsNewArrival(p.is_new_arrival === 1);
+
+          if (p.images && p.images.length > 0) {
+            setPrimaryImage(p.images[0]?.image_url || p.primary_image || '');
+            setSideImage(p.images[1]?.image_url || '');
+            setAngleImage(p.images[2]?.image_url || '');
+            setModelImage(p.images[3]?.image_url || '');
+            setCaseImage(p.images[4]?.image_url || '');
+          } else if (p.primary_image) {
+            setPrimaryImage(p.primary_image);
+          }
+
+          if (p.available_sizes) {
+            try {
+              const sz = typeof p.available_sizes === 'string' ? JSON.parse(p.available_sizes) : p.available_sizes;
+              if (Array.isArray(sz)) setAvailableSizes(sz);
+              else setAvailableSizes(p.available_sizes.split(',').map(s => s.trim()).filter(Boolean));
+            } catch {
+              setAvailableSizes(p.available_sizes.split(',').map(s => s.trim()).filter(Boolean));
+            }
+          }
+
+          if (p.available_colors) {
+            try {
+              const cl = typeof p.available_colors === 'string' ? JSON.parse(p.available_colors) : p.available_colors;
+              if (Array.isArray(cl)) setAvailableColors(cl);
+              else setAvailableColors(p.available_colors.split(',').map(s => s.trim()).filter(Boolean));
+            } catch {
+              setAvailableColors(p.available_colors.split(',').map(s => s.trim()).filter(Boolean));
+            }
+          }
+        }
+      }).catch(err => {
+        setErrorMsg('Failed to load product data: ' + err.message);
+      }).finally(() => {
+        setLoadingEdit(false);
+      });
+    }
+  }, [editProductId]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMsg('');
@@ -72,6 +152,7 @@ export const AdminAddProductPage = () => {
     setSaving(true);
     try {
       const payload = {
+        ...(editProductId ? { id: parseInt(editProductId) } : {}),
         name: name.trim(),
         category_id: parseInt(categoryId),
         brand_id: 1,
@@ -108,10 +189,10 @@ export const AdminAddProductPage = () => {
 
       const res = await api.post('/admin/products.php', payload);
       if (res.success) {
-        setSuccessMsg(`Frame '${name}' successfully registered and stocked in vault!`);
+        setSuccessMsg(isEditMode ? `Frame '${name}' updated successfully!` : `Frame '${name}' successfully registered and stocked in vault!`);
         setTimeout(() => {
           navigate('/admin/products');
-        }, 1500);
+        }, 1200);
       } else {
         setErrorMsg(res.message || 'Failed to save product.');
       }
@@ -121,6 +202,15 @@ export const AdminAddProductPage = () => {
       setSaving(false);
     }
   };
+
+  if (loadingEdit) {
+    return (
+      <div className="py-24 text-center space-y-3">
+        <RefreshCw className="w-8 h-8 animate-spin mx-auto text-brand-cyan" />
+        <p className="text-sm text-slate-400">Loading optical frame specifications...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto">
@@ -136,10 +226,10 @@ export const AdminAddProductPage = () => {
           </Link>
           <div>
             <span className="text-xs uppercase font-extrabold tracking-wider text-brand-cyan">
-              Catalog Studio (Screen 19)
+              {isEditMode ? 'Catalog Studio (Edit Frame)' : 'Catalog Studio (Screen 19)'}
             </span>
             <h1 className="text-2xl font-extrabold text-white">
-              Add Eyewear Frame &amp; 3D Try-On
+              {isEditMode ? `Edit Frame: ${name || 'Item #' + editProductId}` : 'Add Eyewear Frame & 3D Try-On'}
             </h1>
           </div>
         </div>
@@ -150,11 +240,11 @@ export const AdminAddProductPage = () => {
           className="btn-primary text-xs py-2.5 px-5 font-bold rounded-xl flex items-center gap-2 shadow-cyan-glow disabled:opacity-50"
         >
           {saving ? (
-            <span>Saving to Database...</span>
+            <span>Saving Changes...</span>
           ) : (
             <>
               <Save className="w-4 h-4" />
-              <span>Publish Frame</span>
+              <span>{isEditMode ? 'Update Product' : 'Publish Frame'}</span>
             </>
           )}
         </button>
@@ -230,14 +320,22 @@ export const AdminAddProductPage = () => {
                       onChange={(e) => setCategoryId(e.target.value)}
                       className="w-full glass-input rounded-xl px-3 py-2 text-xs font-medium cursor-pointer"
                     >
-                      <option value="1">Eyeglasses (Prescription Frames)</option>
-                      <option value="2">Sunglasses &amp; Polarized</option>
-                      <option value="3">Computer / Blue-Cut Protection</option>
-                      <option value="4">Reading Glasses (+1.00 to +3.50)</option>
-                      <option value="5">Kids &amp; Teens Eyewear</option>
-                      <option value="6">Progressive &amp; Bifocal Luxury</option>
-                      <option value="7">Sports &amp; Protective Goggles</option>
-                      <option value="8">Contact Lenses &amp; Solutions</option>
+                      {categoriesList.length > 0 ? (
+                        categoriesList.map((c) => (
+                          <option key={c.id} value={c.id}>{c.name}</option>
+                        ))
+                      ) : (
+                        <>
+                          <option value="1">Eyeglasses (Prescription Frames)</option>
+                          <option value="2">Sunglasses &amp; Polarized</option>
+                          <option value="3">Computer / Blue-Cut Protection</option>
+                          <option value="4">Reading Glasses (+1.00 to +3.50)</option>
+                          <option value="5">Kids &amp; Teens Eyewear</option>
+                          <option value="6">Progressive &amp; Bifocal Luxury</option>
+                          <option value="7">Premium Titanium</option>
+                          <option value="8">Best Sellers &amp; Signature Drops</option>
+                        </>
+                      )}
                     </select>
                   </div>
 

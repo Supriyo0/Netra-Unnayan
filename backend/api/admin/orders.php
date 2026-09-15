@@ -171,4 +171,22 @@ HTML;
         'prescription_status' => $prescriptionStatus ?: $order['prescription_status'],
         'payment_status'      => $paymentStatus ?: $order['payment_status']
     ], "Order status updated to '{$newStatus}' successfully.");
+
+} elseif ($_SERVER['REQUEST_METHOD'] === 'DELETE') {
+    $orderId = (int)($_GET['id'] ?? 0);
+    if (!$orderId) {
+        $input = json_decode(file_get_contents('php://input'), true) ?? [];
+        $orderId = (int)($input['id'] ?? 0);
+    }
+    if (!$orderId) Response::error('Order ID is required.', 400);
+
+    // Delete associated records first to preserve database integrity
+    $pdo->prepare('DELETE FROM invoices WHERE order_id = ?')->execute([$orderId]);
+    $pdo->prepare('DELETE FROM payments WHERE order_id = ?')->execute([$orderId]);
+    $pdo->prepare('DELETE FROM order_items WHERE order_id = ?')->execute([$orderId]);
+    $pdo->prepare('DELETE FROM order_prescriptions WHERE order_id = ?')->execute([$orderId]);
+    $pdo->prepare('DELETE FROM order_status_history WHERE order_id = ?')->execute([$orderId]);
+    $pdo->prepare('DELETE FROM orders WHERE id = ?')->execute([$orderId]);
+
+    Response::success(['order_id' => $orderId], 'Order and associated invoices deleted successfully.');
 }

@@ -7,9 +7,9 @@ export const ThemeProvider = ({ children }) => {
     try {
       const saved = localStorage.getItem('nu_theme');
       if (saved === 'light' || saved === 'dark') return saved;
-      return 'dark'; // default
+      return 'light'; // Default to white/light theme as requested
     } catch {
-      return 'dark';
+      return 'light';
     }
   });
 
@@ -18,9 +18,13 @@ export const ThemeProvider = ({ children }) => {
     if (theme === 'light') {
       root.classList.remove('dark');
       root.classList.add('light');
+      document.body.classList.remove('dark');
+      document.body.classList.add('light');
     } else {
       root.classList.remove('light');
       root.classList.add('dark');
+      document.body.classList.remove('light');
+      document.body.classList.add('dark');
     }
     try {
       localStorage.setItem('nu_theme', theme);
@@ -44,10 +48,10 @@ export const useTheme = () => {
   const ctx = useContext(ThemeContext);
   if (!ctx) {
     return {
-      theme: 'dark',
+      theme: 'light',
       toggleTheme: () => {},
-      isDark: true,
-      isLight: false
+      isDark: false,
+      isLight: true
     };
   }
   return ctx;
