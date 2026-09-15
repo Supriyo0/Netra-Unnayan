@@ -22,6 +22,7 @@ export const HomePage = () => {
   const [isPaused, setIsPaused] = useState(false);
   const [loading, setLoading] = useState(true);
   const [couponCopied, setCouponCopied] = useState(false);
+  const [activeCoupon, setActiveCoupon] = useState(null);
   const [storeSettings, setStoreSettings] = useState({
     home_visit_enabled: '1',
     doctor_appointments_enabled: '1',
@@ -32,7 +33,8 @@ export const HomePage = () => {
   const { isInWishlist, toggleWishlist } = useWishlist();
   const { isDark } = useTheme();
 
-  const handleCopyCoupon = (code = 'CLARITY10') => {
+  const handleCopyCoupon = (code) => {
+    if (!code) return;
     if (navigator.clipboard) {
       navigator.clipboard.writeText(code);
       setCouponCopied(true);
@@ -160,7 +162,7 @@ export const HomePage = () => {
   useEffect(() => {
     const loadHomeData = async () => {
       try {
-        const [bannerRes, prodRes, catRes, docRes, settingsRes] = await Promise.all([
+        const [bannerRes, prodRes, catRes, docRes, settingsRes, couponsRes] = await Promise.all([
           api.get('/banners.php'),
           api.get('/products?category=best-sellers-signature-drops&limit=8').then(res => {
             if (res.success && res.data?.products?.length > 0) return res;
@@ -168,7 +170,8 @@ export const HomePage = () => {
           }),
           api.get('/categories'),
           api.get('/doctors'),
-          api.get('/settings.php').catch(() => ({ success: false }))
+          api.get('/settings.php').catch(() => ({ success: false })),
+          api.get('/coupons.php').catch(() => ({ success: false }))
         ]);
         if (bannerRes.success && bannerRes.data && bannerRes.data.length > 0) {
           setHeroBanners(bannerRes.data);
@@ -179,6 +182,11 @@ export const HomePage = () => {
         if (catRes.success) setCategories(catRes.data || []);
         if (docRes.success) setDoctors(docRes.data || []);
         if (settingsRes?.success && settingsRes.data) setStoreSettings(settingsRes.data);
+        if (couponsRes?.success && Array.isArray(couponsRes.data) && couponsRes.data.length > 0) {
+          setActiveCoupon(couponsRes.data[0]);
+        } else {
+          setActiveCoupon(null);
+        }
       } catch (err) {
         console.error('Failed to load homepage data:', err);
         setHeroBanners(defaultBanners);
@@ -677,72 +685,128 @@ export const HomePage = () => {
       <section className="w-full max-w-[1520px] mx-auto px-4 sm:px-8">
         <div className="flex overflow-x-auto lg:grid lg:grid-cols-3 gap-4 lg:gap-6 items-stretch no-scrollbar snap-x snap-mandatory pb-3">
 
-          {/* CARD 1: SPECIAL OFFER & COUPON */}
-          <div className={`w-[85vw] sm:w-[380px] lg:w-auto shrink-0 snap-center rounded-3xl p-5 sm:p-7 border-2 transition-all flex flex-col justify-between relative overflow-hidden group shadow-md hover:shadow-xl ${
-            isDark 
-              ? 'bg-gradient-to-br from-[#1c150c] via-[#0A192F] to-[#060D17] border-amber-500/35 text-white hover:border-amber-400/60' 
-              : 'bg-gradient-to-br from-amber-50/80 via-white to-orange-50/50 border-amber-300 text-slate-900 hover:border-amber-400'
-          }`}>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300 text-[11px] font-extrabold tracking-wider uppercase border border-amber-500/30">
-                  <Tag className="w-3.5 h-3.5 text-amber-500" /> Special Promo
-                </span>
-                <span className="text-[11px] font-black uppercase tracking-wider text-amber-600 dark:text-amber-400 font-mono">
-                  Flat ₹500 OFF
-                </span>
-              </div>
-
-              <div>
-                <h3 className={`text-xl font-extrabold leading-tight font-heading ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                  First Eyewear Order Discount
-                </h3>
-                <p className={`text-xs mt-1.5 leading-relaxed ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
-                  Complimentary anti-reflective lens coating and premium hard case included with every optical frame order.
-                </p>
-              </div>
-
-              {/* Coupon voucher pill */}
-              <div className={`p-3 rounded-2xl border-2 border-dashed flex items-center justify-between gap-3 ${
-                isDark 
-                  ? 'bg-black/40 border-amber-500/40 text-white' 
-                  : 'bg-amber-100/60 border-amber-300 text-slate-900'
-              }`}>
-                <div>
-                  <span className="text-[10px] text-amber-600 dark:text-amber-300 font-bold block uppercase tracking-wider">Coupon Code</span>
-                  <strong className="font-mono font-black text-sm text-slate-900 dark:text-white tracking-widest">CLARITY10</strong>
+          {/* CARD 1: DYNAMIC ACTIVE COUPON OR QUALITY GUARANTEE */}
+          {activeCoupon ? (
+            <div className={`w-[85vw] sm:w-[380px] lg:w-auto shrink-0 snap-center rounded-3xl p-5 sm:p-7 border-2 transition-all flex flex-col justify-between relative overflow-hidden group shadow-md hover:shadow-xl ${
+              isDark 
+                ? 'bg-gradient-to-br from-[#1c150c] via-[#0A192F] to-[#060D17] border-amber-500/35 text-white hover:border-amber-400/60' 
+                : 'bg-gradient-to-br from-amber-50/80 via-white to-orange-50/50 border-amber-300 text-slate-900 hover:border-amber-400'
+            }`}>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300 text-[11px] font-extrabold tracking-wider uppercase border border-amber-500/30">
+                    <Tag className="w-3.5 h-3.5 text-amber-500" /> Special Promo
+                  </span>
+                  <span className="text-[11px] font-black uppercase tracking-wider text-amber-600 dark:text-amber-400 font-mono">
+                    {activeCoupon.discount_type === 'PERCENTAGE' ? `${Number(activeCoupon.discount_value)}% OFF` : `Flat ₹${Number(activeCoupon.discount_value)} OFF`}
+                  </span>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => handleCopyCoupon('CLARITY10')}
-                  className="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black flex items-center gap-1.5 shadow-sm transition-all active:scale-95"
-                  title="Copy coupon code"
+
+                <div>
+                  <h3 className={`text-xl font-extrabold leading-tight font-heading ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                    {activeCoupon.discount_type === 'PERCENTAGE' ? `${Number(activeCoupon.discount_value)}% Storewide Discount` : `Flat ₹${Number(activeCoupon.discount_value)} Off Eyewear`}
+                  </h3>
+                  <p className={`text-xs mt-1.5 leading-relaxed ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+                    {Number(activeCoupon.min_order_amount) > 0 
+                      ? `Valid on all optical frames and lens orders above ₹${Number(activeCoupon.min_order_amount)}. Apply code at checkout.`
+                      : 'Valid across all designer frames, sunglasses, and precision lenses. Apply code at checkout.'}
+                  </p>
+                </div>
+
+                {/* Coupon voucher pill */}
+                <div className={`p-3 rounded-2xl border-2 border-dashed flex items-center justify-between gap-3 ${
+                  isDark 
+                    ? 'bg-black/40 border-amber-500/40 text-white' 
+                    : 'bg-amber-100/60 border-amber-300 text-slate-900'
+                }`}>
+                  <div>
+                    <span className="text-[10px] text-amber-600 dark:text-amber-300 font-bold block uppercase tracking-wider">Coupon Code</span>
+                    <strong className="font-mono font-black text-sm text-slate-900 dark:text-white tracking-widest">{activeCoupon.code}</strong>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleCopyCoupon(activeCoupon.code)}
+                    className="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black flex items-center gap-1.5 shadow-sm transition-all active:scale-95 cursor-pointer"
+                    title={`Copy coupon code ${activeCoupon.code}`}
+                  >
+                    {couponCopied ? (
+                      <>
+                        <Check className="w-3.5 h-3.5 text-slate-950 stroke-[3]" />
+                        <span>Copied</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3.5 h-3.5" />
+                        <span>Copy</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              <div className="pt-5 border-t border-amber-500/20 mt-4">
+                <Link 
+                  to="/catalog" 
+                  className="w-full py-2.5 px-4 rounded-xl font-extrabold text-xs flex items-center justify-center gap-2 transition-all bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-md"
                 >
-                  {couponCopied ? (
-                    <>
-                      <Check className="w-3.5 h-3.5 text-slate-950 stroke-[3]" />
-                      <span>Copied</span>
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="w-3.5 h-3.5" />
-                      <span>Copy</span>
-                    </>
-                  )}
-                </button>
+                  <span>Shop Frames &amp; Apply</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
               </div>
             </div>
+          ) : (
+            <div className={`w-[85vw] sm:w-[380px] lg:w-auto shrink-0 snap-center rounded-3xl p-5 sm:p-7 border-2 transition-all flex flex-col justify-between relative overflow-hidden group shadow-md hover:shadow-xl ${
+              isDark 
+                ? 'bg-gradient-to-br from-[#1c150c] via-[#0A192F] to-[#060D17] border-amber-500/35 text-white hover:border-amber-400/60' 
+                : 'bg-gradient-to-br from-amber-50/80 via-white to-orange-50/50 border-amber-300 text-slate-900 hover:border-amber-400'
+            }`}>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300 text-[11px] font-extrabold tracking-wider uppercase border border-amber-500/30">
+                    <Sparkles className="w-3.5 h-3.5 text-amber-500" /> Optical Excellence
+                  </span>
+                  <span className="text-[11px] font-black uppercase tracking-wider text-amber-600 dark:text-amber-400 font-mono">
+                    100% Certified
+                  </span>
+                </div>
 
-            <div className="pt-5 border-t border-amber-500/20 mt-4">
-              <Link 
-                to="/catalog" 
-                className="w-full py-2.5 px-4 rounded-xl font-extrabold text-xs flex items-center justify-center gap-2 transition-all bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-md"
-              >
-                <span>Shop Frames &amp; Apply</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </Link>
+                <div>
+                  <h3 className={`text-xl font-extrabold leading-tight font-heading ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                    German Optics &amp; Lens Precision
+                  </h3>
+                  <p className={`text-xs mt-1.5 leading-relaxed ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+                    Every prescription frame is edged with micron accuracy. Complimentary anti-reflective coating &amp; premium travel case included.
+                  </p>
+                </div>
+
+                {/* Benefits pill */}
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div className={`p-2.5 rounded-xl border ${
+                    isDark ? 'bg-black/40 border-amber-500/30 text-white' : 'bg-amber-100/50 border-amber-200 text-slate-800'
+                  }`}>
+                    <div className="font-bold text-xs text-amber-500 dark:text-amber-300">Anti-Glare Lens</div>
+                    <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">Free with frame</div>
+                  </div>
+                  <div className={`p-2.5 rounded-xl border ${
+                    isDark ? 'bg-black/40 border-amber-500/30 text-white' : 'bg-amber-100/50 border-amber-200 text-slate-800'
+                  }`}>
+                    <div className="font-bold text-xs text-amber-600 dark:text-amber-400">14-Day Return</div>
+                    <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">Zero-risk trial</div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-5 border-t border-amber-500/20 mt-4">
+                <Link 
+                  to="/catalog" 
+                  className="w-full py-2.5 px-4 rounded-xl font-extrabold text-xs flex items-center justify-center gap-2 transition-all bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-md font-bold"
+                >
+                  <span>Explore Eyewear Catalog</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
+              </div>
             </div>
-          </div>
+          )}
 
           {/* CARD 2: CLINICAL EYE DOCTOR BOOKING (Checked for Availability) */}
           <div className={`w-[85vw] sm:w-[380px] lg:w-auto shrink-0 snap-center rounded-3xl p-5 sm:p-7 border-2 transition-all flex flex-col justify-between relative overflow-hidden group shadow-md hover:shadow-xl ${

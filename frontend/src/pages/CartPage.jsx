@@ -170,7 +170,7 @@ export const CartPage = () => {
               <form onSubmit={handleApplyCoupon} className="flex gap-2">
                 <input 
                   type="text"
-                  placeholder="e.g. CLARITY10, NETRA500"
+                  placeholder="e.g. NETRA500, SAVE10"
                   value={inputCoupon}
                   onChange={(e) => setInputCoupon(e.target.value)}
                   className="flex-1 glass-input rounded-xl px-3 py-2 text-xs uppercase"
