@@ -160,7 +160,7 @@ html.dark select option,
 }
 
 /* Override any accidental text-white on light mode inputs */
-.light [class*="text-white"]select,
+.light [class*="text-white"] select,
 .light select[class*="text-white"],
 .light select.text-white {
   color: #0F172A !important;

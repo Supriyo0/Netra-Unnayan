@@ -4,9 +4,10 @@
 $uri = urldecode(parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH));
 
 // Serve public static assets (logos, images, etc.)
-if (strpos($uri, '/public_assets/') === 0) {
-    $filePath = __DIR__ . '/../' . ltrim($uri, '/');
-    if (file_exists($filePath)) {
+if (strpos($uri, '/public_assets/') !== false) {
+    $subPath = substr($uri, strpos($uri, '/public_assets/'));
+    $filePath = realpath(__DIR__ . '/..' . $subPath);
+    if ($filePath && file_exists($filePath) && is_file($filePath)) {
         $ext = strtolower(pathinfo($filePath, PATHINFO_EXTENSION));
         $mimes = [
             'png'  => 'image/png',
@@ -24,9 +25,11 @@ if (strpos($uri, '/public_assets/') === 0) {
 }
 
 // Route API requests
-if (strpos($uri, '/api/') === 0) {
+if (preg_match('#(/api(?:/.*)?)$#', $uri, $matches)) {
+    $apiRel = $matches[1];
+    $apiFile = __DIR__ . $apiRel;
+
     // Check if direct file exists
-    $apiFile = __DIR__ . $uri;
     if (file_exists($apiFile) && is_file($apiFile)) {
         require $apiFile;
         return true;
