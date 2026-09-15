@@ -46,6 +46,32 @@ if (!in_array($paymentMode, ['COD', 'UPI'])) {
 
 $pdo = Database::getConnection();
 
+// If customerId is not found from token, look it up by phone or email in customers table
+if (empty($customerId)) {
+    if (!empty($customerPhone)) {
+        $cStmt = $pdo->prepare('SELECT id FROM customers WHERE phone = ? LIMIT 1');
+        $cStmt->execute([$customerPhone]);
+        $cId = $cStmt->fetchColumn();
+        if ($cId) $customerId = (int)$cId;
+    }
+    if (empty($customerId) && !empty($customerEmail)) {
+        $cStmt = $pdo->prepare('SELECT id FROM customers WHERE email = ? LIMIT 1');
+        $cStmt->execute([$customerEmail]);
+        $cId = $cStmt->fetchColumn();
+        if ($cId) $customerId = (int)$cId;
+    }
+    if (empty($customerId) && !empty($customerName) && !empty($customerPhone)) {
+        try {
+            $regPass = password_hash('Pass@' . substr($customerPhone, -4), PASSWORD_DEFAULT);
+            $regEmail = $customerEmail ?: ($customerPhone . '@netraunnayan.com');
+            $regStmt = $pdo->prepare('INSERT INTO customers (full_name, phone, email, password_hash, is_active) VALUES (?, ?, ?, ?, 1)');
+            $regStmt->execute([$customerName, $customerPhone, $regEmail, $regPass]);
+            $customerId = (int)$pdo->lastInsertId();
+        } catch (Exception $e) {}
+    }
+}
+
+
 try {
     // START ATOMIC TRANSACTION
     $pdo->beginTransaction();

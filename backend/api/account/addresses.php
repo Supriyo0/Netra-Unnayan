@@ -14,10 +14,10 @@ $method = $_SERVER['REQUEST_METHOD'];
 if ($method === 'GET') {
     $stmt = $pdo->prepare('
         SELECT * FROM customer_addresses 
-        WHERE customer_id = ? 
+        WHERE customer_id = ? OR (phone = ? AND phone != "")
         ORDER BY is_default DESC, id DESC
     ');
-    $stmt->execute([$customerId]);
+    $stmt->execute([$customerId, $auth['phone'] ?? '']);
     $addresses = $stmt->fetchAll();
     Response::success($addresses, 'Addresses retrieved');
 }
@@ -46,7 +46,9 @@ if ($method === 'POST') {
         $pdo->prepare('UPDATE customer_addresses SET is_default = 0 WHERE customer_id = ?')->execute([$customerId]);
     } else {
         // If this is the very first address, make it default automatically
-        $count = (int)$pdo->prepare('SELECT COUNT(*) FROM customer_addresses WHERE customer_id = ?')->execute([$customerId]);
+        $countStmt = $pdo->prepare('SELECT COUNT(*) FROM customer_addresses WHERE customer_id = ?');
+        $countStmt->execute([$customerId]);
+        $count = (int)$countStmt->fetchColumn();
         if ($count === 0) $isDefault = 1;
     }
 
@@ -70,23 +72,23 @@ if ($method === 'POST') {
 
 if ($method === 'PUT') {
     $input = json_decode(file_get_contents('php://input'), true) ?? [];
-    $addressId = (int)($input['id'] ?? 0);
-    $action = $input['action'] ?? 'update';
+    $addressId = (int)($input['id'] ?? $_GET['id'] ?? 0);
+    $action = $input['action'] ?? (!empty($input['is_default']) ? 'set_default' : 'update');
 
     if (empty($addressId)) {
         Response::error('Address ID is required.', 422);
     }
 
     // Verify ownership
-    $check = $pdo->prepare('SELECT id FROM customer_addresses WHERE id = ? AND customer_id = ?');
-    $check->execute([$addressId, $customerId]);
+    $check = $pdo->prepare('SELECT id FROM customer_addresses WHERE id = ? AND (customer_id = ? OR phone = ?)');
+    $check->execute([$addressId, $customerId, $auth['phone'] ?? '']);
     if (!$check->fetch()) {
         Response::error('Address not found or unauthorized.', 404);
     }
 
     if ($action === 'set_default') {
         $pdo->prepare('UPDATE customer_addresses SET is_default = 0 WHERE customer_id = ?')->execute([$customerId]);
-        $pdo->prepare('UPDATE customer_addresses SET is_default = 1 WHERE id = ? AND customer_id = ?')->execute([$addressId, $customerId]);
+        $pdo->prepare('UPDATE customer_addresses SET is_default = 1 WHERE id = ?')->execute([$addressId]);
         Response::success(null, 'Default address updated');
     }
 
@@ -110,12 +112,12 @@ if ($method === 'PUT') {
         UPDATE customer_addresses SET
             recipient_name = ?, phone = ?, address_line1 = ?, address_line2 = ?,
             landmark = ?, city = ?, state = ?, pincode = ?, address_type = ?, is_default = ?
-        WHERE id = ? AND customer_id = ?
+        WHERE id = ?
     ');
     $updStmt->execute([
         $recipientName, $phone, $addressLine1, $addressLine2 ?: null,
         $landmark ?: null, $city, $state, $pincode, $addressType, $isDefault,
-        $addressId, $customerId
+        $addressId
     ]);
 
     Response::success(null, 'Address updated successfully');
@@ -126,7 +128,8 @@ if ($method === 'DELETE') {
     if (empty($addressId)) {
         Response::error('Address ID is required.', 422);
     }
-    $delStmt = $pdo->prepare('DELETE FROM customer_addresses WHERE id = ? AND customer_id = ?');
-    $delStmt->execute([$addressId, $customerId]);
+    $delStmt = $pdo->prepare('DELETE FROM customer_addresses WHERE id = ? AND (customer_id = ? OR phone = ?)');
+    $delStmt->execute([$addressId, $customerId, $auth['phone'] ?? '']);
     Response::success(null, 'Address removed successfully');
 }
+
