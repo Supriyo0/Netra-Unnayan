@@ -11,7 +11,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     Response::error('Method not allowed', 405);
 }
 
-$admin = requireAdminAuth(['super_admin', 'manager', 'billing_staff']);
+$admin = requireAdminAuth();
 $input = json_decode(file_get_contents('php://input'), true) ?? [];
 
 $customerName = trim($input['customer_name'] ?? 'Walk-in Customer');
