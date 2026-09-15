@@ -419,10 +419,10 @@ export const AdminCustomersPage = () => {
                           <button
                             type="button"
                             onClick={() => handleDeleteUser(user)}
-                            className="px-2 py-1 rounded-lg bg-rose-500/15 hover:bg-rose-500/25 text-rose-400 hover:text-rose-200 border border-rose-500/30 text-[11px] font-semibold transition-all flex items-center gap-1"
+                            className="px-2.5 py-1.5 rounded-xl bg-rose-500/15 hover:bg-rose-600 text-rose-600 dark:text-rose-300 hover:text-white dark:hover:text-white border border-rose-500/40 text-xs font-bold transition-all flex items-center gap-1.5 shadow-xs cursor-pointer"
                             title="Delete User (Removes and prevents login)"
                           >
-                            <Trash2 className="w-3.5 h-3.5" />
+                            <Trash2 className="w-3.5 h-3.5 stroke-[2.2]" />
                             <span>Delete</span>
                           </button>
                         </div>

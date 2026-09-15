@@ -248,17 +248,17 @@ export const AdminCategoriesPage = () => {
                       <div className="flex items-center justify-end gap-1.5">
                         <button
                           onClick={() => openEditModal(cat)}
-                          className="p-1.5 rounded-lg bg-cyan-500/15 hover:bg-cyan-500 text-cyan-300 hover:text-slate-950 border border-cyan-500/30 transition-all cursor-pointer"
+                          className="p-2 rounded-xl bg-cyan-500/15 hover:bg-cyan-600 text-cyan-700 dark:text-cyan-300 hover:text-white dark:hover:text-slate-950 border border-cyan-500/30 transition-all cursor-pointer shadow-xs"
                           title="Edit Category"
                         >
-                          <Edit className="w-3.5 h-3.5" />
+                          <Edit className="w-4 h-4 stroke-[2.2]" />
                         </button>
                         <button
                           onClick={() => handleDelete(cat.id)}
-                          className="p-1.5 rounded-lg bg-rose-500/15 hover:bg-rose-500 text-rose-300 hover:text-white border border-rose-500/30 transition-all cursor-pointer"
+                          className="p-2 rounded-xl bg-rose-500/15 hover:bg-rose-600 text-rose-600 dark:text-rose-300 hover:text-white dark:hover:text-white border border-rose-500/40 transition-all cursor-pointer shadow-xs"
                           title="Delete Category"
                         >
-                          <Trash2 className="w-3.5 h-3.5" />
+                          <Trash2 className="w-4 h-4 stroke-[2.2]" />
                         </button>
                       </div>
                     </td>

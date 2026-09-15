@@ -302,32 +302,32 @@ export const AdminProductsPage = () => {
                         <div className="flex items-center justify-end gap-1.5">
                           <Link
                             to={`/admin/products/edit/${p.id}`}
-                            className="p-1.5 rounded-lg bg-cyan-500/15 hover:bg-cyan-500 text-cyan-300 hover:text-slate-950 border border-cyan-500/30 inline-flex items-center transition-all"
+                            className="p-2 rounded-xl bg-cyan-500/15 hover:bg-cyan-600 text-cyan-700 dark:text-cyan-300 hover:text-white dark:hover:text-slate-950 border border-cyan-500/30 inline-flex items-center transition-all shadow-xs"
                             title="Edit Frame Details, Images & Pricing"
                           >
-                            <Edit3 className="w-3.5 h-3.5" />
+                            <Edit3 className="w-4 h-4 stroke-[2.2]" />
                           </Link>
                           <Link
                             to={`/product/${p.sku}`}
                             target="_blank"
-                            className="p-1.5 rounded-lg bg-slate-700/30 hover:bg-white/20 text-slate-200 border border-white/10 inline-flex items-center transition-all"
+                            className="p-2 rounded-xl bg-slate-100 dark:bg-slate-700/40 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-white/10 inline-flex items-center transition-all shadow-xs"
                             title="View on Storefront"
                           >
-                            <ExternalLink className="w-3.5 h-3.5" />
+                            <ExternalLink className="w-4 h-4 stroke-[2.2]" />
                           </Link>
                           <Link
                             to={`/admin/labels?sku=${p.sku}`}
-                            className="p-1.5 rounded-lg bg-teal-500/15 hover:bg-teal-500 text-teal-300 hover:text-slate-950 border border-teal-500/30 inline-flex items-center transition-all"
+                            className="p-2 rounded-xl bg-teal-500/15 hover:bg-teal-600 text-teal-700 dark:text-teal-300 hover:text-white dark:hover:text-slate-950 border border-teal-500/30 inline-flex items-center transition-all shadow-xs"
                             title="Print Barcode Label"
                           >
-                            <QrCode className="w-3.5 h-3.5" />
+                            <QrCode className="w-4 h-4 stroke-[2.2]" />
                           </Link>
                           <button
                             onClick={() => setDeleteConfirmId(p.id)}
-                            className="p-1.5 rounded-lg bg-rose-500/15 hover:bg-rose-500 text-rose-300 hover:text-white border border-rose-500/30 inline-flex items-center transition-all cursor-pointer"
-                            title="Archive Frame"
+                            className="p-2 rounded-xl bg-rose-500/15 hover:bg-rose-600 text-rose-600 dark:text-rose-300 hover:text-white dark:hover:text-white border border-rose-500/40 inline-flex items-center transition-all cursor-pointer shadow-xs"
+                            title="Archive / Delete Frame"
                           >
-                            <Trash2 className="w-3.5 h-3.5" />
+                            <Trash2 className="w-4 h-4 stroke-[2.2]" />
                           </button>
                         </div>
                       </td>

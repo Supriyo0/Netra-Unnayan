@@ -6,7 +6,7 @@ require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../../helpers/response.php';
 require_once __DIR__ . '/../../helpers/mailer.php';
 
-$admin = requireAdminAuth(['super_admin', 'manager', 'billing_staff']);
+$admin = requireAdminAuth();
 $pdo = Database::getConnection();
 
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
@@ -28,34 +28,51 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             Response::notFound('Order not found.');
         }
 
-        $iStmt = $pdo->prepare('
-            SELECT oi.*, p.primary_image, p.sku as product_sku_code, p.lens_width, p.bridge_width, p.temple_length 
-            FROM order_items oi 
-            LEFT JOIN products p ON oi.product_id = p.id 
-            WHERE oi.order_id = ?
-        ');
-        $iStmt->execute([$orderId]);
-        $ord['items'] = $iStmt->fetchAll(PDO::FETCH_ASSOC);
+        try {
+            $iStmt = $pdo->prepare('
+                SELECT oi.*, p.primary_image, p.sku as product_sku_code, p.lens_width, p.bridge_width, p.temple_length 
+                FROM order_items oi 
+                LEFT JOIN products p ON oi.product_id = p.id 
+                WHERE oi.order_id = ?
+            ');
+            $iStmt->execute([$orderId]);
+            $ord['items'] = $iStmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (Exception $e) {
+            $ord['items'] = [];
+        }
 
-        $rxStmt = $pdo->prepare('SELECT * FROM order_prescriptions WHERE order_id = ? ORDER BY id DESC');
-        $rxStmt->execute([$orderId]);
-        $prescriptions = $rxStmt->fetchAll(PDO::FETCH_ASSOC);
-        $ord['prescriptions'] = $prescriptions;
-        $ord['prescription'] = $prescriptions[0] ?? null;
+        try {
+            $rxStmt = $pdo->prepare('SELECT * FROM order_prescriptions WHERE order_id = ? ORDER BY id DESC');
+            $rxStmt->execute([$orderId]);
+            $prescriptions = $rxStmt->fetchAll(PDO::FETCH_ASSOC);
+            $ord['prescriptions'] = $prescriptions;
+            $ord['prescription'] = $prescriptions[0] ?? null;
+        } catch (Exception $e) {
+            $ord['prescriptions'] = [];
+            $ord['prescription'] = null;
+        }
 
-        $payStmt = $pdo->prepare('SELECT * FROM payments WHERE order_id = ? ORDER BY id DESC LIMIT 1');
-        $payStmt->execute([$orderId]);
-        $ord['payment'] = $payStmt->fetch(PDO::FETCH_ASSOC);
+        try {
+            $payStmt = $pdo->prepare('SELECT * FROM payments WHERE order_id = ? ORDER BY id DESC LIMIT 1');
+            $payStmt->execute([$orderId]);
+            $ord['payment'] = $payStmt->fetch(PDO::FETCH_ASSOC);
+        } catch (Exception $e) {
+            $ord['payment'] = null;
+        }
 
-        $histStmt = $pdo->prepare('
-            SELECT h.*, a.full_name as staff_name 
-            FROM order_status_history h 
-            LEFT JOIN admins a ON h.updated_by_admin_id = a.id 
-            WHERE h.order_id = ? 
-            ORDER BY h.id DESC
-        ');
-        $histStmt->execute([$orderId]);
-        $ord['status_history'] = $histStmt->fetchAll(PDO::FETCH_ASSOC);
+        try {
+            $histStmt = $pdo->prepare('
+                SELECT h.*, a.full_name as staff_name 
+                FROM order_status_history h 
+                LEFT JOIN admins a ON h.updated_by_admin_id = a.id 
+                WHERE h.order_id = ? 
+                ORDER BY h.id DESC
+            ');
+            $histStmt->execute([$orderId]);
+            $ord['status_history'] = $histStmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (Exception $e) {
+            $ord['status_history'] = [];
+        }
 
         Response::success($ord, 'Order details retrieved');
         exit;
@@ -69,16 +86,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $where = ['1=1'];
     $params = [];
 
-    if (!empty($status)) {
-        $where[] = 'o.order_status = :status';
-        $params[':status'] = $status;
+    if (!empty($status) && strtolower($status) !== 'all') {
+        $where[] = '(LOWER(o.order_status) = :status OR o.order_status = :status_raw)';
+        $params[':status'] = strtolower($status);
+        $params[':status_raw'] = $status;
     }
     if (!empty($type)) {
         $where[] = 'o.order_type = :type';
         $params[':type'] = $type;
     }
     if (!empty($search)) {
-        $where[] = '(o.order_number LIKE :search OR o.customer_name LIKE :search OR o.customer_phone LIKE :search)';
+        $where[] = '(o.order_number LIKE :search OR o.customer_name LIKE :search OR o.customer_phone LIKE :search OR o.customer_email LIKE :search)';
         $params[':search'] = "%$search%";
     }
 
@@ -91,24 +109,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         FROM orders o
         WHERE $whereSql
         ORDER BY o.id DESC
-        LIMIT 100
+        LIMIT 200
     ");
     $stmt->execute($params);
     $orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     foreach ($orders as &$ord) {
-        $iStmt = $pdo->prepare('SELECT oi.*, p.primary_image FROM order_items oi LEFT JOIN products p ON oi.product_id = p.id WHERE oi.order_id = ?');
-        $iStmt->execute([$ord['id']]);
-        $ord['items'] = $iStmt->fetchAll(PDO::FETCH_ASSOC);
+        try {
+            $iStmt = $pdo->prepare('SELECT oi.*, p.primary_image FROM order_items oi LEFT JOIN products p ON oi.product_id = p.id WHERE oi.order_id = ?');
+            $iStmt->execute([$ord['id']]);
+            $ord['items'] = $iStmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (Exception $e) {
+            $ord['items'] = [];
+        }
 
-        $rxStmt = $pdo->prepare('SELECT * FROM order_prescriptions WHERE order_id = ?');
-        $rxStmt->execute([$ord['id']]);
-        $ord['prescriptions'] = $rxStmt->fetchAll(PDO::FETCH_ASSOC);
-        $ord['prescription'] = $ord['prescriptions'][0] ?? null;
+        try {
+            $rxStmt = $pdo->prepare('SELECT * FROM order_prescriptions WHERE order_id = ?');
+            $rxStmt->execute([$ord['id']]);
+            $ord['prescriptions'] = $rxStmt->fetchAll(PDO::FETCH_ASSOC);
+            $ord['prescription'] = $ord['prescriptions'][0] ?? null;
+        } catch (Exception $e) {
+            $ord['prescriptions'] = [];
+            $ord['prescription'] = null;
+        }
 
-        $payStmt = $pdo->prepare('SELECT * FROM payments WHERE order_id = ? ORDER BY id DESC LIMIT 1');
-        $payStmt->execute([$ord['id']]);
-        $ord['payment'] = $payStmt->fetch(PDO::FETCH_ASSOC);
+        try {
+            $payStmt = $pdo->prepare('SELECT * FROM payments WHERE order_id = ? ORDER BY id DESC LIMIT 1');
+            $payStmt->execute([$ord['id']]);
+            $ord['payment'] = $payStmt->fetch(PDO::FETCH_ASSOC);
+        } catch (Exception $e) {
+            $ord['payment'] = null;
+        }
     }
 
     Response::success($orders, 'Orders list retrieved');

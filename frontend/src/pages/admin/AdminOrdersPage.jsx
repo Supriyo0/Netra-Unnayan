@@ -42,11 +42,19 @@ export default function AdminOrdersPage() {
       const res = await api.get('/admin/orders.php', {
         params: { status: statusFilter !== 'all' ? statusFilter : undefined, search: search || undefined }
       });
-      const isSuccess = res.success || res.data?.success;
-      if (isSuccess) {
-        const orderData = res.data?.orders || res.data?.data?.orders || res.data || [];
-        setOrders(Array.isArray(orderData) ? orderData : (orderData.orders || []));
+      let orderData = [];
+      if (Array.isArray(res)) {
+        orderData = res;
+      } else if (Array.isArray(res?.data)) {
+        orderData = res.data;
+      } else if (Array.isArray(res?.data?.orders)) {
+        orderData = res.data.orders;
+      } else if (Array.isArray(res?.orders)) {
+        orderData = res.orders;
+      } else if (Array.isArray(res?.data?.data)) {
+        orderData = res.data.data;
       }
+      setOrders(orderData);
     } catch (err) {
       console.error('Failed to fetch orders', err);
     } finally {
@@ -77,9 +85,14 @@ export default function AdminOrdersPage() {
       }
 
       const res = await api.get(`/admin/orders.php?id=${orderId}`);
-      const isSuccess = res.success || res.data?.success;
-      const orderPayload = res.data?.order || res.data?.data || res.data;
-      if (isSuccess && orderPayload && typeof orderPayload === 'object' && !Array.isArray(orderPayload)) {
+      const isSuccess = res.success || res.data?.success || (res.id && res.order_number);
+      let orderPayload = null;
+      if (res?.data?.order) orderPayload = res.data.order;
+      else if (res?.data && typeof res.data === 'object' && !Array.isArray(res.data) && (res.data.id || res.data.order_number)) orderPayload = res.data;
+      else if (res?.order) orderPayload = res.order;
+      else if (res && typeof res === 'object' && !Array.isArray(res) && (res.id || res.order_number)) orderPayload = res;
+
+      if (orderPayload) {
         setSelectedOrder(orderPayload);
         setNewStatus(orderPayload.order_status || orderPayload.status || 'Pending');
         setCourierName(orderPayload.courier_name || 'Blue Dart');
