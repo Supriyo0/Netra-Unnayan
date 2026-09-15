@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en" class="scroll-smooth">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="apple-touch-icon" href="/icon-192.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+    <meta name="theme-color" content="#0A192F" />
+    
+    <!-- SEO Meta Tags -->
+    <title>Netra Unnayan — Clarity You Can Trust | Optical & Eye Care</title>
+    <meta name="description" content="Netra Unnayan is Digha's premier optical store and eye care clinic. Shop prescription eyeglasses, UV400 sunglasses, computer blue-light glasses, and book senior ophthalmologists and home eye tests." />
+    <meta name="keywords" content="Netra Unnayan, optical shop Digha, eye doctor appointment, prescription glasses, sunglasses, blue light glasses, home eye checkup Purba Medinipur" />
+    
+    <!-- OpenGraph -->
+    <meta property="og:title" content="Netra Unnayan — Clarity You Can Trust" />
+    <meta property="og:description" content="Premium optical eyewear, clinical ophthalmology appointments, and doorstep home eye tests in Purba Medinipur." />
+    <meta property="og:image" content="/logo_full.png" />
+    <meta property="og:type" content="website" />
+    
+    <!-- Google Fonts: Plus Jakarta Sans -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  </head>
+  <body class="bg-[#060D17] text-slate-100 font-sans antialiased selection:bg-brand-cyan/30 selection:text-brand-cyan min-h-screen">
+    <div id="root">
+      <div style="position:fixed;inset:0;background-color:#050B14;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;font-family:'Plus Jakarta Sans',sans-serif;overflow:hidden;user-select:none;">
+        <div style="position:absolute;width:480px;height:480px;background:radial-gradient(circle, rgba(0,180,216,0.18) 0%, rgba(0,245,212,0.06) 50%, transparent 70%);border-radius:50%;filter:blur(80px);pointer-events:none;"></div>
+        <div style="position:relative;width:130px;height:130px;display:flex;align-items:center;justify-content:center;">
+          <!-- Outer luminous track & rotating arc -->
+          <div style="position:absolute;inset:0;border:1.5px solid rgba(255,255,255,0.08);border-radius:50%;"></div>
+          <div style="position:absolute;inset:0;border:3px solid transparent;border-top-color:#00F5D4;border-right-color:#00B4D8;border-radius:50%;animation:nu-spin 1.8s linear infinite;box-shadow:0 0 24px rgba(0,180,216,0.5);"></div>
+          <!-- Middle counter-rotating dashed reticle -->
+          <div style="position:absolute;inset:16px;border:1.5px dashed rgba(0,180,216,0.6);border-radius:50%;animation:nu-spin-reverse 3s linear infinite;"></div>
+          <!-- Inner lens core -->
+          <div style="position:absolute;inset:28px;border:1.5px solid rgba(56,189,248,0.4);border-radius:50%;"></div>
+          <!-- Center Logo -->
+          <img src="/logo_symbol.png" alt="Netra Symbol" style="width:52px;height:52px;object-fit:contain;filter:drop-shadow(0 0 16px rgba(0,180,216,0.85));animation:nu-pulse 1.8s ease-in-out infinite;" />
+        </div>
+        <div style="margin-top:28px;text-align:center;position:relative;z-index:2;">
+          <div style="font-size:22px;font-weight:900;letter-spacing:0.22em;color:#FFFFFF;text-transform:uppercase;">NETRA <span style="color:#00B4D8;">UNNAYAN</span></div>
+          <div style="font-size:10px;font-weight:700;letter-spacing:0.28em;color:#94A3B8;margin-top:6px;text-transform:uppercase;">Clarity You Can Trust</div>
+          <div style="margin:16px auto 0;width:140px;height:3px;background:rgba(255,255,255,0.08);border-radius:99px;overflow:hidden;">
+            <div style="width:50%;height:100%;background:linear-gradient(90deg,#00B4D8,#00F5D4);border-radius:99px;animation:nu-bar 1.5s ease-in-out infinite alternate;"></div>
+          </div>
+        </div>
+      </div>
+      <style>
+        @keyframes nu-spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        @keyframes nu-spin-reverse { 0% { transform: rotate(360deg); } 100% { transform: rotate(0deg); } }
+        @keyframes nu-pulse { 0%, 100% { transform: scale(1); filter: drop-shadow(0 0 14px rgba(0,180,216,0.7)); } 50% { transform: scale(1.09); filter: drop-shadow(0 0 24px rgba(0,245,212,0.95)); } }
+        @keyframes nu-bar { 0% { transform: translateX(-50%); } 100% { transform: translateX(150%); } }
+      </style>
+    </div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

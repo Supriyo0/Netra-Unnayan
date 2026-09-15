@@ -1,0 +1,995 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { 
+  Barcode, Search, Plus, Minus, Trash2, Printer, 
+  CheckCircle2, AlertCircle, ShoppingCart, User, CreditCard, 
+  DollarSign, X, Check, Camera, Video, ShieldCheck, History, 
+  FileText, Sparkles, RefreshCw, Eye
+} from 'lucide-react';
+import api from '../../api/client';
+import { useAuth } from '../../context/AuthContext';
+import { InvoiceModal } from '../../components/common/InvoiceModal';
+
+export const AdminPosPage = () => {
+  const { user } = useAuth();
+
+  // Mode: 'COUNTER' | 'ARCHIVE'
+  const [activeView, setActiveView] = useState('COUNTER');
+
+  // Search & Hardware Scanner
+  const [searchInput, setSearchInput] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
+
+  // Camera Barcode Scanner
+  const [cameraModalOpen, setCameraModalOpen] = useState(false);
+  const [cameraError, setCameraError] = useState('');
+  const videoRef = useRef(null);
+  const streamRef = useRef(null);
+  const scanIntervalRef = useRef(null);
+  const lastScannedCodeRef = useRef('');
+  const lastScannedTimeRef = useRef(0);
+
+  // Cart for POS Bill
+  const [posItems, setPosItems] = useState([]);
+  const [discountAmount, setDiscountAmount] = useState(0);
+  const [warrantyNote, setWarrantyNote] = useState('1-Year Optical Warranty on Frame & Multi-Coat Optics');
+
+  // Customer Details
+  const [customerName, setCustomerName] = useState('Walk-in Customer');
+  const [customerPhone, setCustomerPhone] = useState('');
+  const [customerAddress, setCustomerAddress] = useState('Digha Store Counter');
+  const [paymentMode, setPaymentMode] = useState('CASH'); // CASH, UPI, CARD
+  const [billNotes, setBillNotes] = useState('');
+
+  // Execution & Invoices
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [selectedInvoiceForModal, setSelectedInvoiceForModal] = useState(null);
+
+  // Invoices Archive
+  const [archiveInvoices, setArchiveInvoices] = useState([]);
+  const [archiveLoading, setArchiveLoading] = useState(false);
+  const [archiveSearch, setArchiveSearch] = useState('');
+
+  // Hardware barcode scanner buffer listener (rapid keystrokes)
+  const barcodeBuffer = useRef('');
+  const lastKeyTime = useRef(Date.now());
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Barcode scanners type very rapidly (< 70ms between key events) and end with 'Enter'
+      const now = Date.now();
+      const diff = now - lastKeyTime.current;
+      lastKeyTime.current = now;
+
+      if (diff > 120) {
+        barcodeBuffer.current = '';
+      }
+
+      if (e.key === 'Enter') {
+        if (barcodeBuffer.current.length >= 3) {
+          e.preventDefault();
+          lookupAndAddByCode(barcodeBuffer.current);
+          barcodeBuffer.current = '';
+        }
+      } else if (e.key.length === 1) {
+        barcodeBuffer.current += e.key;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [posItems]);
+
+  // Play audio confirmation chime on scan
+  const playBeep = () => {
+    try {
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(880, audioCtx.currentTime); // A5
+      gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.12);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.12);
+    } catch {
+      // ignore
+    }
+  };
+
+  const lookupAndAddByCode = async (code) => {
+    if (!code || !code.trim()) return;
+    const cleanCode = code.trim();
+    try {
+      const res = await api.get(`/products/by_sku.php?code=${encodeURIComponent(cleanCode)}`);
+      if (res.success && res.data) {
+        addProductToBill(res.data);
+        return;
+      }
+    } catch (err) {
+      // Continue to full search
+    }
+
+    try {
+      const sRes = await api.get(`/products?search=${encodeURIComponent(cleanCode)}&limit=1`);
+      if (sRes.success && sRes.data?.products?.length > 0) {
+        addProductToBill(sRes.data.products[0]);
+        return;
+      }
+    } catch (err) {
+      console.warn('Scanned / searched product not found:', cleanCode);
+    }
+  };
+
+  // Search input with debounce
+  useEffect(() => {
+    if (!searchInput.trim()) {
+      setSearchResults([]);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      setIsSearching(true);
+      try {
+        const res = await api.get(`/products?search=${encodeURIComponent(searchInput.trim())}&limit=8`);
+        if (res.success) {
+          setSearchResults(res.data?.products || []);
+        }
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 180);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
+
+  const handleSearchKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (searchResults.length > 0) {
+        addProductToBill(searchResults[0]);
+      } else if (searchInput.trim()) {
+        lookupAndAddByCode(searchInput.trim());
+      }
+    }
+  };
+
+  const addProductToBill = (product, keepOpen = false) => {
+    playBeep();
+    setPosItems((prev) => {
+      const existingIdx = prev.findIndex(p => p.product_id === product.id || p.sku === product.sku);
+      if (existingIdx > -1) {
+        const updated = [...prev];
+        updated[existingIdx].quantity += 1;
+        return updated;
+      }
+      return [
+        ...prev,
+        {
+          product_id: product.id,
+          name: product.name,
+          sku: product.sku,
+          unit_price: product.discount_price !== null && product.discount_price !== undefined 
+            ? Number(product.discount_price) 
+            : Number(product.price),
+          stock_quantity: product.stock_quantity,
+          quantity: 1,
+          lens_type: '',
+          lens_price: 0
+        }
+      ];
+    });
+    if (!keepOpen) {
+      setSearchInput('');
+      setSearchResults([]);
+    }
+  };
+
+  const updateItemQty = (index, qty) => {
+    if (qty <= 0) {
+      removeItem(index);
+      return;
+    }
+    setPosItems((prev) => {
+      const updated = [...prev];
+      updated[index].quantity = qty;
+      return updated;
+    });
+  };
+
+  const removeItem = (index) => {
+    setPosItems((prev) => prev.filter((_, idx) => idx !== index));
+  };
+
+  // =========================================================================
+  // CAMERA SCANNER ENGINE (Using BarcodeDetector / MediaStream)
+  // =========================================================================
+  const startCamera = async () => {
+    setCameraModalOpen(true);
+    setCameraError('');
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
+      });
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play();
+      }
+
+      // Check if native BarcodeDetector is available
+      if ('BarcodeDetector' in window) {
+        const barcodeDetector = new window.BarcodeDetector({
+          formats: ['code_128', 'qr_code', 'ean_13', 'ean_8', 'upc_a', 'code_39']
+        });
+
+        scanIntervalRef.current = setInterval(async () => {
+          if (!videoRef.current || videoRef.current.readyState < 2) return;
+          try {
+            const barcodes = await barcodeDetector.detect(videoRef.current);
+            if (barcodes.length > 0) {
+              const code = barcodes[0].rawValue;
+              const now = Date.now();
+              // Debounce repeat scans of same code to 1.2s, allow re-scan to increment
+              if (code !== lastScannedCodeRef.current || now - lastScannedTimeRef.current > 1200) {
+                lastScannedCodeRef.current = code;
+                lastScannedTimeRef.current = now;
+                lookupAndAddByCode(code);
+              }
+            }
+          } catch {
+            // detector pass error ignore
+          }
+        }, 250);
+      } else {
+        setCameraError('Native camera barcode detection is not supported in this browser. Please use Google Chrome, Edge, or a USB barcode scanner, or search SKU manually.');
+      }
+    } catch (err) {
+      setCameraError('Camera access denied or unavailable: ' + err.message);
+    }
+  };
+
+  const stopCamera = () => {
+    if (scanIntervalRef.current) {
+      clearInterval(scanIntervalRef.current);
+      scanIntervalRef.current = null;
+    }
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+    setCameraModalOpen(false);
+  };
+
+  useEffect(() => {
+    return () => {
+      stopCamera();
+    };
+  }, []);
+
+  // Totals calculation
+  const subtotal = posItems.reduce((sum, item) => sum + (item.unit_price + item.lens_price) * item.quantity, 0);
+  const finalTotal = Math.max(0, subtotal - Number(discountAmount || 0));
+
+  // Finalize Bill
+  const handleFinalizeBill = async (e) => {
+    e.preventDefault();
+    setErrorMessage('');
+    if (posItems.length === 0) {
+      setErrorMessage('Please add at least one optical item to the bill.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const payload = {
+        customer_name: customerName.trim(),
+        customer_phone: customerPhone.trim() || '9830123456',
+        customer_address: customerAddress.trim(),
+        payment_mode: paymentMode,
+        discount_amount: Number(discountAmount || 0),
+        notes: [billNotes.trim(), `Warranty: ${warrantyNote}`].filter(Boolean).join(' | '),
+        items: posItems.map(item => ({
+          product_id: item.product_id,
+          unit_price: item.unit_price,
+          quantity: item.quantity,
+          lens_type: item.lens_type,
+          lens_price: item.lens_price
+        }))
+      };
+
+      const res = await api.post('/admin/pos/create_bill.php', payload);
+      if (res.success && res.data) {
+        const inv = res.data;
+        // Open Master Tax Invoice Modal
+        setSelectedInvoiceForModal({
+          invoiceNumber: inv.invoice_number,
+          orderNumber: inv.order_number,
+          invoiceDate: inv.invoice_date || new Date().toISOString().split('T')[0],
+          type: 'POS',
+          status: 'Paid & Delivered',
+          paymentMode: inv.payment_mode,
+          paymentStatus: 'Paid',
+          customerName: inv.customer_name,
+          customerPhone: inv.customer_phone,
+          customerAddress: customerAddress,
+          items: posItems,
+          subtotal: inv.subtotal,
+          discountAmount: inv.discount_amount,
+          totalAmount: inv.total_amount,
+          warrantyNote: warrantyNote,
+          notes: billNotes
+        });
+
+        // Reset current POS cart
+        setPosItems([]);
+        setDiscountAmount(0);
+        setCustomerName('Walk-in Customer');
+        setCustomerPhone('');
+        setBillNotes('');
+      } else {
+        setErrorMessage(res.message || 'Failed to finalize bill.');
+      }
+    } catch (err) {
+      setErrorMessage(err.message || 'POS billing failed.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Fetch Invoices Archive
+  const fetchArchiveInvoices = async () => {
+    setArchiveLoading(true);
+    try {
+      const res = await api.get('/admin/invoices.php');
+      if (res.success && res.data?.invoices) {
+        setArchiveInvoices(res.data.invoices);
+      }
+    } catch (err) {
+      console.error('Failed to load invoices archive:', err);
+    } finally {
+      setArchiveLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeView === 'ARCHIVE') {
+      fetchArchiveInvoices();
+    }
+  }, [activeView]);
+
+  const filteredArchive = archiveInvoices.filter(inv => 
+    (inv.invoice_number || '').toLowerCase().includes(archiveSearch.toLowerCase()) ||
+    (inv.customer_name || '').toLowerCase().includes(archiveSearch.toLowerCase()) ||
+    (inv.customer_phone || '').includes(archiveSearch)
+  );
+
+  return (
+    <div className="space-y-6">
+      
+      {/* Top Header & Tab Toggle */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-white/10 pb-4">
+        <div>
+          <span className="text-xs uppercase font-extrabold tracking-wider text-brand-cyan">
+            Storefront Billing &amp; Invoicing
+          </span>
+          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white flex items-center gap-2.5 mt-1 font-heading">
+            <ShoppingCart className="w-7 h-7 text-brand-cyan" />
+            POS Counter Billing &amp; Invoices
+          </h1>
+          <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">
+            Instant barcode scanning (camera &amp; USB hardware), walk-in checkout, automatic stock reduction &amp; tax invoice
+          </p>
+        </div>
+
+        {/* View Switcher Tabs */}
+        <div className="flex items-center gap-2 p-1 rounded-2xl bg-white/5 border border-white/10">
+          <button
+            onClick={() => setActiveView('COUNTER')}
+            className={`px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-2 ${
+              activeView === 'COUNTER'
+                ? 'bg-brand-cyan text-slate-950 shadow-cyan-glow'
+                : 'text-slate-300 hover:text-white'
+            }`}
+          >
+            <ShoppingCart className="w-4 h-4" />
+            <span>Counter POS</span>
+          </button>
+          <button
+            onClick={() => setActiveView('ARCHIVE')}
+            className={`px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-2 ${
+              activeView === 'ARCHIVE'
+                ? 'bg-brand-cyan text-slate-950 shadow-cyan-glow'
+                : 'text-slate-300 hover:text-white'
+            }`}
+          >
+            <History className="w-4 h-4" />
+            <span>Invoices Archive</span>
+            {archiveInvoices.length > 0 && (
+              <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-black/40 text-brand-cyan font-mono">
+                {archiveInvoices.length}
+              </span>
+            )}
+          </button>
+        </div>
+      </div>
+
+      {errorMessage && (
+        <div className="p-3.5 rounded-xl bg-rose-950/40 border border-rose-500/30 text-rose-200 text-xs flex items-center gap-2">
+          <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+          <span>{errorMessage}</span>
+        </div>
+      )}
+
+      {/* =========================================================================
+          VIEW 1: COUNTER BILLING
+         ========================================================================= */}
+      {activeView === 'COUNTER' && (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          
+          {/* LEFT COLUMN: Search, Camera Scanner, Item Table */}
+          <div className="lg:col-span-8 space-y-6">
+            
+            {/* Fast Search, Camera Scanner, & Hardware Barcode Input */}
+            <div className="relative glass-card rounded-2xl p-4 space-y-3 border border-slate-200 dark:border-white/10 shadow-sm">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                <div className="relative flex-1">
+                  <Search className="w-5 h-5 text-brand-cyan absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    placeholder="Search frame by name, brand, SKU or barcode (e.g. Titanium, Sovereign, Aviator, NU-FRM-00101)..."
+                    value={searchInput}
+                    onChange={(e) => setSearchInput(e.target.value)}
+                    onKeyDown={handleSearchKeyDown}
+                    className="w-full glass-input rounded-xl pl-11 pr-20 py-3 text-xs font-medium"
+                    autoFocus
+                  />
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
+                    {isSearching && (
+                      <RefreshCw className="w-4 h-4 text-brand-cyan animate-spin" />
+                    )}
+                    {searchInput && (
+                      <button
+                        type="button"
+                        onClick={() => { setSearchInput(''); setSearchResults([]); }}
+                        className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-white rounded-full transition-colors"
+                        title="Clear search"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={startCamera}
+                  className="px-4 py-3 rounded-xl bg-brand-cyan/20 hover:bg-brand-cyan/30 text-brand-cyan border border-brand-cyan/40 font-bold text-xs flex items-center justify-center gap-2 shrink-0 transition-all shadow-sm"
+                  title="Scan barcode with device camera"
+                >
+                  <Camera className="w-4 h-4" />
+                  <span>Scan with Camera</span>
+                </button>
+              </div>
+
+              {/* Quick Search Keywords / Popular Frames */}
+              <div className="flex items-center gap-1.5 flex-wrap pt-1 text-[11px]">
+                <span className="text-slate-500 dark:text-slate-400 text-[10px] uppercase font-bold tracking-wider mr-1">
+                  Quick Search:
+                </span>
+                {[
+                  'Titanium Pure', 
+                  'Aviator', 
+                  'Wayfarer', 
+                  'Rimless', 
+                  'Reading', 
+                  'Blue Cut',
+                  'Geometric Hex'
+                ].map((tag) => (
+                  <button
+                    key={tag}
+                    type="button"
+                    onClick={() => setSearchInput(tag)}
+                    className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-white/5 hover:bg-brand-cyan/15 dark:hover:bg-brand-cyan/20 text-slate-700 dark:text-slate-300 hover:text-brand-cyan border border-slate-200 dark:border-white/10 transition-colors text-[11px]"
+                  >
+                    {tag}
+                  </button>
+                ))}
+              </div>
+
+              {/* Instant Search Suggestions Dropdown */}
+              {searchResults.length > 0 && (
+                <div className="absolute top-full left-0 right-0 z-30 mt-2 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-white/20 shadow-2xl overflow-hidden divide-y divide-slate-100 dark:divide-white/10 max-h-96 overflow-y-auto">
+                  <div className="p-3 bg-slate-50 dark:bg-slate-950 text-[11px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider flex items-center justify-between">
+                    <span className="flex items-center gap-2">
+                      <Sparkles className="w-3.5 h-3.5 text-brand-cyan" />
+                      <span>{searchResults.length} Products Found &bull; Click or press Enter to add</span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setSearchResults([])}
+                      className="text-slate-400 hover:text-slate-600 dark:hover:text-white flex items-center gap-1 text-[10px] lowercase"
+                    >
+                      <X className="w-3 h-3" />
+                      <span>close</span>
+                    </button>
+                  </div>
+                  {searchResults.map((p) => {
+                    const inCartItem = posItems.find(it => it.product_id === p.id || it.sku === p.sku);
+                    const qtyInCart = inCartItem?.quantity || 0;
+                    return (
+                      <div
+                        key={p.id}
+                        onClick={() => addProductToBill(p, false)}
+                        className="p-3.5 hover:bg-brand-cyan/5 dark:hover:bg-brand-cyan/10 cursor-pointer flex items-center justify-between text-xs transition-colors group"
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-11 h-11 rounded-xl bg-slate-100 dark:bg-black/50 p-1 flex items-center justify-center shrink-0 border border-slate-200 dark:border-white/10 overflow-hidden">
+                            <img 
+                              src={p.primary_image || p.image_url || '/logo_symbol.png'} 
+                              alt={p.name} 
+                              className="max-h-full max-w-full object-contain group-hover:scale-105 transition-transform"
+                              onError={(e) => { e.currentTarget.src = '/logo_symbol.png'; }}
+                            />
+                          </div>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-bold text-slate-900 dark:text-white block text-xs truncate group-hover:text-brand-cyan transition-colors">
+                                {p.name}
+                              </span>
+                              {p.brand_name && (
+                                <span className="px-1.5 py-0.2 rounded text-[10px] bg-slate-200 dark:bg-white/10 text-slate-600 dark:text-slate-300">
+                                  {p.brand_name}
+                                </span>
+                              )}
+                              {qtyInCart > 0 && (
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-brand-cyan/20 text-brand-cyan border border-brand-cyan/40">
+                                  In Bill ({qtyInCart})
+                                </span>
+                              )}
+                            </div>
+                            <span className="text-slate-500 dark:text-slate-400 text-[11px] font-mono block mt-0.5">
+                              SKU: <strong className="text-brand-cyan">{p.sku}</strong> &bull; Size: {p.frame_size || 'M'} &bull; Shape: {p.frame_shape || '—'}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3 shrink-0 ml-3">
+                          <div className="text-right">
+                            <span className="font-extrabold text-slate-900 dark:text-white block font-mono text-sm">
+                              ₹{(p.discount_price || p.price)?.toLocaleString('en-IN')}
+                            </span>
+                            <span className={`text-[10px] font-bold block ${p.stock_quantity > 0 ? 'text-teal-600 dark:text-teal-400' : 'text-rose-500'}`}>
+                              {p.stock_quantity > 0 ? `${p.stock_quantity} in stock` : 'Out of stock'}
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              addProductToBill(p, true);
+                            }}
+                            className="px-3 py-1.5 rounded-xl bg-brand-cyan hover:bg-brand-cyan/90 text-slate-950 font-bold text-xs flex items-center gap-1 shadow-sm transition-all"
+                            title="Add to bill and keep search results open"
+                          >
+                            <Plus className="w-3.5 h-3.5" />
+                            <span>Add</span>
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* POS Bill Items Table */}
+            <div className="glass-card rounded-2xl p-5 space-y-4 overflow-x-auto border border-white/10">
+              <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-brand-cyan flex items-center gap-2">
+                  <ShoppingCart className="w-4 h-4" />
+                  <span>Invoice Items ({posItems.length})</span>
+                </h3>
+                {posItems.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setPosItems([])}
+                    className="text-[11px] text-rose-400 hover:underline"
+                  >
+                    Clear All Items
+                  </button>
+                )}
+              </div>
+
+              {posItems.length === 0 ? (
+                <div className="py-14 text-center text-xs text-slate-500 space-y-2">
+                  <Barcode className="w-12 h-12 mx-auto opacity-30 text-brand-cyan" />
+                  <p className="font-medium text-slate-400">No items added yet.</p>
+                  <p className="text-[11px] text-slate-500">
+                    Use the search bar above, tap <strong>Scan with Camera</strong>, or scan with a USB machine.
+                  </p>
+                </div>
+              ) : (
+                <table className="w-full text-xs text-left">
+                  <thead>
+                    <tr className="text-slate-400 border-b border-white/10 font-bold text-[11px]">
+                      <th className="py-2.5">Item / Frame</th>
+                      <th className="py-2.5">Unit Price</th>
+                      <th className="py-2.5 text-center">Qty</th>
+                      <th className="py-2.5 text-right">Total</th>
+                      <th className="py-2.5 text-center"></th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/5 font-mono">
+                    {posItems.map((it, idx) => (
+                      <tr key={idx} className="hover:bg-white/[0.02]">
+                        <td className="py-3.5 font-sans">
+                          <strong className="text-white block font-bold text-sm">{it.name}</strong>
+                          <span className="text-brand-cyan text-[10px] font-mono">{it.sku}</span>
+                        </td>
+                        <td className="py-3.5 text-slate-300">
+                          ₹{it.unit_price}
+                        </td>
+                        <td className="py-3.5 text-center">
+                          <div className="inline-flex items-center gap-1.5 bg-white/5 rounded-xl p-1 border border-white/10">
+                            <button 
+                              type="button"
+                              onClick={() => updateItemQty(idx, it.quantity - 1)}
+                              className="p-1 hover:bg-white/10 rounded-lg text-slate-300 transition-colors"
+                              title="Decrease quantity by 1"
+                            >
+                              <Minus className="w-3.5 h-3.5" />
+                            </button>
+                            <span className="w-7 text-center font-bold text-white text-xs">{it.quantity}</span>
+                            <button 
+                              type="button"
+                              onClick={() => updateItemQty(idx, it.quantity + 1)}
+                              className="p-1 hover:bg-white/10 rounded-lg text-slate-300 transition-colors"
+                              title="Increase quantity by 1"
+                            >
+                              <Plus className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                        <td className="py-3.5 text-right font-bold text-white text-sm">
+                          ₹{(it.unit_price * it.quantity).toLocaleString('en-IN')}
+                        </td>
+                        <td className="py-3.5 text-center">
+                          <button 
+                            type="button"
+                            onClick={() => removeItem(idx)}
+                            className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors"
+                            title="Remove item"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+
+          </div>
+
+          {/* RIGHT COLUMN: Customer, Discount, Warranty, Payment Mode */}
+          <div className="lg:col-span-4 space-y-6">
+            <div className="glass-card rounded-2xl p-6 space-y-4 border border-white/10">
+              
+              <h3 className="text-xs font-bold uppercase tracking-wider text-brand-cyan border-b border-white/10 pb-2">
+                Customer &amp; Payment Details
+              </h3>
+
+              <div>
+                <label className="block text-[11px] text-slate-300 mb-1">Customer Name</label>
+                <input 
+                  type="text" 
+                  value={customerName}
+                  onChange={(e) => setCustomerName(e.target.value)}
+                  placeholder="Walk-in Customer"
+                  className="w-full glass-input rounded-xl px-3.5 py-2 text-xs"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] text-slate-300 mb-1">Customer Phone</label>
+                <input 
+                  type="tel" 
+                  value={customerPhone}
+                  onChange={(e) => setCustomerPhone(e.target.value)}
+                  placeholder="e.g. 9830123456"
+                  className="w-full glass-input rounded-xl px-3.5 py-2 text-xs"
+                />
+              </div>
+
+              {/* Payment Mode Selector */}
+              <div>
+                <label className="block text-[11px] text-slate-300 mb-1 font-bold">Payment Method</label>
+                <div className="grid grid-cols-3 gap-2 text-xs font-bold">
+                  {['CASH', 'UPI', 'CARD'].map((pm) => (
+                    <button
+                      key={pm}
+                      type="button"
+                      onClick={() => setPaymentMode(pm)}
+                      className={`py-2 rounded-xl border text-center transition-all ${
+                        paymentMode === pm 
+                          ? 'bg-brand-cyan text-slate-950 font-black border-brand-cyan shadow-cyan-glow' 
+                          : 'bg-white/5 border-white/10 text-slate-300 hover:border-white/30'
+                      }`}
+                    >
+                      {pm}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Discount Amount */}
+              <div>
+                <label className="block text-[11px] text-slate-300 mb-1">Discount Amount (₹)</label>
+                <input 
+                  type="number"
+                  min="0"
+                  value={discountAmount}
+                  onChange={(e) => setDiscountAmount(Math.max(0, parseFloat(e.target.value) || 0))}
+                  className="w-full glass-input rounded-xl px-3.5 py-2 text-xs font-mono"
+                  placeholder="0"
+                />
+              </div>
+
+              {/* Optical Warranty Note */}
+              <div>
+                <label className="block text-[11px] text-slate-300 mb-1 flex items-center gap-1">
+                  <ShieldCheck className="w-3.5 h-3.5 text-teal-400" />
+                  <span>Optical Warranty Certificate Note</span>
+                </label>
+                <input 
+                  type="text"
+                  value={warrantyNote}
+                  onChange={(e) => setWarrantyNote(e.target.value)}
+                  className="w-full glass-input rounded-xl px-3.5 py-2 text-xs"
+                  placeholder="e.g. 1-Year Optical Warranty on Frame & Lenses"
+                />
+              </div>
+
+              {/* Doctor / Prescription Note */}
+              <div>
+                <label className="block text-[11px] text-slate-300 mb-1">Bill / Rx Note (Optional)</label>
+                <input 
+                  type="text"
+                  value={billNotes}
+                  onChange={(e) => setBillNotes(e.target.value)}
+                  className="w-full glass-input rounded-xl px-3.5 py-2 text-xs"
+                  placeholder="e.g. Power SPH -1.50, Blue-cut AR coating"
+                />
+              </div>
+
+              {/* Totals Breakdown */}
+              <div className="border-t border-white/10 pt-3 space-y-1.5 text-xs">
+                <div className="flex justify-between text-slate-300">
+                  <span>Subtotal</span>
+                  <span className="font-mono font-bold">₹{subtotal.toLocaleString('en-IN')}</span>
+                </div>
+                {discountAmount > 0 && (
+                  <div className="flex justify-between text-teal-400 font-semibold">
+                    <span>Discount Applied</span>
+                    <span className="font-mono">-₹{discountAmount.toLocaleString('en-IN')}</span>
+                  </div>
+                )}
+                <div className="border-t border-white/10 pt-2 flex justify-between items-baseline">
+                  <span className="font-bold text-white text-sm">Grand Total</span>
+                  <span className="text-2xl font-black text-brand-cyan font-mono">₹{finalTotal.toLocaleString('en-IN')}</span>
+                </div>
+              </div>
+
+              {/* Finalize Button */}
+              <button
+                type="button"
+                onClick={handleFinalizeBill}
+                disabled={isSubmitting || posItems.length === 0}
+                className="w-full btn-primary py-3.5 text-xs font-bold rounded-xl shadow-cyan-glow flex items-center justify-center gap-2 disabled:opacity-50 transition-all"
+              >
+                {isSubmitting ? 'Finalizing Invoice...' : `Finalize & Deduct Stock (₹${finalTotal.toLocaleString('en-IN')})`}
+              </button>
+
+              <p className="text-[10px] text-slate-500 text-center">
+                Stock automatically decreases upon finalized invoice generation.
+              </p>
+
+            </div>
+          </div>
+
+        </div>
+      )}
+
+      {/* =========================================================================
+          VIEW 2: INVOICES ARCHIVE
+         ========================================================================= */}
+      {activeView === 'ARCHIVE' && (
+        <div className="space-y-4">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-[#0A192F] p-4 rounded-2xl border border-white/10">
+            <div className="relative flex-1 max-w-md">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                placeholder="Search by invoice number, customer name, phone..."
+                value={archiveSearch}
+                onChange={(e) => setArchiveSearch(e.target.value)}
+                className="w-full glass-input rounded-xl pl-10 pr-4 py-2 text-xs"
+              />
+            </div>
+            <button
+              onClick={fetchArchiveInvoices}
+              className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white border border-white/10 text-xs font-bold flex items-center justify-center gap-1.5"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${archiveLoading ? 'animate-spin' : ''}`} />
+              <span>Refresh Invoices</span>
+            </button>
+          </div>
+
+          <div className="bg-[#0A192F] border border-white/10 rounded-2xl overflow-hidden shadow-xl">
+            {archiveLoading ? (
+              <div className="p-12 text-center text-slate-400 space-y-3">
+                <div className="w-8 h-8 border-2 border-brand-cyan border-t-transparent rounded-full animate-spin mx-auto" />
+                <div className="text-xs">Loading all generated invoices...</div>
+              </div>
+            ) : filteredArchive.length === 0 ? (
+              <div className="p-12 text-center text-slate-400 space-y-2">
+                <FileText className="w-10 h-10 mx-auto opacity-40 text-slate-500" />
+                <p className="font-bold text-sm text-slate-300">No invoices found</p>
+                <p className="text-xs text-slate-500">POS counter bills and customer orders will appear here.</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs text-slate-300">
+                  <thead className="bg-white/[0.02] text-slate-400 border-b border-white/10 uppercase tracking-wider font-semibold text-[11px]">
+                    <tr>
+                      <th className="py-3 px-4">Invoice #</th>
+                      <th className="py-3 px-4">Date</th>
+                      <th className="py-3 px-4">Customer &amp; Phone</th>
+                      <th className="py-3 px-4">Type</th>
+                      <th className="py-3 px-4">Mode</th>
+                      <th className="py-3 px-4 text-right">Amount</th>
+                      <th className="py-3 px-4 text-right">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/5">
+                    {filteredArchive.map((inv) => (
+                      <tr key={inv.id} className="hover:bg-white/[0.02] transition-colors">
+                        <td className="py-3 px-4">
+                          <span className="font-mono font-bold text-brand-cyan">{inv.invoice_number}</span>
+                          {inv.order_number && (
+                            <div className="text-[10px] text-slate-500 font-mono">Ref: {inv.order_number}</div>
+                          )}
+                        </td>
+                        <td className="py-3 px-4 text-slate-300">
+                          {inv.invoice_date || (inv.created_at ? new Date(inv.created_at).toLocaleDateString() : '—')}
+                        </td>
+                        <td className="py-3 px-4">
+                          <div className="font-bold text-white">{inv.customer_name || 'Walk-in Customer'}</div>
+                          <div className="text-[10px] text-slate-400 font-mono">{inv.customer_phone || '—'}</div>
+                        </td>
+                        <td className="py-3 px-4">
+                          <span className="px-2 py-0.5 rounded bg-white/5 border border-white/10 text-[10px] font-mono uppercase">
+                            {inv.invoice_type || 'POS'}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 font-mono font-bold uppercase text-slate-300">
+                          {inv.payment_mode || 'CASH'}
+                        </td>
+                        <td className="py-3 px-4 text-right font-mono font-extrabold text-white text-sm">
+                          ₹{parseFloat(inv.total_amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                        </td>
+                        <td className="py-3 px-4 text-right">
+                          <button
+                            onClick={() => setSelectedInvoiceForModal({
+                              invoiceNumber: inv.invoice_number,
+                              orderNumber: inv.order_number || `ORD-${inv.order_id}`,
+                              invoiceDate: inv.invoice_date || (inv.created_at ? new Date(inv.created_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]),
+                              type: inv.invoice_type || 'POS',
+                              status: inv.order_status || 'Delivered',
+                              paymentMode: inv.payment_mode || 'CASH',
+                              paymentStatus: inv.payment_status || 'Paid',
+                              customerName: inv.customer_name || 'Walk-in Customer',
+                              customerPhone: inv.customer_phone || '—',
+                              customerAddress: inv.customer_address || 'Digha Store Counter',
+                              items: inv.items || [],
+                              subtotal: inv.subtotal || inv.total_amount,
+                              discountAmount: inv.discount_amount || 0,
+                              totalAmount: inv.total_amount,
+                              warrantyNote: '1-Year Optical Frame & Multi-Coat Optics Warranty',
+                              notes: inv.order_notes || ''
+                            })}
+                            className="px-3 py-1 rounded-lg bg-brand-cyan/20 hover:bg-brand-cyan/30 text-brand-cyan border border-brand-cyan/30 text-xs font-bold inline-flex items-center gap-1 transition-colors"
+                          >
+                            <FileText className="w-3.5 h-3.5" />
+                            <span>View / Print</span>
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================================
+          CAMERA BARCODE SCANNER MODAL
+         ========================================================================= */}
+      {cameraModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="relative max-w-lg w-full bg-slate-900 border border-white/20 rounded-3xl overflow-hidden shadow-2xl p-6 space-y-4">
+            <div className="flex items-center justify-between border-b border-white/10 pb-3">
+              <div className="flex items-center gap-2 text-white font-bold text-sm">
+                <Camera className="w-5 h-5 text-brand-cyan" />
+                <span>Camera Barcode Scanner</span>
+              </div>
+              <button
+                onClick={stopCamera}
+                className="p-1.5 rounded-lg bg-white/10 hover:bg-rose-500/20 text-slate-300 hover:text-rose-300"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-400">
+              Point your camera at the Code 128 barcode or QR code on the optical frame or shelf tag.
+            </p>
+
+            {/* Video Viewport with Targeting Laser Box */}
+            <div className="relative rounded-2xl overflow-hidden bg-black aspect-video flex items-center justify-center border-2 border-brand-cyan/40">
+              <video 
+                ref={videoRef} 
+                className="w-full h-full object-cover" 
+                playsInline 
+                muted
+              />
+
+              {/* Scanning Target Reticle */}
+              <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+                <div className="w-64 h-32 border-2 border-brand-cyan rounded-xl relative shadow-[0_0_20px_rgba(0,180,216,0.5)]">
+                  <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-rose-500 animate-pulse" />
+                  <span className="absolute -bottom-6 left-0 right-0 text-center text-[10px] text-brand-cyan font-bold tracking-wider uppercase">
+                    Align Barcode in Box
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {cameraError && (
+              <div className="p-3 rounded-xl bg-amber-500/20 border border-amber-500/30 text-amber-300 text-xs">
+                {cameraError}
+              </div>
+            )}
+
+            <div className="flex justify-between items-center text-xs text-slate-400 pt-2">
+              <span>Scanning automatically...</span>
+              <button
+                type="button"
+                onClick={stopCamera}
+                className="btn-primary py-2 px-5 text-xs rounded-xl"
+              >
+                Done Scanning
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================================
+          WATERMARKED TAX INVOICE & GUARANTEE CERTIFICATE MODAL
+         ========================================================================= */}
+      <InvoiceModal
+        isOpen={!!selectedInvoiceForModal}
+        onClose={() => setSelectedInvoiceForModal(null)}
+        invoiceData={selectedInvoiceForModal}
+      />
+
+    </div>
+  );
+};

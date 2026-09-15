@@ -1,0 +1,174 @@
+<?php
+// Netra Unnayan - Admin Orders & Prescription Workflow Engine
+require_once __DIR__ . '/../../middleware/cors.php';
+require_once __DIR__ . '/../../middleware/auth.php';
+require_once __DIR__ . '/../../config/database.php';
+require_once __DIR__ . '/../../helpers/response.php';
+require_once __DIR__ . '/../../helpers/mailer.php';
+
+$admin = requireAdminAuth(['super_admin', 'manager', 'billing_staff']);
+$pdo = Database::getConnection();
+
+if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+    // List orders
+    $status = trim($_GET['status'] ?? '');
+    $search = trim($_GET['search'] ?? '');
+    $type = trim($_GET['order_type'] ?? ''); // ONLINE or POS_OFFLINE
+
+    $where = ['1=1'];
+    $params = [];
+
+    if (!empty($status)) {
+        $where[] = 'o.order_status = :status';
+        $params[':status'] = $status;
+    }
+    if (!empty($type)) {
+        $where[] = 'o.order_type = :type';
+        $params[':type'] = $type;
+    }
+    if (!empty($search)) {
+        $where[] = '(o.order_number LIKE :search OR o.customer_name LIKE :search OR o.customer_phone LIKE :search)';
+        $params[':search'] = "%$search%";
+    }
+
+    $whereSql = implode(' AND ', $where);
+    $stmt = $pdo->prepare("
+        SELECT 
+            o.*,
+            (SELECT COUNT(*) FROM order_items WHERE order_id = o.id) as item_count,
+            (SELECT invoice_number FROM invoices WHERE order_id = o.id LIMIT 1) as invoice_number
+        FROM orders o
+        WHERE $whereSql
+        ORDER BY o.id DESC
+        LIMIT 50
+    ");
+    $stmt->execute($params);
+    $orders = $stmt->fetchAll();
+
+    foreach ($orders as &$ord) {
+        $iStmt = $pdo->prepare('SELECT * FROM order_items WHERE order_id = ?');
+        $iStmt->execute([$ord['id']]);
+        $ord['items'] = $iStmt->fetchAll();
+
+        $rxStmt = $pdo->prepare('SELECT * FROM order_prescriptions WHERE order_id = ?');
+        $rxStmt->execute([$ord['id']]);
+        $ord['prescription'] = $rxStmt->fetch();
+
+        $payStmt = $pdo->prepare('SELECT * FROM payments WHERE order_id = ? ORDER BY id DESC LIMIT 1');
+        $payStmt->execute([$ord['id']]);
+        $ord['payment'] = $payStmt->fetch();
+    }
+
+    Response::success($orders, 'Orders list retrieved');
+
+} elseif ($_SERVER['REQUEST_METHOD'] === 'POST' || $_SERVER['REQUEST_METHOD'] === 'PATCH') {
+    // Update Order Status / Prescription Workflow
+    $input = json_decode(file_get_contents('php://input'), true) ?? [];
+    $orderId = (int)($input['order_id'] ?? 0);
+    $newStatus = trim($input['new_status'] ?? '');
+    $note = trim($input['note'] ?? 'Status updated by staff');
+    $paymentStatus = trim($input['payment_status'] ?? '');
+    $prescriptionStatus = trim($input['prescription_status'] ?? '');
+
+    if (empty($orderId) || empty($newStatus)) {
+        Response::error('Order ID and new status are required.', 422);
+    }
+
+    $stmt = $pdo->prepare('SELECT * FROM orders WHERE id = ?');
+    $stmt->execute([$orderId]);
+    $order = $stmt->fetch();
+
+    if (!$order) Response::notFound('Order not found.');
+
+    $oldStatus = $order['order_status'];
+
+    // If changing to Lens Cutting, auto set prescription status to Production Started
+    if (in_array($newStatus, ['Lens Cutting', 'Fitting', 'Quality Check'])) {
+        $prescriptionStatus = 'Production Started';
+    }
+
+    $updates = ['order_status = ?'];
+    $params = [$newStatus];
+
+    if (!empty($paymentStatus)) {
+        $updates[] = 'payment_status = ?';
+        $params[] = $paymentStatus;
+    }
+    if (!empty($prescriptionStatus)) {
+        $updates[] = 'prescription_status = ?';
+        $params[] = $prescriptionStatus;
+    }
+
+    $courierName = trim($input['courier_name'] ?? '');
+    $trackingNumber = trim($input['tracking_number'] ?? '');
+    $trackingUrl = trim($input['tracking_url'] ?? '');
+    $estimatedDelivery = trim($input['estimated_delivery_date'] ?? '');
+
+    if (!empty($courierName)) {
+        $updates[] = 'courier_name = ?';
+        $params[] = $courierName;
+    }
+    if (!empty($trackingNumber)) {
+        $updates[] = 'tracking_number = ?';
+        $params[] = $trackingNumber;
+    }
+    if (!empty($trackingUrl)) {
+        $updates[] = 'tracking_url = ?';
+        $params[] = $trackingUrl;
+    }
+    if (!empty($estimatedDelivery)) {
+        $updates[] = 'estimated_delivery_date = ?';
+        $params[] = $estimatedDelivery;
+    }
+
+    $params[] = $orderId;
+    $pdo->prepare('UPDATE orders SET ' . implode(', ', $updates) . ' WHERE id = ?')->execute($params);
+
+    // Update prescription table if needed
+    if (!empty($prescriptionStatus)) {
+        $pdo->prepare('UPDATE order_prescriptions SET status = ?, admin_notes = ? WHERE order_id = ?')
+            ->execute([$prescriptionStatus, $note, $orderId]);
+    }
+
+    // Update payment record if payment confirmed
+    if ($paymentStatus === 'Paid') {
+        $pdo->prepare('UPDATE payments SET status = "Paid", verified_by_admin_id = ?, verified_at = NOW() WHERE order_id = ?')
+            ->execute([$admin['id'], $orderId]);
+    }
+
+    // Record Status History
+    $pdo->prepare('
+        INSERT INTO order_status_history (order_id, old_status, new_status, note, updated_by_admin_id)
+        VALUES (?, ?, ?, ?, ?)
+    ')->execute([$orderId, $oldStatus, $newStatus, $note, $admin['id']]);
+
+    // Send customer email update
+    if (!empty($order['customer_email']) && $oldStatus !== $newStatus) {
+        $shippingInfoHtml = '';
+        if (!empty($courierName) || !empty($trackingNumber)) {
+            $shippingInfoHtml = "<div style='margin-top:14px; padding:12px; background:#F1F5F9; border-radius:8px; border:1px solid #CBD5E1;'>";
+            if (!empty($courierName)) $shippingInfoHtml .= "<p style='margin:0 0 4px;'><strong>Courier Partner:</strong> {$courierName}</p>";
+            if (!empty($trackingNumber)) $shippingInfoHtml .= "<p style='margin:0 0 4px;'><strong>AWB / Tracking #:</strong> {$trackingNumber}</p>";
+            if (!empty($trackingUrl)) $shippingInfoHtml .= "<p style='margin:0;'><a href='{$trackingUrl}' target='_blank' style='color:#0284C7; font-weight:bold;'>Click to Track Shipment Online &rarr;</a></p>";
+            $shippingInfoHtml .= "</div>";
+        }
+
+        $emailHtml = <<<HTML
+            <div class="badge" style="background:#E0F2FE; color:#0369A1; padding:4px 10px; border-radius:9999px; font-weight:bold; font-size:12px; display:inline-block;">Status Update: {$newStatus}</div>
+            <h2>Order {$order['order_number']} Progress Update</h2>
+            <p>Dear {$order['customer_name']}, your eyewear order has progressed to stage: <strong>{$newStatus}</strong>.</p>
+            <p><strong>Note:</strong> {$note}</p>
+            {$shippingInfoHtml}
+            <p style="color:#64748B; font-size:12px; margin-top:16px;">You can track live optical fabrication and courier delivery updates anytime in your Netra Unnayan account portal.</p>
+HTML;
+        Mailer::send($order['customer_email'], $order['customer_name'], "Order Update: {$newStatus} - {$order['order_number']} | Netra Unnayan", $emailHtml);
+    }
+
+    Response::success([
+        'order_id'            => $orderId,
+        'old_status'          => $oldStatus,
+        'new_status'          => $newStatus,
+        'prescription_status' => $prescriptionStatus ?: $order['prescription_status'],
+        'payment_status'      => $paymentStatus ?: $order['payment_status']
+    ], "Order status updated to '{$newStatus}' successfully.");
+}
