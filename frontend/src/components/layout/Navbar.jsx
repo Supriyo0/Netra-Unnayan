@@ -162,13 +162,9 @@ export const Navbar = () => {
                 {dropdownOpen && (
                   <div 
                     onMouseLeave={() => setDropdownOpen(false)}
-                    className={`absolute top-full left-0 mt-2 w-72 rounded-2xl shadow-2xl border p-2 z-50 transition-all ${
-                      isDark 
-                        ? 'bg-[#0A192F]/98 backdrop-blur-2xl border-white/15 text-white' 
-                        : 'bg-white/98 backdrop-blur-2xl border-slate-200 text-slate-900 shadow-xl'
-                    }`}
+                    className="nav-dropdown-solid absolute top-full left-0 mt-2 w-72 rounded-2xl shadow-2xl p-2 z-[100] transition-all text-slate-900 dark:text-white"
                   >
-                    <div className={`px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-brand-cyan border-b ${isDark ? 'border-white/10' : 'border-slate-200'} mb-1`}>
+                    <div className="px-3 py-2 text-[10px] font-black uppercase tracking-widest text-cyan-600 dark:text-brand-cyan border-b border-slate-100 dark:border-white/10 mb-1">
                       Frame Collections
                     </div>
                     {categories.map((cat, i) => (
@@ -176,18 +172,14 @@ export const Navbar = () => {
                         key={i}
                         to={cat.slug ? `/catalog?category=${cat.slug}` : '/catalog'}
                         onClick={() => setDropdownOpen(false)}
-                        className={`flex items-center gap-3 p-2.5 rounded-xl transition-all ${
-                          isDark 
-                            ? 'hover:bg-white/10 text-slate-200 hover:text-brand-cyan' 
-                            : 'hover:bg-sky-50 text-slate-800 hover:text-sky-700'
-                        }`}
+                        className="flex items-center gap-3 p-2.5 rounded-xl transition-all hover:bg-sky-50 dark:hover:bg-white/10 text-slate-800 dark:text-slate-100 hover:text-sky-600 dark:hover:text-brand-cyan"
                       >
-                        <div className="w-8 h-8 rounded-lg bg-brand-cyan/10 text-brand-cyan flex items-center justify-center shrink-0">
+                        <div className="w-8 h-8 rounded-lg bg-cyan-500/10 text-cyan-600 dark:text-brand-cyan flex items-center justify-center shrink-0">
                           <cat.icon className="w-4 h-4" />
                         </div>
                         <div>
-                          <div className="text-xs font-bold">{cat.name}</div>
-                          <div className={`text-[11px] ${isDark ? 'text-slate-400' : 'text-slate-500'} font-normal`}>{cat.desc}</div>
+                          <div className="text-xs font-bold text-slate-900 dark:text-white">{cat.name}</div>
+                          <div className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">{cat.desc}</div>
                         </div>
                       </Link>
                     ))}
@@ -362,100 +354,96 @@ export const Navbar = () => {
                   {userDropdownOpen && (
                     <div 
                       onMouseLeave={() => setUserDropdownOpen(false)}
-                      className={`absolute right-0 top-full mt-2 w-56 rounded-2xl shadow-2xl border p-2 z-50 transition-all ${
-                        isDark 
-                          ? 'bg-[#0A192F]/98 backdrop-blur-2xl border-white/15 text-white shadow-2xl' 
-                          : 'bg-white/98 backdrop-blur-2xl border-slate-200 text-slate-900 shadow-2xl'
-                      }`}
+                      className="nav-dropdown-solid absolute right-0 top-full mt-2 w-64 rounded-2xl shadow-2xl p-2 z-[100] transition-all text-slate-900 dark:text-white"
                     >
-                      <div className="p-2.5 border-b border-slate-200 dark:border-white/10 mb-1">
-                        <div className="font-extrabold text-xs text-slate-900 dark:text-white truncate">{user.full_name}</div>
-                        <div className="text-[10px] text-brand-cyan font-mono truncate">{user.email || user.phone}</div>
+                      <div className="p-3 bg-slate-50 dark:bg-white/5 rounded-xl border border-slate-100 dark:border-white/5 mb-1.5">
+                        <div className="font-black text-xs text-slate-900 dark:text-white truncate">{user.full_name}</div>
+                        <div className="text-[11px] text-cyan-700 dark:text-brand-cyan font-mono truncate">{user.email || user.phone}</div>
                         {isAdmin && (
-                          <span className="mt-1 inline-block px-2 py-0.5 rounded bg-amber-500/20 text-amber-500 dark:text-amber-400 text-[9px] font-extrabold uppercase">
+                          <span className="mt-1.5 inline-block px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/30 text-[9px] font-black uppercase tracking-wider">
                             Admin Staff
                           </span>
                         )}
                       </div>
 
                       {isAdmin ? (
-                        <>
+                        <div className="space-y-0.5">
                           <Link
                             to="/admin"
                             onClick={() => setUserDropdownOpen(false)}
-                            className="flex items-center gap-2.5 p-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-sky-50 dark:hover:bg-white/10 hover:text-brand-cyan"
+                            className="flex items-center gap-2.5 p-2 rounded-xl text-xs font-bold text-slate-800 dark:text-slate-200 hover:bg-sky-50 dark:hover:bg-white/10 hover:text-sky-600 dark:hover:text-brand-cyan transition-colors"
                           >
-                            <Shield className="w-4 h-4 text-brand-cyan" />
+                            <Shield className="w-4 h-4 text-cyan-600 dark:text-brand-cyan shrink-0" />
                             <span>Executive Dashboard</span>
                           </Link>
                           <Link
                             to="/admin/pos"
                             onClick={() => setUserDropdownOpen(false)}
-                            className="flex items-center gap-2.5 p-2 rounded-xl text-xs font-bold text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-white/10"
+                            className="flex items-center gap-2.5 p-2 rounded-xl text-xs font-bold text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-500/15 transition-colors"
                           >
-                            <ShoppingCart className="w-4 h-4 text-amber-500" />
+                            <ShoppingCart className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
                             <span>POS Billing Counter</span>
                           </Link>
                           <Link
                             to="/admin/appointments"
                             onClick={() => setUserDropdownOpen(false)}
-                            className="flex items-center gap-2.5 p-2 rounded-xl text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-white/10"
+                            className="flex items-center gap-2.5 p-2 rounded-xl text-xs font-bold text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-500/15 transition-colors"
                           >
-                            <Calendar className="w-4 h-4 text-emerald-500" />
+                            <Calendar className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
                             <span>Manage Appointments</span>
                           </Link>
                           <Link
                             to="/account"
                             onClick={() => setUserDropdownOpen(false)}
-                            className="flex items-center gap-2.5 p-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-sky-50 dark:hover:bg-white/10 hover:text-brand-cyan"
+                            className="flex items-center gap-2.5 p-2 rounded-xl text-xs font-bold text-slate-800 dark:text-slate-200 hover:bg-sky-50 dark:hover:bg-white/10 hover:text-sky-600 dark:hover:text-brand-cyan transition-colors"
                           >
-                            <User className="w-4 h-4 text-brand-cyan" />
+                            <User className="w-4 h-4 text-cyan-600 dark:text-brand-cyan shrink-0" />
                             <span>Customer Profile View</span>
                           </Link>
-                        </>
+                        </div>
                       ) : (
-                        <>
+                        <div className="space-y-0.5">
                           <Link
                             to="/account?tab=orders"
                             onClick={() => setUserDropdownOpen(false)}
-                            className="flex items-center gap-2.5 p-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-sky-50 dark:hover:bg-white/10 hover:text-brand-cyan"
+                            className="flex items-center gap-2.5 p-2 rounded-xl text-xs font-bold text-slate-800 dark:text-slate-200 hover:bg-sky-50 dark:hover:bg-white/10 hover:text-sky-600 dark:hover:text-brand-cyan transition-colors"
                           >
-                            <ShoppingBag className="w-4 h-4 text-brand-cyan" />
+                            <ShoppingBag className="w-4 h-4 text-cyan-600 dark:text-brand-cyan shrink-0" />
                             <span>My Eyewear Orders</span>
                           </Link>
                           <Link
                             to="/account?tab=bookings"
                             onClick={() => setUserDropdownOpen(false)}
-                            className="flex items-center gap-2.5 p-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-sky-50 dark:hover:bg-white/10 hover:text-brand-cyan"
+                            className="flex items-center gap-2.5 p-2 rounded-xl text-xs font-bold text-slate-800 dark:text-slate-200 hover:bg-sky-50 dark:hover:bg-white/10 hover:text-sky-600 dark:hover:text-brand-cyan transition-colors"
                           >
-                            <Calendar className="w-4 h-4 text-emerald-400" />
+                            <Calendar className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
                             <span>My Bookings (Doctor &amp; Home)</span>
                           </Link>
                           <Link
                             to="/account?tab=addresses"
                             onClick={() => setUserDropdownOpen(false)}
-                            className="flex items-center gap-2.5 p-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-sky-50 dark:hover:bg-white/10 hover:text-brand-cyan"
+                            className="flex items-center gap-2.5 p-2 rounded-xl text-xs font-bold text-slate-800 dark:text-slate-200 hover:bg-sky-50 dark:hover:bg-white/10 hover:text-sky-600 dark:hover:text-brand-cyan transition-colors"
                           >
-                            <MapPin className="w-4 h-4 text-amber-400" />
+                            <MapPin className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
                             <span>Saved Addresses</span>
                           </Link>
                           <Link
                             to="/account?tab=prescriptions"
                             onClick={() => setUserDropdownOpen(false)}
-                            className="flex items-center gap-2.5 p-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-sky-50 dark:hover:bg-white/10 hover:text-brand-cyan"
+                            className="flex items-center gap-2.5 p-2 rounded-xl text-xs font-bold text-slate-800 dark:text-slate-200 hover:bg-sky-50 dark:hover:bg-white/10 hover:text-sky-600 dark:hover:text-brand-cyan transition-colors"
                           >
-                            <Eye className="w-4 h-4 text-brand-teal" />
+                            <Eye className="w-4 h-4 text-teal-600 dark:text-brand-teal shrink-0" />
                             <span>Prescription Vault</span>
                           </Link>
-                        </>
+                        </div>
                       )}
 
-                      <div className="border-t border-slate-200 dark:border-white/10 my-1" />
+                      <div className="border-t border-slate-100 dark:border-white/10 my-1.5" />
                       <button
                         onClick={() => { logout(); setUserDropdownOpen(false); }}
-                        className="w-full flex items-center gap-2.5 p-2 rounded-xl text-xs font-semibold text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 text-left"
+                        className="w-full flex items-center gap-2.5 p-2 rounded-xl text-xs font-bold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/15 text-left transition-colors cursor-pointer"
                       >
-                        <LogOut className="w-4 h-4" />
+                        <LogOut className="w-4 h-4 shrink-0" />
                         <span>Log Out</span>
                       </button>
                     </div>
@@ -489,9 +477,7 @@ export const Navbar = () => {
 
         {/* Expandable Search Overlay with Live Product Auto-Suggestions */}
         {searchOpen && (
-          <div className={`border-t shadow-2xl transition-all ${
-            isDark ? 'bg-[#0A192F]/98 backdrop-blur-2xl border-white/10' : 'bg-white/98 backdrop-blur-2xl border-slate-200'
-          }`}>
+          <div className="border-t shadow-2xl transition-all bg-white dark:bg-[#071322] border-slate-200 dark:border-slate-800">
             <div className="max-w-4xl mx-auto px-4 py-4 space-y-3">
               
               {/* Search Form */}
@@ -547,9 +533,7 @@ export const Navbar = () => {
 
               {/* Dynamic Suggestions Box */}
               {searchQuery.trim().length > 0 ? (
-                <div className={`rounded-2xl border p-3 max-h-[65vh] sm:max-h-[460px] overflow-y-auto space-y-2.5 transition-all shadow-xl ${
-                  isDark ? 'bg-[#060D17]/90 border-white/10' : 'bg-slate-50/90 border-slate-200'
-                }`}>
+                <div className="rounded-2xl border p-3 max-h-[65vh] sm:max-h-[460px] overflow-y-auto space-y-2.5 transition-all shadow-2xl bg-white dark:bg-[#0A192F] border-slate-200 dark:border-white/10">
                   
                   {/* Suggestions Header */}
                   <div className="flex items-center justify-between px-2 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
@@ -694,9 +678,7 @@ export const Navbar = () => {
 
         {/* Mobile Flyout Menu */}
         {mobileMenuOpen && (
-          <div className={`lg:hidden border-t px-5 py-5 space-y-4 max-h-[85vh] overflow-y-auto shadow-2xl transition-all ${
-            isDark ? 'bg-[#060D17]/98 backdrop-blur-2xl border-white/10' : 'bg-white/98 backdrop-blur-2xl border-slate-200'
-          }`}>
+          <div className="lg:hidden border-t px-5 py-5 space-y-4 max-h-[85vh] overflow-y-auto shadow-2xl transition-all bg-white dark:bg-[#060D17] border-slate-200 dark:border-white/10">
             
             {/* ONLY WHEN ADMIN LOGIN: POS Billing banner in mobile drawer */}
             {user && isAdmin && (
