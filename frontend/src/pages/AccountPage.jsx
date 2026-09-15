@@ -57,6 +57,43 @@ export const AccountPage = () => {
   const [lPd, setLPd] = useState('');
   const [rxNotes, setRxNotes] = useState('');
 
+  // Customer Order Cancellation State
+  const [cancelModalOrder, setCancelModalOrder] = useState(null);
+  const [cancelReasonOption, setCancelReasonOption] = useState('Change of mind / Found alternative');
+  const [cancelCustomReason, setCancelCustomReason] = useState('');
+  const [cancellingOrder, setCancellingOrder] = useState(false);
+  const [cancelFeedback, setCancelFeedback] = useState({ type: '', text: '' });
+
+  const handleCancelCustomerOrder = async (e) => {
+    e.preventDefault();
+    if (!cancelModalOrder) return;
+    const finalReason = cancelReasonOption === 'Other' 
+      ? (cancelCustomReason.trim() || 'Customer requested online cancellation')
+      : cancelReasonOption + (cancelCustomReason.trim() ? `: ${cancelCustomReason.trim()}` : '');
+
+    try {
+      setCancellingOrder(true);
+      const res = await api.post('/orders/cancel.php', {
+        order_number: cancelModalOrder.order_number,
+        reason: finalReason
+      });
+      if (res.success) {
+        setCancelFeedback({ type: 'success', text: res.message || 'Order successfully cancelled and stock restored.' });
+        setCancelModalOrder(null);
+        setCancelCustomReason('');
+        // Refresh orders
+        const ordRes = await api.get('/orders/my_orders.php');
+        if (ordRes.success) setOrders(ordRes.data || []);
+      } else {
+        alert(res.message || 'Could not cancel order.');
+      }
+    } catch (err) {
+      alert(err.message || 'Failed to cancel order.');
+    } finally {
+      setCancellingOrder(false);
+    }
+  };
+
   // Customer Profile Form State
   const [profileForm, setProfileForm] = useState({
     full_name: user?.full_name || '',
@@ -516,125 +553,202 @@ export const AccountPage = () => {
       {/* TAB 1: MY ORDERS */}
       {activeTab === 'orders' && (
         <div className="space-y-4">
+          {cancelFeedback.text && (
+            <div className={`p-4 rounded-2xl flex items-center justify-between gap-3 text-xs font-bold ${
+              cancelFeedback.type === 'success' 
+                ? 'bg-teal-500/15 border border-teal-500/30 text-teal-300' 
+                : 'bg-rose-500/15 border border-rose-500/30 text-rose-300'
+            }`}>
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-teal-400" />
+                <span>{cancelFeedback.text}</span>
+              </div>
+              <button onClick={() => setCancelFeedback({ type: '', text: '' })} className="text-slate-400 hover:text-white">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+
           {orders.length === 0 ? (
             <div className="glass-card rounded-2xl p-12 text-center space-y-3">
               <Package className="w-10 h-10 text-slate-600 mx-auto" />
               <h3 className="text-sm font-bold text-white">No Eyewear Orders Yet</h3>
               <p className="text-xs text-slate-400">Discover our collection of prescription frames and polarized sunglasses.</p>
-              <Link to="/shop" className="btn-primary text-xs py-2 px-4 inline-flex">
+              <Link to="/catalog" className="btn-primary text-xs py-2 px-4 inline-flex">
                 Shop Eyewear Now
               </Link>
             </div>
           ) : (
             <div className="space-y-4">
-              {orders.map((ord) => (
-                <div key={ord.id} className="glass-card rounded-2xl p-5 space-y-4 border border-white/10">
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-white/10 pb-3">
-                    <div>
-                      <div className="text-[10px] text-slate-400 font-mono">Order Number</div>
-                      <Link to={`/order-tracking?order=${ord.order_number}`} className="font-bold text-white text-base hover:text-brand-cyan transition-colors flex items-center gap-1.5">
-                        {ord.order_number}
-                        <ExternalLink className="w-3.5 h-3.5 text-slate-400" />
-                      </Link>
-                    </div>
+              {orders.map((ord) => {
+                const rejectionHistory = ord.status_history?.find(h => h.note && h.note.includes('Cancellation Request Rejected'));
+                const rejectionNote = rejectionHistory?.note?.replace('Cancellation Request Rejected:', '').trim() || (ord.notes?.includes('[Cancellation Rejected by Admin]:') ? ord.notes.split('[Cancellation Rejected by Admin]:')[1]?.trim() : '');
 
-                    <div className="flex flex-wrap items-center gap-3">
-                      <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                        ord.order_status === 'Delivered' ? 'bg-teal-500/20 text-teal-300 border border-teal-500/30' :
-                        ord.order_status === 'Shipped' ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30' :
-                        ord.order_status === 'Cancelled' ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30' :
-                        ord.order_status === 'Processing' ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30' :
-                        'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-                      }`}>
-                        {ord.order_status}
-                      </span>
-                      <Link 
-                        to={`/order-tracking?order=${ord.order_number}`}
-                        className="btn-secondary text-[11px] py-1.5 px-3 rounded-lg flex items-center gap-1"
-                      >
-                        <Truck className="w-3.5 h-3.5 text-brand-cyan" /> Track Shipment
-                      </Link>
-                    </div>
-                  </div>
-
-                  {/* Courier & Shipping Tracking Banner (if assigned) */}
-                  {(ord.courier_name || ord.tracking_number) && (
-                    <div className="p-3.5 rounded-xl bg-blue-500/10 border border-blue-500/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center text-blue-400 shrink-0">
-                          <Truck className="w-4 h-4" />
-                        </div>
-                        <div>
-                          <div className="font-bold text-white flex items-center gap-2">
-                            <span>Dispatched via {ord.courier_name || 'Express Logistics'}</span>
-                            {ord.estimated_delivery_date && (
-                              <span className="text-[10px] text-blue-300 font-normal">
-                                (Est. Delivery: {new Date(ord.estimated_delivery_date).toLocaleDateString()})
-                              </span>
-                            )}
-                          </div>
-                          <div className="text-[11px] text-slate-300 font-mono">
-                            AWB Tracking: <strong className="text-brand-cyan">{ord.tracking_number}</strong>
-                          </div>
-                        </div>
+                return (
+                  <div key={ord.id} className="glass-card rounded-2xl p-5 space-y-4 border border-white/10">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-white/10 pb-3">
+                      <div>
+                        <div className="text-[10px] text-slate-400 font-mono">Order Number</div>
+                        <Link to={`/order-tracking?order=${ord.order_number}`} className="font-bold text-white text-base hover:text-brand-cyan transition-colors flex items-center gap-1.5">
+                          {ord.order_number}
+                          <ExternalLink className="w-3.5 h-3.5 text-slate-400" />
+                        </Link>
                       </div>
-                      {ord.tracking_url && (
-                        <a
-                          href={ord.tracking_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="btn-primary text-[11px] py-1 px-3 rounded-lg flex items-center gap-1 shrink-0"
+
+                      <div className="flex flex-wrap items-center gap-2.5">
+                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                          ord.order_status === 'Delivered' ? 'bg-teal-500/20 text-teal-300 border border-teal-500/30' :
+                          ord.order_status === 'Shipped' ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30' :
+                          ord.order_status === 'Cancelled' ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30' :
+                          ord.order_status === 'Processing' ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30' :
+                          'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                        }`}>
+                          {ord.order_status}
+                        </span>
+
+                        <Link 
+                          to={`/order-tracking?order=${ord.order_number}`}
+                          className="btn-secondary text-[11px] py-1.5 px-3 rounded-lg flex items-center gap-1"
                         >
-                          Courier Portal &rarr;
-                        </a>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Preview Items */}
-                  <div className="space-y-2 bg-white/5 p-3 rounded-xl">
-                    {ord.preview_items?.map((it, idx) => (
-                      <div key={idx} className="flex items-center justify-between text-xs text-slate-300">
-                        <span className="font-medium">{it.product_name} ({it.product_sku || 'Frame'}) &times; {it.quantity}</span>
-                        <span className="font-mono text-white font-bold">₹{parseFloat(it.total_price || 0).toLocaleString('en-IN')}</span>
+                          <Truck className="w-3.5 h-3.5 text-brand-cyan" /> Track Shipment
+                        </Link>
                       </div>
-                    ))}
-                  </div>
+                    </div>
 
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between pt-2 border-t border-white/5 text-xs text-slate-400 gap-2">
-                    <span>Placed on: {new Date(ord.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
-                    <div className="flex items-center gap-3">
-                      <span>Payment: <span className="font-semibold text-slate-200">{ord.payment_mode}</span></span>
-                      <span>Total: <strong className="text-white text-sm font-mono text-brand-cyan">₹{parseFloat(ord.total_amount || 0).toLocaleString('en-IN')}</strong></span>
-                      <button
-                        onClick={() => setInvoiceModalData({
-                          invoiceNumber: `NU-INV-${ord.order_number?.replace('NU-', '') || ord.id}`,
-                          orderNumber: ord.order_number,
-                          invoiceDate: new Date(ord.created_at).toISOString().split('T')[0],
-                          type: 'ORDER',
-                          status: ord.order_status,
-                          paymentMode: ord.payment_mode,
-                          paymentStatus: ord.payment_status || 'Paid',
-                          customerName: user.full_name || ord.customer_name,
-                          customerPhone: user.phone || ord.customer_phone,
-                          customerEmail: user.email || ord.customer_email,
-                          customerAddress: `${ord.shipping_address_line1 || ''}, ${ord.shipping_city || ''}, ${ord.shipping_state || ''} - ${ord.shipping_pincode || ''}`,
-                          items: ord.preview_items || [],
-                          subtotal: ord.subtotal || ord.total_amount,
-                          discountAmount: ord.discount_amount || 0,
-                          totalAmount: ord.total_amount,
-                          warrantyNote: '1-Year Optical Warranty on Frame & Multi-Coat Anti-Glare Optics against manufacturing defects.'
-                        })}
-                        className="btn-secondary text-[11px] py-1 px-2.5 rounded-lg flex items-center gap-1 text-brand-cyan border-brand-cyan/30 hover:bg-brand-cyan/10 transition-colors"
-                        title="Download / View Tax Invoice"
-                      >
-                        <FileText className="w-3.5 h-3.5" />
-                        <span>Tax Invoice</span>
-                      </button>
+                    {/* Rejection Notice Banner (if admin declined cancellation) */}
+                    {rejectionNote && ord.order_status !== 'Cancelled' && (
+                      <div className="p-3.5 rounded-xl bg-amber-500/15 border border-amber-500/30 text-xs space-y-1">
+                        <div className="flex items-center gap-1.5 text-amber-400 font-bold uppercase text-[10px] tracking-wider">
+                          <AlertCircle className="w-3.5 h-3.5" />
+                          <span>Cancellation Request Status: Maintained in Production</span>
+                        </div>
+                        <p className="text-slate-200 leading-relaxed">
+                          <strong>Team Note:</strong> {rejectionNote}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Cancelled Banner */}
+                    {ord.order_status === 'Cancelled' && (
+                      <div className="p-3.5 rounded-xl bg-rose-500/15 border border-rose-500/30 text-xs space-y-1">
+                        <div className="flex items-center gap-1.5 text-rose-400 font-bold uppercase text-[10px] tracking-wider">
+                          <X className="w-3.5 h-3.5" />
+                          <span>Order Cancelled</span>
+                        </div>
+                        <p className="text-slate-300">
+                          <strong>Reason:</strong> {ord.cancel_reason || 'Customer requested cancellation'}
+                        </p>
+                        {ord.payment_status && (
+                          <p className="text-slate-400 text-[11px]">Refund / Payment Status: {ord.payment_status}</p>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Courier & Shipping Tracking Banner (if assigned) */}
+                    {(ord.courier_name || ord.tracking_number) && (
+                      <div className="p-3.5 rounded-xl bg-blue-500/10 border border-blue-500/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center text-blue-400 shrink-0">
+                            <Truck className="w-4 h-4" />
+                          </div>
+                          <div>
+                            <div className="font-bold text-white flex items-center gap-2">
+                              <span>Dispatched via {ord.courier_name || 'Express Logistics'}</span>
+                              {ord.estimated_delivery_date && (
+                                <span className="text-[10px] text-blue-300 font-normal">
+                                  (Est. Delivery: {new Date(ord.estimated_delivery_date).toLocaleDateString()})
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-[11px] text-slate-300 font-mono">
+                              AWB Tracking: <strong className="text-brand-cyan">{ord.tracking_number}</strong>
+                            </div>
+                          </div>
+                        </div>
+                        {ord.tracking_url && (
+                          <a
+                            href={ord.tracking_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="btn-primary text-[11px] py-1 px-3 rounded-lg flex items-center gap-1 shrink-0"
+                          >
+                            Courier Portal &rarr;
+                          </a>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Preview Items */}
+                    <div className="space-y-2 bg-white/5 p-3 rounded-xl">
+                      {(ord.preview_items || ord.items || []).map((it, idx) => (
+                        <div key={idx} className="flex items-center justify-between text-xs text-slate-300">
+                          <span className="font-medium">{it.product_name} ({it.product_sku || 'Frame'}) &times; {it.quantity}</span>
+                          <span className="font-mono text-white font-bold">₹{parseFloat(it.total_price || (it.unit_price * it.quantity) || 0).toLocaleString('en-IN')}</span>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between pt-2 border-t border-white/5 text-xs text-slate-400 gap-2">
+                      <span>Placed on: {new Date(ord.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                      <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                        <span>Payment: <span className="font-semibold text-slate-200">{ord.payment_mode}</span></span>
+                        <span>Total: <strong className="text-white text-sm font-mono text-brand-cyan">₹{parseFloat(ord.total_amount || 0).toLocaleString('en-IN')}</strong></span>
+                        
+                        {/* Cancel Button (if allowed) */}
+                        {ord.can_cancel && ord.order_status !== 'Cancelled' && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setCancelModalOrder(ord);
+                              setCancelReasonOption('Change of mind / Found alternative');
+                              setCancelCustomReason('');
+                            }}
+                            className="px-2.5 py-1 rounded-lg text-[11px] font-bold text-rose-400 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 transition-all cursor-pointer"
+                          >
+                            Cancel Order
+                          </button>
+                        )}
+
+                        <button
+                          onClick={() => setInvoiceModalData({
+                            invoiceNumber: ord.invoice_number || `NU-INV-${ord.order_number?.replace('NU-', '') || ord.id}`,
+                            orderNumber: ord.order_number,
+                            invoiceDate: new Date(ord.created_at).toISOString().split('T')[0],
+                            type: ord.order_type === 'POS_OFFLINE' ? 'POS' : 'ORDER',
+                            status: ord.order_status,
+                            paymentMode: ord.payment_mode,
+                            paymentStatus: ord.payment_status || 'Paid',
+                            customerName: user.full_name || ord.customer_name,
+                            customerPhone: user.phone || ord.customer_phone,
+                            customerEmail: user.email || ord.customer_email,
+                            customerAddress: `${ord.shipping_address_line1 || ''}, ${ord.shipping_city || ''}, ${ord.shipping_state || ''} - ${ord.shipping_pincode || ''}`,
+                            items: (ord.items || ord.preview_items || []).map(it => ({
+                              product_name: it.product_name,
+                              product_sku: it.product_sku,
+                              unit_price: Number(it.unit_price || 0),
+                              quantity: Number(it.quantity || 1),
+                              lens_type: it.lens_type || 'Standard Optical Lens',
+                              lens_price: Number(it.lens_price || 0),
+                              total_price: Number(it.total_price || (it.unit_price * it.quantity) || 0)
+                            })),
+                            subtotal: Number(ord.subtotal || ord.total_amount || 0),
+                            discountAmount: Number(ord.discount_amount || 0),
+                            shippingFee: Number(ord.shipping_fee || 0),
+                            taxAmount: Number(ord.tax_amount || 0),
+                            totalAmount: Number(ord.total_amount || 0),
+                            warrantyNote: '1-Year Optical Warranty on Frame & Multi-Coat Anti-Glare Optics against manufacturing defects.'
+                          })}
+                          className="btn-secondary text-[11px] py-1 px-2.5 rounded-lg flex items-center gap-1 text-brand-cyan border-brand-cyan/30 hover:bg-brand-cyan/10 transition-colors cursor-pointer"
+                          title="Download / View Tax Invoice"
+                        >
+                          <FileText className="w-3.5 h-3.5" />
+                          <span>Tax Invoice</span>
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
@@ -1765,6 +1879,79 @@ export const AccountPage = () => {
               <div className="flex justify-end gap-2 pt-2">
                 <button type="button" onClick={() => setAddRxOpen(false)} className="px-4 py-2 text-slate-400">Cancel</button>
                 <button type="submit" className="btn-primary text-xs py-2 px-5 rounded-xl">Save to Vault</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Customer Order Cancellation Modal */}
+      {cancelModalOrder && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
+          <div className="w-full max-w-md bg-[#0A192F] border border-rose-500/30 rounded-3xl p-6 shadow-2xl space-y-4 text-white">
+            <div className="flex items-center justify-between border-b border-white/10 pb-3">
+              <h3 className="text-base font-bold flex items-center gap-2 text-rose-400">
+                <X className="w-5 h-5" /> Cancel Order #{cancelModalOrder.order_number}
+              </h3>
+              <button 
+                onClick={() => setCancelModalOrder(null)}
+                className="p-1 rounded-lg text-slate-400 hover:text-white"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-300 leading-relaxed">
+              Cancellation is permitted at this stage before precision lens cutting starts. If you paid online, a full refund of <strong className="text-brand-cyan">₹{cancelModalOrder.total_amount}</strong> will be initiated.
+            </p>
+
+            <form onSubmit={handleCancelCustomerOrder} className="space-y-3.5">
+              <div>
+                <label className="block text-[11px] font-bold text-slate-400 mb-1 uppercase tracking-wider">
+                  Reason for Cancellation *
+                </label>
+                <select
+                  value={cancelReasonOption}
+                  onChange={(e) => setCancelReasonOption(e.target.value)}
+                  className="w-full glass-input rounded-xl px-3 py-2 text-xs font-semibold"
+                >
+                  <option value="Change of mind / Found alternative">Change of mind / Found alternative</option>
+                  <option value="Entered incorrect delivery address">Entered incorrect delivery address</option>
+                  <option value="Need to change optical frame model or color">Need to change optical frame model or color</option>
+                  <option value="Incorrect prescription entered">Incorrect prescription entered</option>
+                  <option value="Delivery timeframe does not suit">Delivery timeframe does not suit</option>
+                  <option value="Other">Other reason (specify below)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-400 mb-1 uppercase tracking-wider">
+                  Additional Details / Notes
+                </label>
+                <textarea
+                  rows="2"
+                  value={cancelCustomReason}
+                  onChange={(e) => setCancelCustomReason(e.target.value)}
+                  placeholder="Optional details for our optical team..."
+                  className="w-full glass-input rounded-xl p-3 text-xs"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2.5 pt-2 border-t border-white/10">
+                <button
+                  type="button"
+                  onClick={() => setCancelModalOrder(null)}
+                  className="px-4 py-2 text-xs font-bold text-slate-400 hover:text-white"
+                >
+                  Keep Order
+                </button>
+                <button
+                  type="submit"
+                  disabled={cancellingOrder}
+                  className="btn-primary bg-rose-600 hover:bg-rose-500 text-white text-xs px-5 py-2.5 rounded-xl font-black shadow-lg"
+                >
+                  {cancellingOrder ? 'Processing Cancellation...' : 'Confirm Cancellation'}
+                </button>
               </div>
             </form>
           </div>

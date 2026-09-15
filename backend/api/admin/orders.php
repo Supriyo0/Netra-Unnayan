@@ -163,8 +163,118 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 
     if (!$order) Response::notFound('Order not found.');
 
-    $oldStatus = $order['order_status'];
+    $action = trim($input['action'] ?? '');
+    $rejectionReason = trim($input['rejection_reason'] ?? $input['note'] ?? '');
 
+    // 1. REJECT CANCELLATION WORKFLOW
+    if ($action === 'reject_cancellation') {
+        if (empty($rejectionReason)) {
+            Response::error('A reason note is required when rejecting cancellation.', 422);
+        }
+        $targetStatus = !empty($newStatus) && $newStatus !== 'Cancelled' ? $newStatus : ($oldStatus === 'Cancelled' ? 'Order Confirmed' : $oldStatus);
+        
+        $pdo->prepare('
+            UPDATE orders 
+            SET order_status = ?, notes = CONCAT(COALESCE(notes, ""), "\n[Cancellation Rejected by Admin]: ", ?) 
+            WHERE id = ?
+        ')->execute([$targetStatus, $rejectionReason, $orderId]);
+
+        $pdo->prepare('
+            INSERT INTO order_status_history (order_id, old_status, new_status, note, updated_by_admin_id)
+            VALUES (?, ?, ?, ?, ?)
+        ')->execute([$orderId, $oldStatus, $targetStatus, "Cancellation Request Rejected: {$rejectionReason}", $admin['id']]);
+
+        // Send email to customer explaining why cancellation was declined
+        if (!empty($order['customer_email'])) {
+            $emailHtml = <<<HTML
+                <div class="badge" style="background:#FEF3C7; color:#92400E; padding:4px 10px; border-radius:9999px; font-weight:bold; font-size:12px; display:inline-block;">Cancellation Request Update</div>
+                <h2>Order {$order['order_number']} Cancellation Notice</h2>
+                <p>Dear {$order['customer_name']}, your cancellation request for order <strong>{$order['order_number']}</strong> could not be processed at this time.</p>
+                <div style="margin-top:12px; padding:12px; background:#F8FAFC; border-left:4px solid #F59E0B; border-radius:4px;">
+                    <p style="margin:0; font-weight:bold; color:#0F172A;">Reason from Optical Team:</p>
+                    <p style="margin:4px 0 0; color:#334155;">{$rejectionReason}</p>
+                </div>
+                <p style="color:#64748B; font-size:12px; margin-top:16px;">If you have questions, please feel free to call our Digha clinical support line at 9382293614.</p>
+HTML;
+            Mailer::send($order['customer_email'], $order['customer_name'], "Cancellation Update - Order {$order['order_number']} | Netra Unnayan", $emailHtml);
+        }
+
+        Response::success([
+            'order_id'   => $orderId,
+            'old_status' => $oldStatus,
+            'new_status' => $targetStatus,
+            'rejection_reason' => $rejectionReason
+        ], "Cancellation request rejected and customer notified.");
+        exit;
+    }
+
+    // 2. CANCEL ORDER / APPROVE CANCELLATION WORKFLOW (Restores stock)
+    if ($newStatus === 'Cancelled' || $action === 'approve_cancellation') {
+        $cancelReason = trim($input['cancel_reason'] ?? $note ?? 'Cancelled by administrator');
+        $newPaymentStatus = ($order['payment_status'] === 'Paid') ? 'Refund Initiated' : 'Cancelled';
+
+        // Restore stock
+        $itemsStmt = $pdo->prepare('SELECT product_id, quantity FROM order_items WHERE order_id = ?');
+        $itemsStmt->execute([$orderId]);
+        $orderItems = $itemsStmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $invStmt = $pdo->prepare('
+            INSERT INTO inventory_transactions (product_id, transaction_type, quantity, previous_quantity, new_quantity, reference_type, reference_id, notes)
+            VALUES (?, "RETURN", ?, ?, ?, "CANCELLED_ORDER", ?, ?)
+        ');
+
+        foreach ($orderItems as $item) {
+            $pId = (int)($item['product_id'] ?? 0);
+            $qty = (int)($item['quantity'] ?? 0);
+            if ($pId > 0 && $qty > 0) {
+                $curStock = (int)$pdo->query("SELECT stock_quantity FROM products WHERE id = {$pId}")->fetchColumn();
+                $newStock = $curStock + $qty;
+                $pdo->prepare('UPDATE products SET stock_quantity = ? WHERE id = ?')->execute([$newStock, $pId]);
+                $invStmt->execute([$pId, $qty, $curStock, $newStock, $order['order_number'], "Stock restored due to cancellation of Order #{$order['order_number']}"]);
+            }
+        }
+
+        $pdo->prepare('
+            UPDATE orders 
+            SET order_status = "Cancelled", payment_status = ?, cancelled_at = NOW(), cancel_reason = ? 
+            WHERE id = ?
+        ')->execute([$newPaymentStatus, $cancelReason, $orderId]);
+
+        $pdo->prepare('
+            INSERT INTO order_status_history (order_id, old_status, new_status, note, updated_by_admin_id)
+            VALUES (?, ?, "Cancelled", ?, ?)
+        ')->execute([$orderId, $oldStatus, "Cancelled by staff: {$cancelReason}", $admin['id']]);
+
+        // If paid, insert refund record
+        if ($order['payment_status'] === 'Paid') {
+            $refundNumber = 'NU-REF-' . strtoupper(bin2hex(random_bytes(4)));
+            $pdo->prepare('
+                INSERT INTO refunds (order_id, refund_number, amount, reason, status)
+                VALUES (?, ?, ?, ?, "Pending")
+            ')->execute([$orderId, $refundNumber, $order['total_amount'], "Cancellation refund: " . $cancelReason]);
+        }
+
+        // Send email
+        if (!empty($order['customer_email'])) {
+            $emailBody = <<<HTML
+                <div class="badge" style="background:#FEE2E2; color:#B91C1C; padding:4px 10px; border-radius:9999px; font-weight:bold; font-size:12px; display:inline-block;">Order Cancelled</div>
+                <h2>Order {$order['order_number']} Cancelled</h2>
+                <p>Your order has been cancelled.</p>
+                <p><strong>Reason:</strong> {$cancelReason}</p>
+HTML;
+            Mailer::send($order['customer_email'], $order['customer_name'], "Order Cancelled - {$order['order_number']} | Netra Unnayan", $emailBody);
+        }
+
+        Response::success([
+            'order_id'       => $orderId,
+            'old_status'     => $oldStatus,
+            'new_status'     => 'Cancelled',
+            'payment_status' => $newPaymentStatus
+        ], "Order #{$order['order_number']} cancelled and stock restored to inventory.");
+        exit;
+    }
+
+    // 3. REGULAR STATUS ADVANCEMENT WORKFLOW
     // If changing to Lens Cutting, auto set prescription status to Production Started
     if (in_array($newStatus, ['Lens Cutting', 'Fitting', 'Quality Check'])) {
         $prescriptionStatus = 'Production Started';

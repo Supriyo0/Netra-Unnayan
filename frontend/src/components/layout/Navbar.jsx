@@ -813,9 +813,11 @@ export const Navbar = () => {
         )}
       </header>
 
-      {/* Mobile Sticky Bottom Bar */}
-      <nav className={`md:hidden fixed bottom-0 left-0 right-0 z-40 border-t flex items-center justify-around py-2 px-1 transition-all ${
-        isDark ? 'bg-[#060D17]/95 backdrop-blur-2xl border-white/10' : 'bg-white/95 backdrop-blur-2xl border-slate-200 shadow-lg'
+      {/* Mobile Sticky Bottom Bar - Ultra-Modern Glassmorphic Design */}
+      <nav className={`md:hidden fixed bottom-0 left-0 right-0 z-40 border-t flex items-center justify-around py-2.5 px-1.5 transition-all mobile-glass-nav ${
+        isDark 
+          ? 'bg-[#060D17]/80 border-white/10 shadow-[0_-8px_30px_rgba(0,0,0,0.6)]' 
+          : 'bg-white/80 border-slate-200/90 shadow-[0_-8px_30px_rgba(0,180,216,0.12)]'
       }`}>
         <Link 
           to="/" 

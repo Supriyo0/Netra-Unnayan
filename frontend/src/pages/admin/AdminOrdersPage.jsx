@@ -111,6 +111,65 @@ export default function AdminOrdersPage() {
     }
   };
 
+  const handleApproveCancellation = async () => {
+    if (!selectedOrder) return;
+    if (!confirm(`Are you sure you want to approve cancellation for Order #${selectedOrder.order_number}? This will restore deducted stock back to inventory and initiate a refund if paid.`)) return;
+
+    try {
+      setActionLoading(true);
+      const res = await api.post('/admin/orders.php', {
+        action: 'approve_cancellation',
+        order_id: selectedOrder.id,
+        new_status: 'Cancelled',
+        cancel_reason: selectedOrder.cancel_reason || 'Cancellation approved by Store Admin'
+      });
+      if (res.success || res.data?.success) {
+        setActionMessage('Order cancelled and stock restored to catalog inventory.');
+        await openOrderDetail(selectedOrder.id);
+        fetchOrders();
+      } else {
+        alert(res.message || 'Failed to cancel order');
+      }
+    } catch (err) {
+      alert(err.message || 'Error cancelling order');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const [rejectReasonModalOpen, setRejectReasonModalOpen] = useState(false);
+  const [rejectionNoteInput, setRejectionNoteInput] = useState('Customized optical lenses have already commenced fabrication and lens cutting in our lab.');
+
+  const handleConfirmRejectCancellation = async () => {
+    if (!selectedOrder) return;
+    if (!rejectionNoteInput.trim()) {
+      alert('Please provide an explanation note for declining the cancellation request.');
+      return;
+    }
+
+    try {
+      setActionLoading(true);
+      const res = await api.post('/admin/orders.php', {
+        action: 'reject_cancellation',
+        order_id: selectedOrder.id,
+        new_status: 'Order Confirmed',
+        rejection_reason: rejectionNoteInput.trim()
+      });
+      if (res.success || res.data?.success) {
+        setActionMessage('Cancellation request rejected and customer notified via email & tracker.');
+        setRejectReasonModalOpen(false);
+        await openOrderDetail(selectedOrder.id);
+        fetchOrders();
+      } else {
+        alert(res.message || 'Failed to reject cancellation');
+      }
+    } catch (err) {
+      alert(err.message || 'Error rejecting cancellation');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const handleUpdateStatus = async () => {
     if (!newStatus || !selectedOrder) return;
     try {
@@ -141,6 +200,7 @@ export default function AdminOrdersPage() {
       setActionLoading(false);
     }
   };
+
 
   const handleVerifyPrescription = async (prescriptionId, statusVal) => {
     try {
@@ -528,6 +588,47 @@ export default function AdminOrdersPage() {
                   </div>
                 </div>
               </div>
+
+              {/* CANCELLATION REQUEST / REASON CALLOUT */}
+              {(selectedOrder.cancel_reason || selectedOrder.order_status === 'Cancelled') && (
+                <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-xs space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-rose-600 dark:text-rose-400 font-extrabold uppercase tracking-wider text-xs">
+                      <ShieldAlert className="w-4 h-4" />
+                      <span>Customer Cancellation Reason / Request</span>
+                    </div>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 font-bold">
+                      {selectedOrder.order_status}
+                    </span>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-white/70 dark:bg-black/30 border border-rose-500/20 text-slate-800 dark:text-rose-200 leading-relaxed font-medium">
+                    <span className="text-slate-500 text-[10px] uppercase font-bold block mb-0.5">Reason provided:</span>
+                    "{selectedOrder.cancel_reason || 'Customer requested order cancellation'}"
+                  </div>
+
+                  {selectedOrder.order_status !== 'Cancelled' && (
+                    <div className="flex flex-wrap items-center gap-2.5 pt-1">
+                      <button
+                        onClick={handleApproveCancellation}
+                        disabled={actionLoading}
+                        className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs shadow-sm flex items-center gap-1.5 transition-all cursor-pointer"
+                      >
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        <span>Approve Cancellation (Restore Stock &amp; Refund)</span>
+                      </button>
+                      <button
+                        onClick={() => setRejectReasonModalOpen(true)}
+                        disabled={actionLoading}
+                        className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs shadow-sm flex items-center gap-1.5 transition-all cursor-pointer"
+                      >
+                        <X className="w-3.5 h-3.5 stroke-[3]" />
+                        <span>Reject Cancellation (Provide Note)</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Ordered Items Table */}
               <div>
@@ -951,6 +1052,47 @@ export default function AdminOrdersPage() {
                 className="w-full py-2 text-xs text-slate-400 hover:text-white transition-colors cursor-pointer"
               >
                 Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Rejection Note Modal */}
+      {rejectReasonModalOpen && (
+        <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+          <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/15 rounded-3xl p-6 shadow-2xl space-y-4 text-slate-900 dark:text-white">
+            <h3 className="text-base font-extrabold flex items-center gap-2 text-amber-500">
+              <AlertTriangle className="w-5 h-5" /> Reject Cancellation Request
+            </h3>
+            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+              Please enter the explanation note that will be sent to <strong>{selectedOrder?.customer_name}</strong> and displayed on their live order tracker.
+            </p>
+            <div>
+              <label className="block text-[11px] font-bold text-slate-500 mb-1">Reason for Rejection *</label>
+              <textarea
+                rows="3"
+                value={rejectionNoteInput}
+                onChange={(e) => setRejectionNoteInput(e.target.value)}
+                placeholder="e.g. Customized optical lenses have already commenced fabrication and edging in our optical lab."
+                className="w-full glass-input rounded-xl p-3 text-xs"
+              />
+            </div>
+            <div className="flex justify-end gap-2.5 pt-2">
+              <button
+                type="button"
+                onClick={() => setRejectReasonModalOpen(false)}
+                className="px-4 py-2 text-xs font-bold text-slate-500 hover:text-slate-800 dark:hover:text-white"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={actionLoading}
+                onClick={handleConfirmRejectCancellation}
+                className="btn-primary bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs px-4 py-2 rounded-xl font-black"
+              >
+                {actionLoading ? 'Saving...' : 'Confirm & Notify Customer'}
               </button>
             </div>
           </div>

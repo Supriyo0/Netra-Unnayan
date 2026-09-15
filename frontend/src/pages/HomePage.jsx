@@ -395,13 +395,13 @@ export const HomePage = () => {
                   <span className="truncate">{slide.tag || 'CLARITY YOU CAN TRUST'}</span>
                 </div>
 
-                <h1 className={`hero-banner-title text-xs sm:text-2xl lg:text-5xl font-black tracking-tight leading-tight font-heading ${
+                <h1 className={`hero-banner-title text-xs sm:text-2xl lg:text-5xl font-black tracking-tight leading-tight font-heading line-clamp-2 ${
                   isDark ? 'text-white' : 'text-slate-900'
                 }`}>
                   {slide.title}
                 </h1>
 
-                <p className={`hero-banner-sub text-[10px] sm:text-xs lg:text-base max-w-xl font-normal leading-snug sm:leading-relaxed ${
+                <p className={`hero-banner-sub text-[10px] sm:text-xs lg:text-base max-w-xl font-normal leading-snug sm:leading-relaxed line-clamp-2 sm:line-clamp-3 ${
                   isDark ? 'text-slate-300' : 'text-slate-600'
                 }`}>
                   {slide.subtitle}

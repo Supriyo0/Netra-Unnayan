@@ -22,10 +22,14 @@ if (!empty($customer['email'])) {
 
 $stmt = $pdo->prepare('
     SELECT 
-        o.id, o.order_number, o.order_type, o.created_at, o.total_amount,
+        o.id, o.order_number, o.order_type, o.created_at, o.subtotal, o.discount_amount,
+        o.shipping_fee, o.tax_amount, o.total_amount,
         o.payment_mode, o.payment_status, o.order_status, o.prescription_status,
-        o.can_cancel_until,
-        o.shipping_address_line1, o.shipping_city, o.shipping_pincode,
+        o.can_cancel_until, o.cancelled_at, o.cancel_reason, o.notes,
+        o.shipping_address_line1, o.shipping_address_line2, o.shipping_landmark,
+        o.shipping_city, o.shipping_state, o.shipping_pincode,
+        o.customer_name, o.customer_phone, o.customer_email,
+        (SELECT invoice_number FROM invoices WHERE order_id = o.id LIMIT 1) as invoice_number,
         (SELECT COUNT(*) FROM order_items WHERE order_id = o.id) as item_count
     FROM orders o
     WHERE o.customer_id = ? 
@@ -34,18 +38,31 @@ $stmt = $pdo->prepare('
     ORDER BY o.id DESC
 ');
 $stmt->execute([$customer['id'], $customer['phone'] ?? '', $customer['email'] ?? '']);
-$orders = $stmt->fetchAll();
+$orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 foreach ($orders as &$ord) {
     $itemStmt = $pdo->prepare('
-        SELECT product_name, product_sku, quantity, unit_price, total_price, frame_size, frame_color, lens_type,
+        SELECT product_id, product_name, product_sku, quantity, unit_price, total_price, frame_size, frame_color, lens_type,
                (SELECT image_url FROM product_images WHERE product_id = order_items.product_id ORDER BY is_primary DESC LIMIT 1) as image_url
         FROM order_items
         WHERE order_id = ?
-        LIMIT 4
     ');
     $itemStmt->execute([$ord['id']]);
-    $ord['preview_items'] = $itemStmt->fetchAll();
+    $ord['items'] = $itemStmt->fetchAll(PDO::FETCH_ASSOC);
+    $ord['preview_items'] = array_slice($ord['items'], 0, 4);
+
+    try {
+        $histStmt = $pdo->prepare('
+            SELECT old_status, new_status, note, created_at 
+            FROM order_status_history 
+            WHERE order_id = ? 
+            ORDER BY id DESC
+        ');
+        $histStmt->execute([$ord['id']]);
+        $ord['status_history'] = $histStmt->fetchAll(PDO::FETCH_ASSOC);
+    } catch (Exception $e) {
+        $ord['status_history'] = [];
+    }
 
     $ord['can_cancel'] = ($ord['can_cancel_until'] !== null) 
         && (strtotime($ord['can_cancel_until']) > time()) 
@@ -53,4 +70,5 @@ foreach ($orders as &$ord) {
 }
 
 Response::success($orders, 'Customer order history loaded');
+
 

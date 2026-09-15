@@ -1888,5 +1888,28 @@ html.light [class*="selection"] textarea {
 .hero-slide-content {
   animation: heroBannerSlideRightToLeft 0.5s cubic-bezier(0.25, 1, 0.5, 1) both;
   will-change: transform, opacity;
+  width: 100%;
+}
+
+/* Stable Hero Banner Card Height */
+.hero-banner-card {
+  min-height: 480px;
+  display: flex;
+  align-items: center;
+}
+
+@media (max-width: 640px) {
+  .hero-banner-card {
+    min-height: 190px !important;
+    height: 190px !important;
+    padding: 0.75rem 0.85rem !important;
+    border-radius: 16px !important;
+  }
+}
+
+/* Mobile Bottom Navigation Glassmorphism */
+.mobile-glass-nav {
+  backdrop-filter: blur(28px) saturate(190%) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(190%) !important;
 }
 
