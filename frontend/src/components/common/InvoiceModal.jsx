@@ -43,7 +43,7 @@ export const InvoiceModal = ({ isOpen, onClose, invoiceData }) => {
     <div className="fixed inset-0 z-50 overflow-y-auto bg-black/85 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 print:p-0 print:bg-white print:static">
       
       {/* Screen Container */}
-      <div className="relative w-full max-w-3xl bg-white text-slate-900 rounded-3xl shadow-2xl overflow-hidden border border-slate-200 print:border-none print:shadow-none print:rounded-none">
+      <div id="printable-invoice-container" className="relative w-full max-w-3xl bg-white text-slate-900 rounded-3xl shadow-2xl overflow-hidden border border-slate-200 print:border-none print:shadow-none print:rounded-none">
         
         {/* Screen Controls Header (Hidden on physical print) */}
         <div className="print:hidden bg-slate-900 text-white px-6 py-4 flex items-center justify-between border-b border-white/10">

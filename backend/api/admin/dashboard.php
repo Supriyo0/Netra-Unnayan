@@ -54,13 +54,18 @@ $lowStockStmt = $pdo->query("
 $lowStockProducts = $lowStockStmt->fetchAll();
 
 // 5. Recent Orders
-$recentOrdersStmt = $pdo->query("
-    SELECT id, order_number, order_type, customer_name, customer_phone, total_amount, payment_mode, payment_status, order_status, created_at, courier_name, tracking_number
-    FROM orders
-    ORDER BY id DESC
-    LIMIT 8
-");
-$recentOrders = $recentOrdersStmt->fetchAll();
+$recentOrders = [];
+try {
+    $recentOrdersStmt = $pdo->query("
+        SELECT id, order_number, order_type, customer_name, customer_phone, total_amount, payment_mode, payment_status, order_status, created_at
+        FROM orders
+        ORDER BY id DESC
+        LIMIT 8
+    ");
+    $recentOrders = $recentOrdersStmt->fetchAll();
+} catch (Exception $e) {
+    $recentOrders = [];
+}
 
 // 6. Today's Appointments
 $todayAptStmt = $pdo->query("

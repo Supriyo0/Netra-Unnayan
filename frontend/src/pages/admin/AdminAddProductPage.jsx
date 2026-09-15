@@ -28,6 +28,9 @@ export const AdminAddProductPage = () => {
   const [frameMaterial, setFrameMaterial] = useState('Beta Titanium');
   const [frameSize, setFrameSize] = useState('Medium');
   const [frameColor, setFrameColor] = useState('Matte Black');
+  const [availableSizes, setAvailableSizes] = useState(['Small', 'Medium', 'Large']);
+  const [availableColors, setAvailableColors] = useState(['Matte Black', 'Tortoise Amber', 'Gunmetal Grey', 'Rose Gold']);
+  const [customColorInput, setCustomColorInput] = useState('');
   const [lensWidth, setLensWidth] = useState('52');
   const [bridgeWidth, setBridgeWidth] = useState('18');
   const [templeLength, setTempleLength] = useState('140');
@@ -82,6 +85,8 @@ export const AdminAddProductPage = () => {
         frame_material: frameMaterial,
         frame_size: frameSize,
         frame_color: frameColor,
+        available_sizes: availableSizes,
+        available_colors: availableColors,
         gender: gender,
         lens_width: parseInt(lensWidth) || 52,
         bridge_width: parseInt(bridgeWidth) || 18,
@@ -393,6 +398,88 @@ export const AdminAddProductPage = () => {
                     onChange={(e) => setFrameColor(e.target.value)}
                     className="w-full glass-input rounded-xl px-3.5 py-2 text-xs"
                   />
+                </div>
+              </div>
+
+              {/* Available Sizes & Available Colors Config */}
+              <div className="border-t border-white/10 pt-4 space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-white mb-1.5 flex items-center justify-between">
+                    <span>Available Customer Frame Sizes</span>
+                    <span className="text-[10px] text-brand-cyan">Selected: {availableSizes.join(', ') || 'None'}</span>
+                  </label>
+                  <p className="text-[11px] text-slate-400 mb-2">Customers can pick between these sizes on the product page.</p>
+                  <div className="flex flex-wrap gap-2">
+                    {['Small', 'Medium', 'Large', 'Extra Large', 'Narrow', 'Wide'].map((sz) => {
+                      const isSelected = availableSizes.includes(sz);
+                      return (
+                        <button
+                          key={sz}
+                          type="button"
+                          onClick={() => {
+                            setAvailableSizes(prev => isSelected ? prev.filter(s => s !== sz) : [...prev, sz]);
+                          }}
+                          className={`px-3 py-1 rounded-xl text-xs font-bold transition-all border ${
+                            isSelected 
+                              ? 'bg-brand-cyan text-slate-950 border-brand-cyan shadow-sm' 
+                              : 'bg-white/5 text-slate-400 border-white/10 hover:border-white/30'
+                          }`}
+                        >
+                          {isSelected ? `✓ ${sz}` : `+ ${sz}`}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-white mb-1.5 flex items-center justify-between">
+                    <span>Available Customer Color Variants</span>
+                    <span className="text-[10px] text-brand-cyan">Selected: {availableColors.join(', ') || 'None'}</span>
+                  </label>
+                  <p className="text-[11px] text-slate-400 mb-2">Customers can switch between these color choices on the storefront.</p>
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    {['Matte Black', 'Tortoise Amber', 'Gunmetal Grey', 'Rose Gold', 'Silver', 'Gold', 'Transparent Crystal', 'Navy Blue'].map((col) => {
+                      const isSelected = availableColors.includes(col);
+                      return (
+                        <button
+                          key={col}
+                          type="button"
+                          onClick={() => {
+                            setAvailableColors(prev => isSelected ? prev.filter(c => c !== col) : [...prev, col]);
+                          }}
+                          className={`px-3 py-1 rounded-xl text-xs font-bold transition-all border ${
+                            isSelected 
+                              ? 'bg-emerald-500 text-slate-950 border-emerald-400 shadow-sm' 
+                              : 'bg-white/5 text-slate-400 border-white/10 hover:border-white/30'
+                          }`}
+                        >
+                          {isSelected ? `✓ ${col}` : `+ ${col}`}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <div className="flex gap-2 max-w-sm">
+                    <input
+                      type="text"
+                      placeholder="Add custom color (e.g. Olive Green)"
+                      value={customColorInput}
+                      onChange={(e) => setCustomColorInput(e.target.value)}
+                      className="glass-input rounded-xl px-3 py-1.5 text-xs flex-1"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (customColorInput.trim() && !availableColors.includes(customColorInput.trim())) {
+                          setAvailableColors(prev => [...prev, customColorInput.trim()]);
+                          setCustomColorInput('');
+                        }
+                      }}
+                      className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold"
+                    >
+                      Add Color
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>

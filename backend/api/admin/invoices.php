@@ -72,6 +72,19 @@ try {
         ], 'Invoices retrieved successfully');
     }
 
+    if ($method === 'DELETE') {
+        $id = (int)($_GET['id'] ?? 0);
+        if (!$id) {
+            $input = json_decode(file_get_contents('php://input'), true) ?? [];
+            $id = (int)($input['id'] ?? 0);
+        }
+        if (!$id) Response::error('Invoice ID is required.', 400);
+
+        $stmt = $pdo->prepare('DELETE FROM invoices WHERE id = ?');
+        $stmt->execute([$id]);
+        Response::success(['id' => $id], 'Invoice record deleted successfully.');
+    }
+
     Response::error('Method not allowed', 405);
 } catch (Exception $e) {
     Response::error($e->getMessage(), 500);

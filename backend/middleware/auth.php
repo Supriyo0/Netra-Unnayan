@@ -6,13 +6,16 @@ require_once __DIR__ . '/../helpers/response.php';
 require_once __DIR__ . '/../config/database.php';
 
 function getBearerToken(): ?string {
-    $authHeader = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
+    $authHeader = $_SERVER['HTTP_AUTHORIZATION'] 
+        ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] 
+        ?? $_SERVER['Authorization'] 
+        ?? '';
     if (empty($authHeader) && function_exists('apache_request_headers')) {
         $headers = apache_request_headers();
         $authHeader = $headers['Authorization'] ?? $headers['authorization'] ?? '';
     }
 
-    if (preg_match('/Bearer\s(\S+)/i', $authHeader, $matches)) {
+    if (preg_match('/Bearer\s+(\S+)/i', $authHeader, $matches)) {
         return $matches[1];
     }
     return null;

@@ -22,6 +22,7 @@ export const ProductDetailPage = () => {
   const [product, setProduct] = useState(null);
   const [activeImage, setActiveImage] = useState(0);
   const [selectedColor, setSelectedColor] = useState('Matte Black');
+  const [selectedSize, setSelectedSize] = useState('Medium');
   const [quantity, setQuantity] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -38,12 +39,76 @@ export const ProductDetailPage = () => {
   const [addedToast, setAddedToast] = useState(false);
   const [rxRequired, setRxRequired] = useState(false);
 
-  const colors = [
-    { name: 'Matte Black', hex: '#1e293b' },
-    { name: 'Tortoise Amber', hex: '#78350f' },
-    { name: 'Rose Gold', hex: '#be185d' },
-    { name: 'Gunmetal Grey', hex: '#475569' },
-  ];
+  // Dynamic available sizes parsed from product
+  const availableSizesList = React.useMemo(() => {
+    if (!product) return ['Small', 'Medium', 'Large'];
+    if (product.available_sizes) {
+      if (Array.isArray(product.available_sizes)) return product.available_sizes;
+      if (typeof product.available_sizes === 'string') {
+        try {
+          const p = JSON.parse(product.available_sizes);
+          if (Array.isArray(p) && p.length > 0) return p;
+        } catch {}
+        const splitted = product.available_sizes.split(',').map(s => s.trim()).filter(Boolean);
+        if (splitted.length > 0) return splitted;
+      }
+    }
+    return product.frame_size ? [product.frame_size] : ['Small', 'Medium', 'Large'];
+  }, [product]);
+
+  // Dynamic available colors parsed from product
+  const availableColorsList = React.useMemo(() => {
+    const colorHexMap = {
+      'black': '#0f172a',
+      'matte black': '#1e293b',
+      'tortoise': '#78350f',
+      'tortoise amber': '#78350f',
+      'gold': '#eab308',
+      'rose gold': '#f43f5e',
+      'silver': '#94a3b8',
+      'gunmetal': '#475569',
+      'gunmetal grey': '#475569',
+      'crystal': '#e2e8f0',
+      'transparent crystal': '#cbd5e1',
+      'navy blue': '#1e3a8a',
+      'blue': '#2563eb'
+    };
+
+    let rawList = [];
+    if (product?.available_colors) {
+      if (Array.isArray(product.available_colors)) {
+        rawList = product.available_colors;
+      } else if (typeof product.available_colors === 'string') {
+        try {
+          const p = JSON.parse(product.available_colors);
+          if (Array.isArray(p) && p.length > 0) rawList = p;
+        } catch {}
+        if (rawList.length === 0) {
+          rawList = product.available_colors.split(',').map(c => c.trim()).filter(Boolean);
+        }
+      }
+    }
+    if (rawList.length === 0) {
+      rawList = product?.frame_color ? [product.frame_color] : ['Matte Black', 'Tortoise Amber', 'Gunmetal Grey', 'Rose Gold'];
+    }
+
+    return rawList.map(name => ({
+      name,
+      hex: colorHexMap[name.toLowerCase()] || '#475569'
+    }));
+  }, [product]);
+
+  useEffect(() => {
+    if (availableSizesList.length > 0 && !availableSizesList.includes(selectedSize)) {
+      setSelectedSize(availableSizesList[0]);
+    }
+  }, [availableSizesList]);
+
+  useEffect(() => {
+    if (availableColorsList.length > 0 && !availableColorsList.some(c => c.name === selectedColor)) {
+      setSelectedColor(availableColorsList[0].name);
+    }
+  }, [availableColorsList]);
 
   const handleShare = () => {
     if (navigator.clipboard) {
@@ -115,13 +180,13 @@ export const ProductDetailPage = () => {
   const effectiveTotal = salePrice + lensAddonPrice;
 
   const handleAddToCart = () => {
-    addToCart(product, quantity, configuredLens, attachedRx);
+    addToCart(product, quantity, configuredLens, attachedRx, { selected_size: selectedSize, selected_color: selectedColor });
     setAddedToast(true);
     setTimeout(() => setAddedToast(false), 3000);
   };
 
   const handleBuyNow = () => {
-    addToCart(product, quantity, configuredLens, attachedRx);
+    addToCart(product, quantity, configuredLens, attachedRx, { selected_size: selectedSize, selected_color: selectedColor });
     navigate('/checkout');
   };
 
@@ -303,25 +368,55 @@ export const ProductDetailPage = () => {
             </div>
           </div>
 
+          {/* Size Selector */}
+          <div className="space-y-2">
+            <label className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wide flex items-center justify-between">
+              <span>Select Size: <span className="text-brand-cyan font-semibold">{selectedSize}</span></span>
+              <button 
+                type="button"
+                onClick={() => setSizeModalOpen(true)}
+                className="text-[11px] text-brand-cyan hover:underline font-normal lowercase tracking-normal"
+              >
+                size guide &rarr;
+              </button>
+            </label>
+            <div className="flex items-center gap-2.5 flex-wrap">
+              {availableSizesList.map((sz) => (
+                <button
+                  key={sz}
+                  type="button"
+                  onClick={() => setSelectedSize(sz)}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all border ${
+                    selectedSize === sz
+                      ? 'border-brand-cyan bg-brand-cyan text-slate-950 shadow-cyan-glow font-extrabold'
+                      : 'border-slate-300 dark:border-white/10 text-slate-700 dark:text-slate-300 bg-white/5 hover:border-brand-cyan/50'
+                  }`}
+                >
+                  {sz}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Color Selector */}
           <div className="space-y-2">
             <label className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wide flex items-center justify-between">
               <span>Select Color: <span className="text-brand-cyan font-semibold">{selectedColor}</span></span>
             </label>
-            <div className="flex items-center gap-3">
-              {colors.map((c) => (
+            <div className="flex items-center gap-2.5 flex-wrap">
+              {availableColorsList.map((c) => (
                 <button
                   key={c.name}
                   type="button"
                   onClick={() => setSelectedColor(c.name)}
                   className={`group flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-medium transition-all ${
                     selectedColor === c.name
-                      ? 'border-brand-cyan bg-brand-cyan/10 text-slate-900 dark:text-white shadow-cyan-glow'
+                      ? 'border-brand-cyan bg-brand-cyan/10 text-slate-900 dark:text-white shadow-cyan-glow font-bold'
                       : 'border-slate-300 dark:border-white/10 text-slate-600 dark:text-slate-400 hover:border-slate-400 dark:hover:border-white/20'
                   }`}
                 >
                   <span
-                    className="w-3.5 h-3.5 rounded-full border border-white/20 shrink-0"
+                    className="w-3.5 h-3.5 rounded-full border border-white/20 shrink-0 shadow-sm"
                     style={{ backgroundColor: c.hex }}
                   />
                   <span>{c.name}</span>

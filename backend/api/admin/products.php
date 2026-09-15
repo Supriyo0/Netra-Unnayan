@@ -34,6 +34,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $isFeatured = !empty($input['is_featured']) ? 1 : 0;
     $isNewArrival = !empty($input['is_new_arrival']) ? 1 : 0;
     $description = trim($input['description'] ?? '');
+    $availableSizes = isset($input['available_sizes']) 
+        ? (is_array($input['available_sizes']) ? implode(', ', $input['available_sizes']) : trim((string)$input['available_sizes'])) 
+        : 'Small, Medium, Large';
+    $availableColors = isset($input['available_colors']) 
+        ? (is_array($input['available_colors']) ? implode(', ', $input['available_colors']) : trim((string)$input['available_colors'])) 
+        : 'Black, Gold, Silver, Crystal';
     $images = $input['images'] ?? [];
 
     if (empty($name) || empty($sku) || $price <= 0) {
@@ -55,6 +61,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 price = ?, discount_price = ?, stock_quantity = ?, low_stock_threshold = ?,
                 lens_width = ?, bridge_width = ?, temple_length = ?, total_frame_width = ?,
                 frame_size = ?, frame_shape = ?, frame_material = ?, frame_color = ?, gender = ?,
+                available_sizes = ?, available_colors = ?,
                 is_tryon_enabled = ?, is_prescription_compatible = ?, is_featured = ?, is_new_arrival = ?,
                 description = ?
             WHERE id = ?
@@ -64,6 +71,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $price, $discountPrice, $stock, $lowStockThreshold,
             $lensWidth, $bridgeWidth, $templeLength, $totalWidth,
             $frameSize, $frameShape, $frameMaterial, $frameColor, $gender,
+            $availableSizes, $availableColors,
             $isTryon, $isPrescription, $isFeatured, $isNewArrival,
             $description, $id
         ]);
@@ -77,6 +85,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 price, discount_price, stock_quantity, low_stock_threshold,
                 lens_width, bridge_width, temple_length, total_frame_width,
                 frame_size, frame_shape, frame_material, frame_color, gender,
+                available_sizes, available_colors,
                 is_tryon_enabled, is_prescription_compatible, is_featured, is_new_arrival,
                 description, is_active
             ) VALUES (
@@ -84,6 +93,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ?, ?, ?, ?,
                 ?, ?, ?, ?,
                 ?, ?, ?, ?, ?,
+                ?, ?,
                 ?, ?, ?, ?,
                 ?, 1
             )
@@ -93,6 +103,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $price, $discountPrice, $stock, $lowStockThreshold,
             $lensWidth, $bridgeWidth, $templeLength, $totalWidth,
             $frameSize, $frameShape, $frameMaterial, $frameColor, $gender,
+            $availableSizes, $availableColors,
             $isTryon, $isPrescription, $isFeatured, $isNewArrival,
             $description
         ]);

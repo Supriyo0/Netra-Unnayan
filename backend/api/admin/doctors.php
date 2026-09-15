@@ -48,9 +48,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $photoUrl = trim($input['photo_url'] ?? '');
     $bio = trim($input['bio'] ?? '');
     $consultationFee = (float)($input['consultation_fee'] ?? 400);
-    $availableDays = is_array($input['available_days']) ? implode(', ', $input['available_days']) : trim($input['available_days'] ?? 'Monday, Wednesday, Friday');
-    $startTime = trim($input['available_time_start'] ?? '10:00:00');
-    $endTime = trim($input['available_time_end'] ?? '18:00:00');
+    $availableDays = is_array($input['available_days'] ?? null) 
+        ? implode(', ', $input['available_days']) 
+        : trim((string)($input['available_days'] ?? 'Monday, Wednesday, Friday'));
+    $startTime = trim((string)($input['available_time_start'] ?? '10:00:00'));
+    $endTime = trim((string)($input['available_time_end'] ?? '18:00:00'));
     $slotDuration = (int)($input['slot_duration_minutes'] ?? 20);
     $maxDailyPatients = (int)($input['max_daily_patients'] ?? 24);
     $isActive = isset($input['is_active']) ? ((int)$input['is_active']) : 1;
@@ -72,27 +74,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         $photoUrl = 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=400&auto=format&fit=crop&q=80';
     }
 
-    if ($id) {
-        // Update existing doctor
-        $stmt = $pdo->prepare('
-            UPDATE doctors SET
-                name = ?, qualification = ?, specialization = ?,
-                experience_years = ?, reg_number = ?, photo_url = ?,
-                bio = ?, consultation_fee = ?, day_fees = ?, available_days = ?,
-                available_time_start = ?, available_time_end = ?,
-                slot_duration_minutes = ?, max_daily_patients = ?, is_active = ?
-            WHERE id = ?
-        ');
-        $stmt->execute([
-            $name, $qualification, $specialization,
-            $experienceYears, $regNumber, $photoUrl,
-            $bio, $consultationFee, $dayFeesJson, $availableDays,
-            $startTime, $endTime,
-            $slotDuration, $maxDailyPatients, $isActive,
-            $id
-        ]);
-        Response::success(['id' => $id], "Specialist '$name' details updated successfully.");
-    } else {
+    try {
+        if ($id) {
+            // Update existing doctor
+            $stmt = $pdo->prepare('
+                UPDATE doctors SET
+                    name = ?, qualification = ?, specialization = ?,
+                    experience_years = ?, reg_number = ?, photo_url = ?,
+                    bio = ?, consultation_fee = ?, day_fees = ?, available_days = ?,
+                    available_time_start = ?, available_time_end = ?,
+                    slot_duration_minutes = ?, max_daily_patients = ?, is_active = ?
+                WHERE id = ?
+            ');
+            $stmt->execute([
+                $name, $qualification, $specialization,
+                $experienceYears, $regNumber, $photoUrl,
+                $bio, $consultationFee, $dayFeesJson, $availableDays,
+                $startTime, $endTime,
+                $slotDuration, $maxDailyPatients, $isActive,
+                $id
+            ]);
+            Response::success(['id' => $id], "Specialist '$name' details updated successfully.");
+        } else {
         // Insert new doctor
         $stmt = $pdo->prepare('
             INSERT INTO doctors (
@@ -119,6 +122,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         $newId = (int)$pdo->lastInsertId();
         Response::success(['id' => $newId], "Specialist '$name' successfully added to clinic roster.");
     }
+} catch (Exception $e) {
+    Response::error('Failed to save specialist: ' . $e->getMessage(), 500);
+}
 
 } elseif ($_SERVER['REQUEST_METHOD'] === 'DELETE') {
     $id = (int)($_GET['id'] ?? 0);

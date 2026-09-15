@@ -83,6 +83,14 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
   };
 
+  const updateUser = (updatedFields) => {
+    setUser(prev => {
+      const next = { ...prev, ...updatedFields };
+      localStorage.setItem('nu_user', JSON.stringify(next));
+      return next;
+    });
+  };
+
   const isAdmin = user?.type === 'admin';
   const isSuperAdmin = isAdmin && user?.role_slug === 'super_admin';
   const isStaff = isAdmin;
@@ -94,6 +102,7 @@ export const AuthProvider = ({ children }) => {
       login,
       register,
       logout,
+      updateUser,
       isAdmin,
       isSuperAdmin,
       isStaff

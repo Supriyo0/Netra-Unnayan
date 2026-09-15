@@ -96,8 +96,8 @@ export const CartPage = () => {
 
                   {/* Info */}
                   <div className="space-y-1">
-                    <div className="text-[10px] text-slate-500 dark:text-slate-400 font-mono font-bold">
-                      SKU: {item.sku} &bull; {item.frame_size || 'Medium'}
+                    <div className="text-[11px] font-mono text-slate-500">
+                      SKU: {item.sku} &bull; Size: <strong className="text-brand-cyan">{item.selected_size || item.frame_size || 'Medium'}</strong>{item.selected_color && <span> &bull; Color: <strong className="text-white">{item.selected_color}</strong></span>}
                     </div>
                     <Link to={`/product/${item.sku}`} className="font-bold text-sm text-slate-900 dark:text-white hover:text-brand-cyan transition-colors line-clamp-1">
                       {item.name}

@@ -4,7 +4,8 @@ import {
   User, Package, FileText, MapPin, Calendar, Eye, 
   LogOut, Shield, Plus, Check, Clock, ChevronRight, X, 
   ExternalLink, Truck, CheckCircle2, AlertCircle, Phone, 
-  Home as HomeIcon, Stethoscope, Trash2, Star, Sparkles, Edit2
+  Home as HomeIcon, Stethoscope, Trash2, Star, Sparkles, Edit2,
+  Upload, Camera, Lock, Save
 } from 'lucide-react';
 import api from '../api/client';
 import { useAuth } from '../context/AuthContext';
@@ -13,7 +14,7 @@ import { InvoiceModal } from '../components/common/InvoiceModal';
 export const AccountPage = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { user, logout } = useAuth();
+  const { user, logout, updateUser } = useAuth();
 
   // Tab state synced with URL ?tab=
   const initialTab = searchParams.get('tab') || 'orders';
@@ -56,6 +57,17 @@ export const AccountPage = () => {
   const [lPd, setLPd] = useState('');
   const [rxNotes, setRxNotes] = useState('');
 
+  // Customer Profile Form State
+  const [profileForm, setProfileForm] = useState({
+    full_name: user?.full_name || '',
+    email: user?.email || '',
+    phone: user?.phone || '',
+    avatar_url: user?.avatar_url || ''
+  });
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [profileFeedback, setProfileFeedback] = useState({ type: '', message: '' });
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+
   // Sync tab change with URL query param
   const handleTabChange = (tab) => {
     setActiveTab(tab);
@@ -78,11 +90,12 @@ export const AccountPage = () => {
     const loadAllAccountData = async () => {
       setLoading(true);
       try {
-        const [ordRes, rxRes, bookRes, addrRes] = await Promise.allSettled([
+        const [ordRes, rxRes, bookRes, addrRes, profRes] = await Promise.allSettled([
           api.get('/orders/my_orders.php'),
           api.get('/prescriptions/list.php'),
           api.get('/account/bookings.php'),
-          api.get('/account/addresses.php')
+          api.get('/account/addresses.php'),
+          api.get('/account/profile.php')
         ]);
 
         if (ordRes.status === 'fulfilled' && ordRes.value?.success) {
@@ -97,6 +110,14 @@ export const AccountPage = () => {
         if (addrRes.status === 'fulfilled' && addrRes.value?.success) {
           setAddresses(addrRes.value.data || []);
         }
+        if (profRes.status === 'fulfilled' && profRes.value?.success && profRes.value.data) {
+          setProfileForm({
+            full_name: profRes.value.data.full_name || '',
+            email: profRes.value.data.email || '',
+            phone: profRes.value.data.phone || '',
+            avatar_url: profRes.value.data.avatar_url || ''
+          });
+        }
       } catch (err) {
         console.error('Error fetching account data:', err);
       } finally {
@@ -106,6 +127,56 @@ export const AccountPage = () => {
 
     loadAllAccountData();
   }, [user, navigate]);
+
+  const handleProfileSave = async (e) => {
+    e.preventDefault();
+    setProfileSaving(true);
+    setProfileFeedback({ type: '', message: '' });
+    try {
+      const res = await api.post('/account/profile.php', profileForm);
+      if (res.success) {
+        setProfileFeedback({ type: 'success', message: 'Profile details updated successfully!' });
+        if (updateUser) {
+          updateUser(res.data);
+        }
+        setTimeout(() => setProfileFeedback({ type: '', message: '' }), 4000);
+      } else {
+        setProfileFeedback({ type: 'error', message: res.message || 'Failed to update profile' });
+      }
+    } catch (err) {
+      setProfileFeedback({ type: 'error', message: err.message || 'Error updating profile' });
+    } finally {
+      setProfileSaving(false);
+    }
+  };
+
+  const handleAvatarFileChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingAvatar(true);
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+      const res = await api.post('/upload.php', formData);
+      if (res.success && res.data?.url) {
+        setProfileForm(prev => ({ ...prev, avatar_url: res.data.url }));
+      } else {
+        const reader = new FileReader();
+        reader.onload = () => {
+          setProfileForm(prev => ({ ...prev, avatar_url: reader.result }));
+        };
+        reader.readAsDataURL(file);
+      }
+    } catch {
+      const reader = new FileReader();
+      reader.onload = () => {
+        setProfileForm(prev => ({ ...prev, avatar_url: reader.result }));
+      };
+      reader.readAsDataURL(file);
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
 
   // Refresh addresses
   const refreshAddresses = async () => {
@@ -305,6 +376,15 @@ export const AccountPage = () => {
           }`}
         >
           <FileText className="w-4 h-4" /> Optical Health Vault ({prescriptions.length})
+        </button>
+
+        <button
+          onClick={() => handleTabChange('profile')}
+          className={`px-4 py-2.5 rounded-xl font-bold flex items-center gap-2 transition-all shrink-0 ${
+            activeTab === 'profile' ? 'bg-brand-cyan text-slate-950 shadow-cyan-glow' : 'glass-nav-pill text-slate-300 hover:text-white'
+          }`}
+        >
+          <User className="w-4 h-4" /> Profile &amp; Settings
         </button>
       </div>
 
@@ -917,6 +997,149 @@ export const AccountPage = () => {
               ))}
             </div>
           )}
+        </div>
+      )}
+
+      {/* TAB 5: PROFILE & SETTINGS */}
+      {activeTab === 'profile' && (
+        <div className="max-w-3xl space-y-6">
+          <div className="glass-card rounded-3xl p-6 sm:p-8 space-y-6 border border-white/10">
+            <div>
+              <h2 className="text-xl font-black text-white flex items-center gap-2">
+                <User className="w-6 h-6 text-brand-cyan" />
+                <span>My Profile &amp; Personal Info</span>
+              </h2>
+              <p className="text-xs text-slate-400 mt-1">
+                Manage your name, profile photo, phone number, and contact email
+              </p>
+            </div>
+
+            {profileFeedback.message && (
+              <div className={`p-4 rounded-2xl flex items-center gap-3 text-xs font-semibold ${
+                profileFeedback.type === 'success'
+                  ? 'bg-emerald-950/40 border border-emerald-500/40 text-emerald-200'
+                  : 'bg-rose-950/40 border border-rose-500/40 text-rose-200'
+              }`}>
+                {profileFeedback.type === 'success' ? <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" /> : <AlertCircle className="w-5 h-5 text-rose-400 shrink-0" />}
+                <span>{profileFeedback.message}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleProfileSave} className="space-y-6">
+              {/* Avatar Section */}
+              <div className="flex flex-col sm:flex-row items-center gap-6 p-5 rounded-2xl bg-white/5 border border-white/10">
+                <div className="relative group">
+                  <div className="w-24 h-24 rounded-full overflow-hidden border-2 border-brand-cyan shadow-cyan-glow bg-slate-800 flex items-center justify-center text-white text-2xl font-black">
+                    {profileForm.avatar_url ? (
+                      <img 
+                        src={profileForm.avatar_url} 
+                        alt={profileForm.full_name || 'Avatar'} 
+                        className="w-full h-full object-cover"
+                        onError={(e) => { e.currentTarget.src = ''; }}
+                      />
+                    ) : (
+                      <span>{profileForm.full_name?.charAt(0) || 'U'}</span>
+                    )}
+                  </div>
+                  <label className="absolute bottom-0 right-0 p-2 rounded-full bg-brand-cyan text-slate-950 hover:bg-brand-cyan/90 cursor-pointer shadow-lg transition-transform hover:scale-110">
+                    <Camera className="w-4 h-4" />
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      onChange={handleAvatarFileChange} 
+                      className="hidden" 
+                      disabled={uploadingAvatar}
+                    />
+                  </label>
+                </div>
+
+                <div className="space-y-2 flex-1 text-center sm:text-left">
+                  <h3 className="text-sm font-bold text-white">Profile Photo</h3>
+                  <p className="text-xs text-slate-400">
+                    Upload a portrait picture or paste an image link below.
+                  </p>
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <input
+                      type="url"
+                      placeholder="Paste picture URL (e.g. https://...)"
+                      value={profileForm.avatar_url}
+                      onChange={(e) => setProfileForm(prev => ({ ...prev, avatar_url: e.target.value }))}
+                      className="glass-input rounded-xl px-3 py-2 text-xs flex-1"
+                    />
+                    <label className="btn-secondary text-xs px-4 py-2 rounded-xl flex items-center justify-center gap-1.5 cursor-pointer shrink-0">
+                      <Upload className="w-3.5 h-3.5" />
+                      <span>{uploadingAvatar ? 'Uploading...' : 'Browse File'}</span>
+                      <input 
+                        type="file" 
+                        accept="image/*" 
+                        onChange={handleAvatarFileChange} 
+                        className="hidden" 
+                        disabled={uploadingAvatar}
+                      />
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              {/* Form Inputs Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 mb-1.5">
+                    Full Legal Name *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={profileForm.full_name}
+                    onChange={(e) => setProfileForm(prev => ({ ...prev, full_name: e.target.value }))}
+                    placeholder="Rahul Sen"
+                    className="w-full glass-input rounded-xl px-4 py-2.5 text-xs font-medium"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 mb-1.5">
+                    Phone Number (WhatsApp &amp; OTP) *
+                  </label>
+                  <input
+                    type="tel"
+                    required
+                    value={profileForm.phone}
+                    onChange={(e) => setProfileForm(prev => ({ ...prev, phone: e.target.value }))}
+                    placeholder="9830123456"
+                    className="w-full glass-input rounded-xl px-4 py-2.5 text-xs font-mono"
+                  />
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label className="block text-xs font-bold text-slate-300 mb-1.5">
+                    Account Email Address
+                  </label>
+                  <input
+                    type="email"
+                    value={profileForm.email}
+                    onChange={(e) => setProfileForm(prev => ({ ...prev, email: e.target.value }))}
+                    placeholder="rahul.sen@example.com"
+                    className="w-full glass-input rounded-xl px-4 py-2.5 text-xs font-mono"
+                  />
+                  <p className="text-[10px] text-slate-400 mt-1">
+                    Used for automated optical prescription dispatches and order invoices.
+                  </p>
+                </div>
+              </div>
+
+              <div className="pt-2 flex justify-end">
+                <button
+                  type="submit"
+                  disabled={profileSaving}
+                  className="btn-primary text-xs py-3 px-8 rounded-xl font-bold flex items-center gap-2 shadow-cyan-glow"
+                >
+                  <Save className="w-4 h-4" />
+                  <span>{profileSaving ? 'Saving Changes...' : 'Save Profile Changes'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
 

@@ -3,21 +3,20 @@
  * Netra Unnayan - Admin Categories & Roundels Management API
  */
 
+require_once __DIR__ . '/../../middleware/cors.php';
+require_once __DIR__ . '/../../middleware/auth.php';
 require_once __DIR__ . '/../../config/database.php';
-require_once __DIR__ . '/../../includes/auth.php';
+require_once __DIR__ . '/../../helpers/response.php';
 
-header('Content-Type: application/json');
-
-$user = require_admin();
-$db = get_db();
+$admin = requireAdminAuth();
+$db = Database::getConnection();
 $method = $_SERVER['REQUEST_METHOD'];
 
 try {
     if ($method === 'GET') {
         $stmt = $db->query("SELECT * FROM categories ORDER BY display_order ASC, id ASC");
         $categories = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        echo json_encode(['success' => true, 'data' => $categories]);
-        exit;
+        Response::success($categories, 'Categories loaded successfully');
     }
 
     if ($method === 'POST') {
@@ -29,8 +28,7 @@ try {
             $isActive = (int)($input['is_active'] ?? 0);
             $stmt = $db->prepare("UPDATE categories SET is_active = ? WHERE id = ?");
             $stmt->execute([$isActive, $id]);
-            echo json_encode(['success' => true, 'message' => 'Status updated successfully']);
-            exit;
+            Response::success(['id' => $id, 'is_active' => $isActive], 'Status updated successfully');
         }
 
         if ($action === 'create' || $action === 'update') {
@@ -45,21 +43,18 @@ try {
             $isActive = isset($input['is_active']) ? (int)$input['is_active'] : 1;
 
             if (empty($name)) {
-                echo json_encode(['success' => false, 'error' => 'Category name is required']);
-                exit;
+                Response::error('Category name is required', 422);
             }
 
             if ($action === 'create') {
                 $stmt = $db->prepare("INSERT INTO categories (name, slug, description, image_url, display_order, is_active) VALUES (?, ?, ?, ?, ?, ?)");
                 $stmt->execute([$name, $slug, $description, $imageUrl, $displayOrder, $isActive]);
-                echo json_encode(['success' => true, 'message' => 'Category created successfully', 'id' => $db->lastInsertId()]);
-                exit;
+                Response::success(['id' => (int)$db->lastInsertId()], 'Category created successfully');
             } else {
                 $id = (int)($input['id'] ?? 0);
                 $stmt = $db->prepare("UPDATE categories SET name = ?, slug = ?, description = ?, image_url = ?, display_order = ?, is_active = ? WHERE id = ?");
                 $stmt->execute([$name, $slug, $description, $imageUrl, $displayOrder, $isActive, $id]);
-                echo json_encode(['success' => true, 'message' => 'Category updated successfully']);
-                exit;
+                Response::success(['id' => $id], 'Category updated successfully');
             }
         }
     }
@@ -67,17 +62,14 @@ try {
     if ($method === 'DELETE') {
         $id = (int)($_GET['id'] ?? 0);
         if (!$id) {
-            echo json_encode(['success' => false, 'error' => 'Category ID required']);
-            exit;
+            Response::error('Category ID required', 400);
         }
         $stmt = $db->prepare("DELETE FROM categories WHERE id = ?");
         $stmt->execute([$id]);
-        echo json_encode(['success' => true, 'message' => 'Category removed successfully']);
-        exit;
+        Response::success(['id' => $id], 'Category removed successfully');
     }
 
-    echo json_encode(['success' => false, 'error' => 'Unsupported request method']);
+    Response::error('Unsupported request method', 405);
 } catch (Exception $e) {
-    http_response_code(500);
-    echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+    Response::error($e->getMessage(), 500);
 }

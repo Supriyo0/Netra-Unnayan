@@ -132,6 +132,23 @@ export const AdminCustomersPage = () => {
     }
   };
 
+  const handleDeleteUser = async (user) => {
+    if (!window.confirm(`Are you sure you want to permanently delete/ban "${user.full_name}" (${user.email})? They will be deactivated immediately and blocked from logging in.`)) return;
+    try {
+      const res = await api.post('/admin/customers.php', {
+        action: 'delete_user',
+        customer_id: user.id
+      });
+      if (res.success) {
+        setFeedback({ type: 'success', message: `User "${user.full_name}" deleted and blocked from login.` });
+        setUsers(prev => prev.map(u => u.id === user.id ? { ...u, is_active: 0 } : u));
+        setTimeout(() => setFeedback({ type: '', message: '' }), 4000);
+      }
+    } catch (err) {
+      alert(err.message || 'Failed to delete user');
+    }
+  };
+
   const staffCount = users.filter(u => u.is_staff == 1).length;
   const customerCount = users.filter(u => u.is_staff == 0).length;
 
@@ -398,6 +415,15 @@ export const AdminCustomersPage = () => {
                               <span>Make Staff</span>
                             </button>
                           )}
+
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteUser(user)}
+                            className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/25 text-rose-400 hover:text-rose-200 border border-rose-500/20 text-[11px] font-semibold transition-all"
+                            title="Delete / Ban User (They cannot log in again)"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
                         </div>
                       </td>
 

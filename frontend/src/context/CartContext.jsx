@@ -89,7 +89,7 @@ export const CartProvider = ({ children }) => {
     recalculateCart(items, couponCode);
   }, [items, couponCode, recalculateCart]);
 
-  const addToCart = (product, quantity = 1, lensOptions = null, prescription = null) => {
+  const addToCart = (product, quantity = 1, lensOptions = null, prescription = null, options = {}) => {
     if (!user) {
       setTargetProductName(product?.name || '');
       setAuthModalOpen(true);
@@ -104,10 +104,15 @@ export const CartProvider = ({ children }) => {
 
       const lensType = lensOptions?.lens_type || '';
       const lensPrice = lensOptions?.lens_price ? Number(lensOptions.lens_price) : 0;
+      const selectedSize = options?.selected_size || options?.size || product.frame_size || 'Medium';
+      const selectedColor = options?.selected_color || options?.color || product.frame_color || 'Matte Black';
 
-      // Match item by product_id and lens_type
+      // Match item by product_id, lens_type, size, and color
       const existingIdx = prev.findIndex(
-        (i) => i.product_id === product.id && (i.lens_type || '') === lensType
+        (i) => i.product_id === product.id && 
+               (i.lens_type || '') === lensType &&
+               (i.selected_size || i.frame_size || '') === selectedSize &&
+               (i.selected_color || '') === selectedColor
       );
 
       if (existingIdx > -1) {
@@ -132,7 +137,9 @@ export const CartProvider = ({ children }) => {
           lens_type: lensType,
           lens_price: lensPrice,
           prescription: prescription || null,
-          frame_size: product.frame_size,
+          frame_size: selectedSize,
+          selected_size: selectedSize,
+          selected_color: selectedColor,
           frame_shape: product.frame_shape,
           dimensions_label: product.dimensions_label
         }
