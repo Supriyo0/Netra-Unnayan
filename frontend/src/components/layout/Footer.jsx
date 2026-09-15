@@ -76,13 +76,29 @@ export const Footer = () => {
                   Digha Bypass Rd, Jatimati, Digha, West Bengal 721428
                 </span>
               </p>
+              
+              {/* Compact Embedded Mini Map */}
+              <div className="w-full h-24 sm:h-28 rounded-xl overflow-hidden border border-slate-200 dark:border-white/10 shadow-xs relative my-1.5 bg-slate-900">
+                <iframe
+                  title="Netra Unnayan Mini Map"
+                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d14787.21448892182!2d87.5025!3d21.6275!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3a032fb77c44e6b5%3A0x86b0337bfa5a938c!2sDigha%20Bypass%20Rd%2C%20Jatimati%2C%20Digha%2C%20West%20Bengal%20721428!5e0!3m2!1sen!2sin!4v1714000000000!5m2!1sen!2sin"
+                  width="100%"
+                  height="100%"
+                  style={{ border: 0 }}
+                  allowFullScreen=""
+                  loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
+                  className="w-full h-full filter brightness-95 contrast-105"
+                />
+              </div>
+
               <a 
                 href="https://maps.app.goo.gl/TBLLEac73RdPyqLq6?g_st=ac"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1 text-brand-cyan hover:underline font-semibold"
               >
-                View on Google Maps <ExternalLink className="w-3 h-3" />
+                Open Full Google Maps <ExternalLink className="w-3 h-3" />
               </a>
               <p className="flex items-center gap-2 pt-0.5">
                 <Phone className="w-4 h-4 text-brand-teal shrink-0" />

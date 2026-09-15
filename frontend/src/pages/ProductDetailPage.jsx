@@ -156,23 +156,51 @@ export const ProductDetailPage = () => {
     fetchProduct();
   }, [identifier]);
 
-  // Fetch Related Products based on category
+  // Fetch Related Products based on category & general catalog fallback
   useEffect(() => {
     if (!product?.id) return;
     const fetchRelated = async () => {
       setRelatedLoading(true);
       try {
-        let endpoint = '/products?limit=12';
+        let endpoint = '/products/index.php?limit=12';
         if (product.category_slug) {
-          endpoint = `/products?category=${encodeURIComponent(product.category_slug)}&limit=12`;
+          endpoint = `/products/index.php?category=${encodeURIComponent(product.category_slug)}&limit=12`;
         } else if (product.category_id) {
-          endpoint = `/products?category_id=${encodeURIComponent(product.category_id)}&limit=12`;
+          endpoint = `/products/index.php?category_id=${encodeURIComponent(product.category_id)}&limit=12`;
         }
         const res = await api.get(endpoint);
-        if (res.success && Array.isArray(res.data)) {
-          // Filter out current active product
-          const list = res.data.filter(p => Number(p.id) !== Number(product.id));
-          setRelatedProducts(list.slice(0, 6));
+        let list = [];
+        if (Array.isArray(res)) {
+          list = res;
+        } else if (Array.isArray(res?.data)) {
+          list = res.data;
+        } else if (Array.isArray(res?.data?.products)) {
+          list = res.data.products;
+        } else if (Array.isArray(res?.products)) {
+          list = res.products;
+        }
+
+        // If fewer than 4 products in same category, fetch general catalog fallback
+        if (list.filter(p => Number(p.id) !== Number(product.id)).length < 4) {
+          const fallbackRes = await api.get('/products/index.php?limit=12');
+          let fallbackList = [];
+          if (Array.isArray(fallbackRes)) fallbackList = fallbackRes;
+          else if (Array.isArray(fallbackRes?.data)) fallbackList = fallbackRes.data;
+          else if (Array.isArray(fallbackRes?.data?.products)) fallbackList = fallbackRes.data.products;
+          else if (Array.isArray(fallbackRes?.products)) fallbackList = fallbackRes.products;
+
+          const combined = [...list, ...fallbackList];
+          const unique = [];
+          const seen = new Set();
+          for (const item of combined) {
+            if (item && item.id && Number(item.id) !== Number(product.id) && !seen.has(item.id)) {
+              seen.add(item.id);
+              unique.push(item);
+            }
+          }
+          setRelatedProducts(unique.slice(0, 8));
+        } else {
+          setRelatedProducts(list.filter(p => Number(p.id) !== Number(product.id)).slice(0, 8));
         }
       } catch (err) {
         console.warn('Failed to fetch related products:', err);
