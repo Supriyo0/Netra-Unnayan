@@ -174,11 +174,34 @@ HTML;
 
 } elseif ($_SERVER['REQUEST_METHOD'] === 'DELETE') {
     $orderId = (int)($_GET['id'] ?? 0);
+    $restoreStock = isset($_GET['restore_stock']) ? (int)$_GET['restore_stock'] : 0;
+    
     if (!$orderId) {
         $input = json_decode(file_get_contents('php://input'), true) ?? [];
         $orderId = (int)($input['id'] ?? 0);
+        if (isset($input['restore_stock'])) {
+            $restoreStock = (int)$input['restore_stock'];
+        }
     }
     if (!$orderId) Response::error('Order ID is required.', 400);
+
+    // If restore_stock requested, add quantities back to product catalog inventory
+    $stockRestoredCount = 0;
+    if ($restoreStock === 1) {
+        $itemsStmt = $pdo->prepare('SELECT product_id, quantity FROM order_items WHERE order_id = ?');
+        $itemsStmt->execute([$orderId]);
+        $orderItems = $itemsStmt->fetchAll(PDO::FETCH_ASSOC);
+
+        foreach ($orderItems as $item) {
+            $pId = (int)($item['product_id'] ?? 0);
+            $qty = (int)($item['quantity'] ?? 0);
+            if ($pId > 0 && $qty > 0) {
+                $pdo->prepare('UPDATE products SET stock_quantity = stock_quantity + ? WHERE id = ?')
+                    ->execute([$qty, $pId]);
+                $stockRestoredCount += $qty;
+            }
+        }
+    }
 
     // Delete associated records first to preserve database integrity
     $pdo->prepare('DELETE FROM invoices WHERE order_id = ?')->execute([$orderId]);
@@ -188,5 +211,9 @@ HTML;
     $pdo->prepare('DELETE FROM order_status_history WHERE order_id = ?')->execute([$orderId]);
     $pdo->prepare('DELETE FROM orders WHERE id = ?')->execute([$orderId]);
 
-    Response::success(['order_id' => $orderId], 'Order and associated invoices deleted successfully.');
+    $msg = $restoreStock === 1 
+        ? "Order deleted successfully and {$stockRestoredCount} items returned back to inventory stock."
+        : "Order and invoice permanently deleted without modifying stock.";
+
+    Response::success(['order_id' => $orderId, 'stock_restored' => $restoreStock === 1], $msg);
 }

@@ -37,22 +37,36 @@ $standardShippingFee = (float)($settings['standard_shipping_fee'] ?? 70.00);
 $verifiedItems = [];
 $subtotal = 0.00;
 $totalLensPrice = 0.00;
+$totalExtraShipping = 0.00;
 
 foreach ($items as $item) {
     $productId = (int)($item['product_id'] ?? 0);
     $qty = max(1, (int)($item['quantity'] ?? 1));
 
-    $stmt = $pdo->prepare('
-        SELECT id, name, sku, barcode, price, discount_price, stock_quantity, is_prescription_compatible
-        FROM products
-        WHERE id = ? AND is_active = 1
-    ');
-    $stmt->execute([$productId]);
-    $prod = $stmt->fetch();
+    try {
+        $stmt = $pdo->prepare('
+            SELECT id, name, sku, barcode, price, discount_price, stock_quantity, is_prescription_compatible, extra_shipping_fee
+            FROM products
+            WHERE id = ? AND is_active = 1
+        ');
+        $stmt->execute([$productId]);
+        $prod = $stmt->fetch();
+    } catch (Exception $e) {
+        $stmt = $pdo->prepare('
+            SELECT id, name, sku, barcode, price, discount_price, stock_quantity, is_prescription_compatible
+            FROM products
+            WHERE id = ? AND is_active = 1
+        ');
+        $stmt->execute([$productId]);
+        $prod = $stmt->fetch();
+    }
 
     if (!$prod) {
         continue; // Skip inactive/deleted
     }
+
+    $extraShipping = (float)($prod['extra_shipping_fee'] ?? 0.00);
+    $totalExtraShipping += ($extraShipping * $qty);
 
     $regularPrice = (float)$prod['price'];
     $unitPrice = $prod['discount_price'] !== null ? (float)$prod['discount_price'] : $regularPrice;
@@ -139,7 +153,8 @@ if (!empty($couponCode)) {
 }
 
 // Shipping calculation
-$shippingFee = ($subtotal - $discountAmount >= $freeShippingThreshold || $subtotal == 0) ? 0.00 : $standardShippingFee;
+$baseShippingFee = ($subtotal - $discountAmount >= $freeShippingThreshold || $subtotal == 0) ? 0.00 : $standardShippingFee;
+$shippingFee = $baseShippingFee + $totalExtraShipping;
 $taxAmount = 0.00; // All prices inclusive of optical GST
 $totalAmount = max(0.00, round(($subtotal - $discountAmount) + $shippingFee, 2));
 

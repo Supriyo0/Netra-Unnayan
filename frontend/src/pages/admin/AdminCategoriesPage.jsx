@@ -4,6 +4,7 @@ import {
   Eye, RefreshCw, Sparkles, Image as ImageIcon, ArrowUpRight
 } from 'lucide-react';
 import api from '../../api/client';
+import { ImageUploadDropzone } from '../../components/common/ImageUploadDropzone';
 
 export const AdminCategoriesPage = () => {
   const [categories, setCategories] = useState([]);
@@ -106,14 +107,23 @@ export const AdminCategoriesPage = () => {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this category?')) return;
+    if (!window.confirm('Are you sure you want to delete this category? Products in this category may need reallocation.')) return;
     try {
-      const res = await api.delete(`/admin/categories.php?id=${id}`);
-      if (res.success) {
+      let res;
+      try {
+        res = await api.delete(`/admin/categories.php?id=${id}`);
+      } catch {
+        res = await api.post('/admin/categories.php', { action: 'delete', id });
+      }
+      if (res && res.success) {
+        setMessage({ type: 'success', text: 'Category deleted successfully.' });
         fetchCategories();
+      } else {
+        setMessage({ type: 'error', text: res?.message || 'Failed to delete category.' });
       }
     } catch (err) {
       console.error('Delete failed:', err);
+      setMessage({ type: 'error', text: err.response?.data?.message || err.message });
     }
   };
 
@@ -304,13 +314,22 @@ export const AdminCategoriesPage = () => {
 
               <div>
                 <label className="block text-xs font-bold text-slate-300 mb-1">
-                  Circular Roundel Image URL *
+                  Category Image &amp; Circular Roundel *
                 </label>
+                <div className="mb-2">
+                  <ImageUploadDropzone
+                    value={formData.image_url}
+                    onChange={(url) => setFormData({ ...formData, image_url: url })}
+                    label="Upload Category Image"
+                    sublabel="Click or drag PNG/JPG to upload to server"
+                    prefix="category"
+                  />
+                </div>
                 <input
-                  type="url"
+                  type="text"
                   value={formData.image_url}
                   onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
-                  placeholder="https://images.unsplash.com/photo-..."
+                  placeholder="Or paste image URL (https://...)"
                   className="w-full px-3.5 py-2.5 rounded-xl bg-[#060D17] border border-white/10 text-white text-xs focus:border-brand-cyan focus:outline-none"
                 />
                 {formData.image_url && (

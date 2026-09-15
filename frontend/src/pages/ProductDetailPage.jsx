@@ -195,8 +195,8 @@ export const ProductDetailPage = () => {
     return (
       <div className="max-w-2xl mx-auto px-4 py-20 text-center space-y-4">
         <ShieldAlert className="w-12 h-12 text-amber-500 mx-auto" />
-        <h2 className="text-xl font-bold text-white">Product Not Found</h2>
-        <p className="text-xs text-slate-400">{error || 'This optical frame may have been archived or does not exist.'}</p>
+        <h2 className="text-xl font-bold text-slate-900 dark:text-white">Product Not Found</h2>
+        <p className="text-xs text-slate-500 dark:text-slate-400">{error || 'This optical frame may have been archived or does not exist.'}</p>
         <Link to="/shop" className="btn-primary text-xs px-6 py-2.5 inline-flex">
           Browse All Eyewear
         </Link>
@@ -227,16 +227,16 @@ export const ProductDetailPage = () => {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-12">
       
       {/* Breadcrumbs */}
-      <nav className="flex items-center gap-2 text-xs text-slate-400">
-        <Link to="/" className="hover:text-white">Home</Link>
+      <nav className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+        <Link to="/" className="hover:text-brand-cyan transition-colors">Home</Link>
         <ChevronRight className="w-3.5 h-3.5" />
-        <Link to="/shop" className="hover:text-white">Eyewear</Link>
+        <Link to="/shop" className="hover:text-brand-cyan transition-colors">Eyewear</Link>
         <ChevronRight className="w-3.5 h-3.5" />
-        <Link to={`/shop?category=${product.category_slug}`} className="hover:text-white">
+        <Link to={`/shop?category=${product.category_slug}`} className="hover:text-brand-cyan transition-colors">
           {product.category_name}
         </Link>
         <ChevronRight className="w-3.5 h-3.5" />
-        <span className="text-white truncate max-w-xs">{product.name}</span>
+        <span className="text-slate-900 dark:text-white font-medium truncate max-w-xs">{product.name}</span>
       </nav>
 
       {/* Main Two-Column Layout */}
@@ -344,231 +344,252 @@ export const ProductDetailPage = () => {
         </div>
 
         {/* RIGHT COLUMN: Product Info & Configuration */}
-        <div className="lg:col-span-5 space-y-6">
+        <div className="lg:col-span-5 space-y-5">
           
           {/* Brand, Title & Reviews */}
-          <div>
-            <div className="flex items-center justify-between text-xs text-brand-cyan font-bold tracking-wider uppercase mb-1">
-              <span>{product.brand_name || 'Netra Signature'}</span>
-              <span className="font-mono text-slate-400">{product.sku}</span>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-brand-cyan tracking-widest uppercase">
+                {product.brand_name || 'Netra Signature'}
+              </span>
+              <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-white/5 px-2 py-0.5 rounded-md">
+                {product.sku}
+              </span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white leading-tight">
+            
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-slate-900 dark:text-white leading-tight">
               {product.name}
             </h1>
             
-            {/* Reviews badge */}
-            <div className="flex items-center gap-2 mt-2">
-              <div className="flex items-center gap-1 bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 rounded-lg text-amber-500 dark:text-amber-300 text-xs font-bold">
-                <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                <span>4.8</span>
+            {/* Reviews + Stock row */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <div className="flex items-center gap-1 bg-amber-50 dark:bg-amber-500/15 border border-amber-200 dark:border-amber-500/30 px-2 py-0.5 rounded-lg">
+                {[1,2,3,4,5].map(i => (
+                  <Star key={i} className={`w-3 h-3 ${i <= 4 ? 'fill-amber-400 text-amber-400' : 'fill-amber-200 text-amber-200 dark:fill-amber-800 dark:text-amber-800'}`} />
+                ))}
+                <span className="text-xs font-bold text-amber-700 dark:text-amber-300 ml-1">4.8</span>
               </div>
-              <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">128 verified optometrist reviews</span>
-              <span className="text-slate-400 dark:text-slate-600">•</span>
-              <span className="text-xs text-brand-cyan font-semibold">In Stock</span>
-            </div>
-
-            <p className="text-xs text-slate-600 dark:text-slate-300 mt-3 leading-relaxed">
-              {product.description}
-            </p>
-          </div>
-
-          {/* Pricing Box */}
-          <div className="glass-card rounded-2xl p-4 flex items-center justify-between border-2 border-slate-200 dark:border-white/10 shadow-sm">
-            <div>
-              <div className="flex items-baseline gap-2">
-                <span className="text-2xl font-black text-slate-900 dark:text-white">₹{effectiveTotal * quantity}</span>
-                {discountPct > 0 && (
-                  <span className="text-sm text-slate-400 line-through">₹{regularPrice * quantity}</span>
-                )}
-              </div>
-              <p className="text-[11px] text-brand-teal font-medium mt-0.5">
-                {configuredLens ? `Includes ${configuredLens.lens_type} (+₹${configuredLens.lens_price})` : 'Inclusive of Optical GST & Premium Hard Case'}
-              </p>
-            </div>
-
-            <div className="text-right">
+              <span className="text-xs text-slate-500 dark:text-slate-400">128 reviews</span>
+              <span className="text-slate-300 dark:text-slate-600">·</span>
               {product.stock_quantity > 0 ? (
-                <span className="inline-flex items-center gap-1 text-xs font-bold text-teal-400">
-                  <CheckCircle className="w-3.5 h-3.5" /> In Stock ({product.stock_quantity} available)
+                <span className="flex items-center gap-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                  <CheckCircle className="w-3.5 h-3.5" /> In Stock
                 </span>
               ) : (
-                <span className="inline-flex items-center gap-1 text-xs font-bold text-rose-400">
+                <span className="flex items-center gap-1 text-xs font-semibold text-rose-500">
                   <ShieldAlert className="w-3.5 h-3.5" /> Out of Stock
                 </span>
               )}
             </div>
+
+            {product.description && (
+              <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed line-clamp-3">
+                {product.description}
+              </p>
+            )}
+          </div>
+
+          {/* Price */}
+          <div className="flex items-end justify-between bg-gradient-to-r from-sky-50 to-teal-50/50 dark:from-white/[0.04] dark:to-brand-cyan/[0.03] rounded-2xl px-4 py-3.5 border border-sky-200 dark:border-brand-cyan/20">
+            <div>
+              <div className="flex items-baseline gap-2">
+                <span className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">
+                  ₹{effectiveTotal * quantity}
+                </span>
+                {discountPct > 0 && (
+                  <span className="text-base text-slate-400 line-through">₹{regularPrice * quantity}</span>
+                )}
+                {discountPct > 0 && (
+                  <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 px-1.5 py-0.5 rounded-md">
+                    {discountPct}% OFF
+                  </span>
+                )}
+              </div>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                {configuredLens
+                  ? <span className="text-brand-teal font-semibold">✓ Includes {configuredLens.lens_type} (+₹{configuredLens.lens_price})</span>
+                  : 'Incl. hard case & lens cloth'
+                }
+              </p>
+            </div>
+            {discountPct > 0 && (
+              <div className="text-right">
+                <div className="text-[10px] text-slate-500 dark:text-slate-400">You save</div>
+                <div className="text-base font-black text-emerald-600 dark:text-emerald-400">₹{(regularPrice - salePrice) * quantity}</div>
+              </div>
+            )}
           </div>
 
           {/* Size Selector */}
-          <div className="space-y-2">
-            <label className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wide flex items-center justify-between">
-              <span>Select Size: <span className="text-brand-cyan font-semibold">{selectedSize}</span></span>
-              <button 
+          <div className="space-y-2.5">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wide">
+                Frame Size
+              </span>
+              <button
                 type="button"
                 onClick={() => setSizeModalOpen(true)}
-                className="text-[11px] text-brand-cyan hover:underline font-normal lowercase tracking-normal"
+                className="text-[11px] font-semibold text-brand-cyan hover:text-brand-teal transition-colors flex items-center gap-1 underline underline-offset-2"
               >
-                size guide &rarr;
+                <HelpCircle className="w-3.5 h-3.5" /> Size Guide
               </button>
-            </label>
-            <div className="flex items-center gap-2.5 flex-wrap">
+            </div>
+            
+            {/* Size toggle pills */}
+            <div className="flex items-center bg-slate-100 dark:bg-white/5 rounded-xl p-1 gap-1 border border-slate-200 dark:border-white/10">
               {availableSizesList.map((sz) => (
                 <button
                   key={sz}
                   type="button"
                   onClick={() => setSelectedSize(sz)}
-                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all border ${
+                  className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all duration-200 ${
                     selectedSize === sz
-                      ? 'border-brand-cyan bg-brand-cyan text-slate-950 shadow-cyan-glow font-extrabold'
-                      : 'border-slate-300 dark:border-white/10 text-slate-700 dark:text-slate-300 bg-white/5 hover:border-brand-cyan/50'
+                      ? 'bg-white dark:bg-[#0A192F] text-brand-cyan shadow-sm border border-brand-cyan/40'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                   }`}
                 >
                   {sz}
                 </button>
               ))}
             </div>
+
+            {/* Dynamic frame dimensions (updates with selected size) */}
+            {(() => {
+              const baseLens = product.lens_width || 52;
+              const baseBridge = product.bridge_width || 18;
+              const baseTemple = product.temple_length || 140;
+              let lens = baseLens, bridge = baseBridge, temple = baseTemple;
+              if (selectedSize === 'Small') { lens = Math.max(46, baseLens - 3); bridge = Math.max(15, baseBridge - 1); temple = Math.max(130, baseTemple - 5); }
+              else if (selectedSize === 'Large') { lens = baseLens + 3; bridge = baseBridge + 1; temple = baseTemple + 5; }
+              return (
+                <div className="flex items-center justify-between bg-white dark:bg-white/[0.03] rounded-xl px-3.5 py-2.5 border border-slate-200 dark:border-white/10 text-xs">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-brand-cyan shrink-0" />
+                    <span className="font-mono font-bold text-slate-900 dark:text-white tracking-wider">
+                      {lens} □ {bridge} — {temple} mm
+                    </span>
+                  </div>
+                  <span className="text-slate-500 dark:text-slate-400 text-[10px]">
+                    {product.frame_shape ? `${product.frame_shape} · ` : ''}{selectedSize}
+                  </span>
+                </div>
+              );
+            })()}
           </div>
 
           {/* Color Selector */}
-          <div className="space-y-2">
-            <label className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wide flex items-center justify-between">
-              <span>Select Color: <span className="text-brand-cyan font-semibold">{selectedColor}</span></span>
-            </label>
-            <div className="flex items-center gap-2.5 flex-wrap">
+          <div className="space-y-2.5">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wide">
+                Colour
+              </span>
+              <span className="text-xs font-semibold text-brand-cyan">{selectedColor}</span>
+            </div>
+            <div className="flex items-center gap-2 flex-wrap">
               {availableColorsList.map((c) => (
                 <button
                   key={c.name}
                   type="button"
+                  title={c.name}
                   onClick={() => setSelectedColor(c.name)}
-                  className={`group flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-medium transition-all ${
+                  className={`relative w-8 h-8 rounded-full border-2 transition-all duration-200 hover:scale-110 ${
                     selectedColor === c.name
-                      ? 'border-brand-cyan bg-brand-cyan/10 text-slate-900 dark:text-white shadow-cyan-glow font-bold'
-                      : 'border-slate-300 dark:border-white/10 text-slate-600 dark:text-slate-400 hover:border-slate-400 dark:hover:border-white/20'
+                      ? 'border-brand-cyan scale-110 ring-2 ring-brand-cyan/30 ring-offset-1'
+                      : 'border-slate-300 dark:border-white/20'
                   }`}
+                  style={{ backgroundColor: c.hex }}
                 >
-                  <span
-                    className="w-3.5 h-3.5 rounded-full border border-white/20 shrink-0 shadow-sm"
-                    style={{ backgroundColor: c.hex }}
-                  />
-                  <span>{c.name}</span>
+                  {selectedColor === c.name && (
+                    <Check className="absolute inset-0 m-auto w-3 h-3 text-white drop-shadow" />
+                  )}
                 </button>
               ))}
             </div>
           </div>
 
-          {/* Sizing & Dimensions Box with Modal Trigger */}
-          <div className="glass-card rounded-2xl p-4 space-y-3 border-2 border-slate-200 dark:border-white/10 shadow-sm">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wide">Frame Geometry</span>
-              <button 
-                type="button"
-                onClick={() => setSizeModalOpen(true)}
-                className="text-xs text-brand-cyan hover:underline flex items-center gap-1 font-semibold"
-              >
-                <HelpCircle className="w-3.5 h-3.5" /> Sizing Guide &amp; Fit Tool
-              </button>
-            </div>
-
-            <div className="p-3 rounded-xl bg-slate-100 dark:bg-slate-950/60 border border-slate-200 dark:border-white/10 flex items-center justify-between font-mono text-xs">
-              <div>
-                <span className="text-slate-500 dark:text-slate-400 text-[10px] block uppercase">Dimensions (mm)</span>
-                <strong className="text-slate-900 dark:text-white text-base tracking-wider">{product.dimensions_label || 'Standard Fit'}</strong>
-              </div>
-              <span className="px-3 py-1 rounded-lg bg-brand-cyan/15 text-brand-cyan font-bold border border-brand-cyan/30 text-xs">
-                {product.frame_size} Fit
-              </span>
-            </div>
-
-            <div className="grid grid-cols-3 gap-2 text-[11px] text-slate-500 dark:text-slate-400 text-center">
-              <div className="p-1.5 rounded-lg bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/5">Shape: <strong className="text-slate-900 dark:text-white capitalize">{product.frame_shape}</strong></div>
-              <div className="p-1.5 rounded-lg bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/5">Material: <strong className="text-slate-900 dark:text-white">{product.frame_material}</strong></div>
-              <div className="p-1.5 rounded-lg bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/5">Gender: <strong className="text-slate-900 dark:text-white">{product.gender}</strong></div>
-            </div>
-          </div>
-
-          {/* Prescription Lens Configurator Trigger */}
+          {/* Prescription / Lenses Section */}
           {product.is_prescription_compatible === 1 && (
-            <div className="glass-card-glow rounded-2xl p-4 space-y-3 border-2 border-brand-cyan/30 shadow-sm">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wide flex items-center gap-1.5">
-                  <FileText className="w-4 h-4 text-brand-cyan" /> Prescription Lenses
-                </span>
-                {configuredLens ? (
-                  <span className="text-xs text-teal-500 dark:text-teal-400 font-bold flex items-center gap-1">
-                    <Check className="w-3.5 h-3.5" /> Attached
+            <div className={`rounded-2xl border-2 overflow-hidden transition-all ${
+              rxRequired
+                ? 'border-brand-cyan/40 bg-sky-50/50 dark:bg-brand-cyan/[0.04]'
+                : 'border-slate-200 dark:border-white/10 bg-white dark:bg-white/[0.02]'
+            }`}>
+              <div className="px-4 pt-4 pb-2">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                    <FileText className="w-4 h-4 text-brand-cyan shrink-0" />
+                    Do you need prescription lenses?
                   </span>
-                ) : (
-                  <span className="text-xs text-slate-500 dark:text-slate-400">Zero Power or Prescription</span>
-                )}
-              </div>
+                  {configuredLens && (
+                    <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1">
+                      <Check className="w-3 h-3" /> Set
+                    </span>
+                  )}
+                </div>
 
-              {/* Prescription Required? Toggle Tabs */}
-              <div className="grid grid-cols-2 gap-2 p-1 rounded-xl bg-slate-100 dark:bg-slate-950/60 border border-slate-200 dark:border-white/10">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setRxRequired(false);
-                    setConfiguredLens(null);
-                    setAttachedRx(null);
-                  }}
-                  className={`py-2 text-xs font-bold rounded-lg transition-all ${
-                    !rxRequired
-                      ? 'bg-brand-cyan/20 text-brand-cyan border border-brand-cyan/40 shadow-sm'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                  }`}
-                >
-                  Zero Power / Fashion
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setRxRequired(true);
-                    setRxModalOpen(true);
-                  }}
-                  className={`py-2 text-xs font-bold rounded-lg transition-all ${
-                    rxRequired
-                      ? 'bg-brand-cyan/20 text-brand-cyan border border-brand-cyan/40 shadow-sm'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                  }`}
-                >
-                  Prescription Power
-                </button>
-              </div>
-
-              {configuredLens ? (
-                <div className="p-3 rounded-xl bg-teal-950/30 border border-teal-500/30 text-xs text-teal-200 flex justify-between items-center">
-                  <div>
-                    <strong>{configuredLens.lens_type}</strong>
-                    <div className="text-[11px] text-slate-300 mt-0.5">Method: {attachedRx?.method || 'Values Entered'}</div>
-                  </div>
-                  <button 
-                    onClick={() => setRxModalOpen(true)}
-                    className="text-brand-cyan hover:underline font-bold text-xs"
+                {/* Toggle: No / Yes */}
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => { setRxRequired(false); setConfiguredLens(null); setAttachedRx(null); }}
+                    className={`py-2.5 rounded-xl text-xs font-bold transition-all border ${
+                      !rxRequired
+                        ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 border-slate-900 dark:border-white shadow-sm'
+                        : 'border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400 bg-transparent hover:border-slate-400 dark:hover:border-white/30'
+                    }`}
                   >
-                    Edit Rx
+                    👓 No, plain frame
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setRxRequired(true); setRxModalOpen(true); }}
+                    className={`py-2.5 rounded-xl text-xs font-bold transition-all border ${
+                      rxRequired
+                        ? 'bg-brand-cyan text-slate-950 border-brand-cyan shadow-sm'
+                        : 'border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400 bg-transparent hover:border-brand-cyan/40 hover:text-brand-cyan'
+                    }`}
+                  >
+                    🔍 Yes, add my power
                   </button>
                 </div>
-              ) : rxRequired ? (
-                <button
-                  type="button"
-                  onClick={() => setRxModalOpen(true)}
-                  className="w-full btn-secondary text-xs py-2.5 text-center flex items-center justify-center gap-2"
-                >
-                  <Sparkles className="w-4 h-4 text-brand-cyan" /> Configure Prescription &amp; Anti-Glare Lenses
-                </button>
-              ) : null}
+              </div>
+
+              {/* Configured lens summary or CTA */}
+              {rxRequired && (
+                <div className="px-4 pb-4 pt-1">
+                  {configuredLens ? (
+                    <div className="flex items-center justify-between p-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-500/30">
+                      <div>
+                        <div className="text-xs font-bold text-emerald-700 dark:text-emerald-300">{configuredLens.lens_type}</div>
+                        <div className="text-[10px] text-slate-600 dark:text-slate-400 mt-0.5">{attachedRx?.method || 'Prescription entered'} · +₹{configuredLens.lens_price}</div>
+                      </div>
+                      <button onClick={() => setRxModalOpen(true)} className="text-brand-cyan text-xs font-bold hover:underline">
+                        Change
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setRxModalOpen(true)}
+                      className="w-full py-2.5 rounded-xl bg-brand-cyan/10 dark:bg-brand-cyan/10 border border-brand-cyan/30 text-brand-cyan text-xs font-bold flex items-center justify-center gap-2 hover:bg-brand-cyan/20 transition-colors"
+                    >
+                      <Sparkles className="w-3.5 h-3.5" /> Enter my prescription →
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
           {/* Quantity & Action Buttons */}
-          <div className="space-y-3 pt-2">
+          <div className="space-y-3">
             <div className="flex items-center gap-3">
-              {/* Quantity Counter */}
-              <div className="flex items-center rounded-xl bg-slate-100 dark:bg-slate-950/60 border border-slate-300 dark:border-white/10 p-1 shrink-0">
+              {/* Qty */}
+              <div className="flex items-center rounded-xl bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 overflow-hidden shrink-0">
                 <button
                   type="button"
                   onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                  className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-white/10 transition-colors"
+                  className="w-10 h-10 flex items-center justify-center text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-white/10 hover:text-slate-900 dark:hover:text-white transition-colors"
                 >
                   <Minus className="w-3.5 h-3.5" />
                 </button>
@@ -576,7 +597,7 @@ export const ProductDetailPage = () => {
                 <button
                   type="button"
                   onClick={() => setQuantity(Math.min(product.stock_quantity || 10, quantity + 1))}
-                  className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-white/10 transition-colors"
+                  className="w-10 h-10 flex items-center justify-center text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-white/10 hover:text-slate-900 dark:hover:text-white transition-colors"
                 >
                   <Plus className="w-3.5 h-3.5" />
                 </button>
@@ -587,78 +608,62 @@ export const ProductDetailPage = () => {
                 type="button"
                 onClick={handleAddToCart}
                 disabled={product.stock_quantity <= 0}
-                className="flex-1 btn-secondary py-3 text-xs sm:text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-50"
+                className="flex-1 py-3 rounded-xl border-2 border-brand-cyan text-brand-cyan font-bold text-sm flex items-center justify-center gap-2 hover:bg-brand-cyan hover:text-slate-950 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 <ShoppingBag className="w-4 h-4" /> Add to Cart
               </button>
-
-              {/* Buy Now */}
-              <button
-                type="button"
-                onClick={handleBuyNow}
-                disabled={product.stock_quantity <= 0}
-                className="flex-1 btn-primary py-3 text-xs sm:text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-50"
-              >
-                <Zap className="w-4 h-4" /> Buy Now
-              </button>
             </div>
 
+            {/* Buy Now */}
+            <button
+              type="button"
+              onClick={handleBuyNow}
+              disabled={product.stock_quantity <= 0}
+              className="w-full btn-primary py-3.5 text-sm font-black flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <Zap className="w-4 h-4" /> Buy Now
+            </button>
+
             {addedToast && (
-              <div className="p-3 rounded-xl bg-teal-500/20 border border-teal-400/40 text-teal-200 text-xs text-center flex items-center justify-center gap-2 animate-bounce">
-                <Check className="w-4 h-4" /> Added {quantity} item(s) to your shopping cart!
+              <div className="p-2.5 rounded-xl bg-emerald-50 dark:bg-teal-500/10 border border-emerald-200 dark:border-teal-400/30 text-emerald-700 dark:text-teal-300 text-xs text-center flex items-center justify-center gap-2">
+                <Check className="w-4 h-4" /> Added {quantity} item(s) to your cart!
               </div>
             )}
           </div>
 
-          {/* 4 Trust Guarantee Badges */}
-          <div className="grid grid-cols-2 gap-3 border-t border-slate-200 dark:border-white/10 pt-4">
-            <div className="flex items-center gap-2.5 p-2 rounded-xl bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/5">
-              <Award className="w-4 h-4 text-brand-cyan shrink-0" />
-              <div className="text-[11px]">
-                <div className="font-bold text-slate-900 dark:text-white">1-Year Warranty</div>
-                <div className="text-slate-500 dark:text-slate-400 text-[10px]">Frame &amp; hinges</div>
+          {/* Trust Badges */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t border-slate-200 dark:border-white/10">
+            {[
+              { icon: <Award className="w-4 h-4 text-brand-cyan" />, title: '1-Yr Warranty', sub: 'Frame & hinges' },
+              { icon: <ShieldCheck className="w-4 h-4 text-teal-500" />, title: 'Lab Precision', sub: 'German lenses' },
+              { icon: <RotateCcw className="w-4 h-4 text-amber-500" />, title: '7-Day Swap', sub: 'Easy exchange' },
+              { icon: <Truck className="w-4 h-4 text-emerald-500" />, title: 'Free Shipping', sub: 'Orders ₹999+' },
+            ].map((b, i) => (
+              <div key={i} className="flex flex-col items-center text-center p-2 rounded-xl bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/5 gap-1">
+                {b.icon}
+                <div className="text-[10px] font-bold text-slate-900 dark:text-white">{b.title}</div>
+                <div className="text-[9px] text-slate-500 dark:text-slate-500">{b.sub}</div>
               </div>
-            </div>
-            <div className="flex items-center gap-2.5 p-2 rounded-xl bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/5">
-              <ShieldCheck className="w-4 h-4 text-teal-400 shrink-0" />
-              <div className="text-[11px]">
-                <div className="font-bold text-slate-900 dark:text-white">Lab Precision</div>
-                <div className="text-slate-500 dark:text-slate-400 text-[10px]">German lens cutting</div>
-              </div>
-            </div>
-            <div className="flex items-center gap-2.5 p-2 rounded-xl bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/5">
-              <RotateCcw className="w-4 h-4 text-amber-400 shrink-0" />
-              <div className="text-[11px]">
-                <div className="font-bold text-slate-900 dark:text-white">7-Day Exchange</div>
-                <div className="text-slate-500 dark:text-slate-400 text-[10px]">Hassle-free swap</div>
-              </div>
-            </div>
-            <div className="flex items-center gap-2.5 p-2 rounded-xl bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/5">
-              <Truck className="w-4 h-4 text-emerald-400 shrink-0" />
-              <div className="text-[11px]">
-                <div className="font-bold text-slate-900 dark:text-white">Free Fast Shipping</div>
-                <div className="text-slate-500 dark:text-slate-400 text-[10px]">Orders above ₹999</div>
-              </div>
-            </div>
+            ))}
           </div>
 
-          {/* Related Eyewear in this Collection (Below Buy Now & Cart) */}
+          {/* Related Eyewear in sidebar */}
           {relatedProducts.length > 0 && (
-            <div className="pt-4 border-t border-slate-200 dark:border-white/10 space-y-3">
+            <div className="pt-2 border-t border-slate-200 dark:border-white/10 space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-1.5">
                   <Sparkles className="w-3.5 h-3.5 text-brand-cyan" />
-                  <span>Related Eyewear</span>
+                  You May Also Like
                 </span>
                 <Link
                   to={product.category_slug ? `/shop?category=${product.category_slug}` : '/shop'}
                   className="text-[11px] text-brand-cyan hover:underline font-medium"
                 >
-                  View Collection &rarr;
+                  See all →
                 </Link>
               </div>
 
-              <div className="grid grid-cols-2 gap-2.5">
+              <div className="grid grid-cols-2 gap-2">
                 {relatedProducts.slice(0, 2).map((rel) => {
                   const relReg = Number(rel.price);
                   const relSale = rel.discount_price ? Number(rel.discount_price) : relReg;
@@ -666,23 +671,18 @@ export const ProductDetailPage = () => {
                     <Link
                       key={rel.id}
                       to={`/product/${rel.slug || rel.sku || rel.id}`}
-                      className="group p-2.5 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/[0.03] hover:border-brand-cyan/50 hover:bg-white/10 transition-all flex items-center gap-2.5"
+                      className="group p-2.5 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/[0.02] hover:border-brand-cyan/50 hover:shadow-sm transition-all flex items-center gap-2"
                     >
                       <img
                         src={rel.primary_image || 'https://images.unsplash.com/photo-1591076482161-42ce6da69f67?w=200&auto=format&fit=crop&q=80'}
                         alt={rel.name}
-                        className="w-12 h-12 rounded-lg object-cover bg-white dark:bg-slate-900 shrink-0 group-hover:scale-105 transition-transform"
+                        className="w-12 h-12 rounded-lg object-cover shrink-0 group-hover:scale-105 transition-transform"
                       />
                       <div className="min-w-0 flex-1">
                         <div className="text-xs font-bold text-slate-900 dark:text-white truncate group-hover:text-brand-cyan transition-colors">
                           {rel.name}
                         </div>
-                        <div className="text-[10px] text-slate-500 dark:text-slate-400 capitalize">
-                          {rel.frame_shape || 'Optical'} · {rel.frame_material || 'Acetate'}
-                        </div>
-                        <div className="text-xs font-bold text-brand-cyan mt-0.5">
-                          ₹{relSale}
-                        </div>
+                        <div className="text-xs font-bold text-brand-cyan mt-0.5">₹{relSale}</div>
                       </div>
                     </Link>
                   );
@@ -691,6 +691,18 @@ export const ProductDetailPage = () => {
             </div>
           )}
 
+          {/* WhatsApp Contact Button */}
+          <a
+            href={`https://wa.me/919382293614?text=${encodeURIComponent(`Hello Netra Unnayan! 👋\n\nI'm interested in:\n*${product.name}* (SKU: ${product.sku})\n\nCould you help me?`)}`}
+            target="_blank"
+            rel="noreferrer"
+            className="flex items-center justify-center gap-3 w-full py-3.5 rounded-2xl font-bold text-sm transition-all duration-300 bg-[#25D366] hover:bg-[#20BD5A] text-white shadow-md hover:shadow-green-400/20 hover:scale-[1.01] active:scale-95"
+          >
+            <svg viewBox="0 0 24 24" className="w-5 h-5 fill-white shrink-0" xmlns="http://www.w3.org/2000/svg">
+              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.890-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+            </svg>
+            Chat on WhatsApp
+          </a>
         </div>
       </div>
 
@@ -814,6 +826,8 @@ export const ProductDetailPage = () => {
         isOpen={sizeModalOpen}
         onClose={() => setSizeModalOpen(false)}
         currentProduct={product}
+        selectedSize={selectedSize}
+        onSelectSize={(sz) => setSelectedSize(sz)}
       />
 
       {/* Prescription Configurator Modal */}

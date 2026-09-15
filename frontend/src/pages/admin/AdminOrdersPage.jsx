@@ -159,22 +159,25 @@ export default function AdminOrdersPage() {
     }
   };
 
-  const handleDeleteOrder = async (order) => {
-    const confirmDelete = window.confirm(
-      `Are you sure you want to permanently delete Order #${order.order_number} and its associated invoice records?\n\nThis action cannot be undone.`
-    );
-    if (!confirmDelete) return;
+  const [orderToDelete, setOrderToDelete] = useState(null);
+  const [isDeletingOrder, setIsDeletingOrder] = useState(false);
 
+  const handleConfirmDeleteOrder = async (restoreStock) => {
+    if (!orderToDelete) return;
+    setIsDeletingOrder(true);
     try {
-      const res = await api.delete(`/admin/orders.php?id=${order.id}`);
+      const res = await api.delete(`/admin/orders.php?id=${orderToDelete.id}&restore_stock=${restoreStock ? 1 : 0}`);
       if (res.success || res.data?.success) {
-        setOrders(prev => prev.filter(o => o.id !== order.id));
-        if (selectedOrder?.id === order.id) setSelectedOrder(null);
+        setOrders(prev => prev.filter(o => o.id !== orderToDelete.id));
+        if (selectedOrder?.id === orderToDelete.id) setSelectedOrder(null);
+        setOrderToDelete(null);
       } else {
         alert(res.message || 'Failed to delete order.');
       }
     } catch (err) {
       alert(err.message || 'Error deleting order.');
+    } finally {
+      setIsDeletingOrder(false);
     }
   };
 
@@ -330,9 +333,9 @@ export default function AdminOrdersPage() {
                           <span>Manage</span>
                         </button>
                         <button
-                          onClick={() => handleDeleteOrder(order)}
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 transition-colors border border-transparent hover:border-rose-500/20"
-                          title="Delete Order & Invoices"
+                          onClick={() => setOrderToDelete(order)}
+                          className="p-1.5 rounded-lg text-rose-400 hover:text-rose-200 hover:bg-rose-500/20 transition-colors border border-rose-500/30"
+                          title="Delete Order & Invoice (with stock restore option)"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -785,6 +788,61 @@ export default function AdminOrdersPage() {
           </div>
         </div>
       )}
+
+      {/* ORDER DELETE CONFIRMATION MODAL */}
+      {orderToDelete && (
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="relative max-w-md w-full bg-slate-900 border border-white/20 rounded-3xl p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-white/10 pb-3">
+              <div className="flex items-center gap-2 text-rose-400 font-bold text-sm">
+                <Trash2 className="w-5 h-5" />
+                <span>Delete Order #{orderToDelete.order_number}</span>
+              </div>
+              <button
+                onClick={() => setOrderToDelete(null)}
+                className="p-1.5 rounded-lg bg-white/10 hover:bg-rose-500/20 text-slate-300 hover:text-rose-300"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-300 leading-relaxed">
+              How would you like to handle the items associated with Order <strong className="text-white font-mono">#{orderToDelete.order_number}</strong>?
+            </p>
+
+            <div className="space-y-2.5 pt-2">
+              <button
+                type="button"
+                disabled={isDeletingOrder}
+                onClick={() => handleConfirmDeleteOrder(1)}
+                className="w-full py-3 px-4 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm"
+              >
+                <CheckCircle2 className="w-4 h-4" />
+                <span>Add Back to Inventory Stock &amp; Delete</span>
+              </button>
+
+              <button
+                type="button"
+                disabled={isDeletingOrder}
+                onClick={() => handleConfirmDeleteOrder(0)}
+                className="w-full py-3 px-4 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm"
+              >
+                <Trash2 className="w-4 h-4" />
+                <span>Delete Permanently (Do Not Alter Stock)</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setOrderToDelete(null)}
+                className="w-full py-2 text-xs text-slate-400 hover:text-white transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

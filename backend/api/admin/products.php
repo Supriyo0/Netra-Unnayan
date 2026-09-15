@@ -34,6 +34,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $isFeatured = !empty($input['is_featured']) ? 1 : 0;
     $isNewArrival = !empty($input['is_new_arrival']) ? 1 : 0;
     $description = trim($input['description'] ?? '');
+    $extraShippingFee = !empty($input['extra_shipping_fee']) ? max(0.00, (float)$input['extra_shipping_fee']) : 0.00;
     $availableSizes = isset($input['available_sizes']) 
         ? (is_array($input['available_sizes']) ? implode(', ', $input['available_sizes']) : trim((string)$input['available_sizes'])) 
         : 'Small, Medium, Large';
@@ -55,58 +56,112 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($id) {
         // Update
-        $stmt = $pdo->prepare('
-            UPDATE products SET
-                category_id = ?, name = ?, slug = ?, sku = ?, barcode = ?,
-                price = ?, discount_price = ?, stock_quantity = ?, low_stock_threshold = ?,
-                lens_width = ?, bridge_width = ?, temple_length = ?, total_frame_width = ?,
-                frame_size = ?, frame_shape = ?, frame_material = ?, frame_color = ?, gender = ?,
-                available_sizes = ?, available_colors = ?,
-                is_tryon_enabled = ?, is_prescription_compatible = ?, is_featured = ?, is_new_arrival = ?,
-                description = ?
-            WHERE id = ?
-        ');
-        $stmt->execute([
-            $categoryId, $name, $slug, $sku, $barcode,
-            $price, $discountPrice, $stock, $lowStockThreshold,
-            $lensWidth, $bridgeWidth, $templeLength, $totalWidth,
-            $frameSize, $frameShape, $frameMaterial, $frameColor, $gender,
-            $availableSizes, $availableColors,
-            $isTryon, $isPrescription, $isFeatured, $isNewArrival,
-            $description, $id
-        ]);
+        try {
+            $stmt = $pdo->prepare('
+                UPDATE products SET
+                    category_id = ?, name = ?, slug = ?, sku = ?, barcode = ?,
+                    price = ?, discount_price = ?, stock_quantity = ?, low_stock_threshold = ?, extra_shipping_fee = ?,
+                    lens_width = ?, bridge_width = ?, temple_length = ?, total_frame_width = ?,
+                    frame_size = ?, frame_shape = ?, frame_material = ?, frame_color = ?, gender = ?,
+                    available_sizes = ?, available_colors = ?,
+                    is_tryon_enabled = ?, is_prescription_compatible = ?, is_featured = ?, is_new_arrival = ?,
+                    description = ?
+                WHERE id = ?
+            ');
+            $stmt->execute([
+                $categoryId, $name, $slug, $sku, $barcode,
+                $price, $discountPrice, $stock, $lowStockThreshold, $extraShippingFee,
+                $lensWidth, $bridgeWidth, $templeLength, $totalWidth,
+                $frameSize, $frameShape, $frameMaterial, $frameColor, $gender,
+                $availableSizes, $availableColors,
+                $isTryon, $isPrescription, $isFeatured, $isNewArrival,
+                $description, $id
+            ]);
+        } catch (Exception $e) {
+            $stmt = $pdo->prepare('
+                UPDATE products SET
+                    category_id = ?, name = ?, slug = ?, sku = ?, barcode = ?,
+                    price = ?, discount_price = ?, stock_quantity = ?, low_stock_threshold = ?,
+                    lens_width = ?, bridge_width = ?, temple_length = ?, total_frame_width = ?,
+                    frame_size = ?, frame_shape = ?, frame_material = ?, frame_color = ?, gender = ?,
+                    available_sizes = ?, available_colors = ?,
+                    is_tryon_enabled = ?, is_prescription_compatible = ?, is_featured = ?, is_new_arrival = ?,
+                    description = ?
+                WHERE id = ?
+            ');
+            $stmt->execute([
+                $categoryId, $name, $slug, $sku, $barcode,
+                $price, $discountPrice, $stock, $lowStockThreshold,
+                $lensWidth, $bridgeWidth, $templeLength, $totalWidth,
+                $frameSize, $frameShape, $frameMaterial, $frameColor, $gender,
+                $availableSizes, $availableColors,
+                $isTryon, $isPrescription, $isFeatured, $isNewArrival,
+                $description, $id
+            ]);
+        }
         $productId = $id;
         $msg = "Product '$name' updated.";
     } else {
         // Insert
-        $stmt = $pdo->prepare('
-            INSERT INTO products (
-                category_id, name, slug, sku, barcode,
-                price, discount_price, stock_quantity, low_stock_threshold,
-                lens_width, bridge_width, temple_length, total_frame_width,
-                frame_size, frame_shape, frame_material, frame_color, gender,
-                available_sizes, available_colors,
-                is_tryon_enabled, is_prescription_compatible, is_featured, is_new_arrival,
-                description, is_active
-            ) VALUES (
-                ?, ?, ?, ?, ?,
-                ?, ?, ?, ?,
-                ?, ?, ?, ?,
-                ?, ?, ?, ?, ?,
-                ?, ?,
-                ?, ?, ?, ?,
-                ?, 1
-            )
-        ');
-        $stmt->execute([
-            $categoryId, $name, $slug, $sku, $barcode,
-            $price, $discountPrice, $stock, $lowStockThreshold,
-            $lensWidth, $bridgeWidth, $templeLength, $totalWidth,
-            $frameSize, $frameShape, $frameMaterial, $frameColor, $gender,
-            $availableSizes, $availableColors,
-            $isTryon, $isPrescription, $isFeatured, $isNewArrival,
-            $description
-        ]);
+        try {
+            $stmt = $pdo->prepare('
+                INSERT INTO products (
+                    category_id, name, slug, sku, barcode,
+                    price, discount_price, stock_quantity, low_stock_threshold, extra_shipping_fee,
+                    lens_width, bridge_width, temple_length, total_frame_width,
+                    frame_size, frame_shape, frame_material, frame_color, gender,
+                    available_sizes, available_colors,
+                    is_tryon_enabled, is_prescription_compatible, is_featured, is_new_arrival,
+                    description, is_active
+                ) VALUES (
+                    ?, ?, ?, ?, ?,
+                    ?, ?, ?, ?, ?,
+                    ?, ?, ?, ?,
+                    ?, ?, ?, ?, ?,
+                    ?, ?,
+                    ?, ?, ?, ?,
+                    ?, 1
+                )
+            ');
+            $stmt->execute([
+                $categoryId, $name, $slug, $sku, $barcode,
+                $price, $discountPrice, $stock, $lowStockThreshold, $extraShippingFee,
+                $lensWidth, $bridgeWidth, $templeLength, $totalWidth,
+                $frameSize, $frameShape, $frameMaterial, $frameColor, $gender,
+                $availableSizes, $availableColors,
+                $isTryon, $isPrescription, $isFeatured, $isNewArrival,
+                $description
+            ]);
+        } catch (Exception $e) {
+            $stmt = $pdo->prepare('
+                INSERT INTO products (
+                    category_id, name, slug, sku, barcode,
+                    price, discount_price, stock_quantity, low_stock_threshold,
+                    lens_width, bridge_width, temple_length, total_frame_width,
+                    frame_size, frame_shape, frame_material, frame_color, gender,
+                    available_sizes, available_colors,
+                    is_tryon_enabled, is_prescription_compatible, is_featured, is_new_arrival,
+                    description, is_active
+                ) VALUES (
+                    ?, ?, ?, ?, ?,
+                    ?, ?, ?, ?,
+                    ?, ?, ?, ?,
+                    ?, ?, ?, ?, ?,
+                    ?, ?,
+                    ?, ?, ?, ?,
+                    ?, 1
+                )
+            ');
+            $stmt->execute([
+                $categoryId, $name, $slug, $sku, $barcode,
+                $price, $discountPrice, $stock, $lowStockThreshold,
+                $lensWidth, $bridgeWidth, $templeLength, $totalWidth,
+                $frameSize, $frameShape, $frameMaterial, $frameColor, $gender,
+                $availableSizes, $availableColors,
+                $isTryon, $isPrescription, $isFeatured, $isNewArrival,
+                $description
+            ]);
+        }
         $productId = (int)$pdo->lastInsertId();
 
         // Initial inventory record

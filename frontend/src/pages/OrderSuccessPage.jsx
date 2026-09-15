@@ -2,15 +2,17 @@ import React, { useState } from 'react';
 import { useLocation, useParams, Link } from 'react-router-dom';
 import { 
   CheckCircle, QrCode, ArrowRight, ShieldCheck, 
-  Copy, ExternalLink, AlertCircle, FileText, Clock 
+  Copy, ExternalLink, AlertCircle, FileText, Clock, Printer
 } from 'lucide-react';
 import api from '../api/client';
+import { InvoiceModal } from '../components/common/InvoiceModal';
 
 export const OrderSuccessPage = () => {
   const { orderNumber } = useParams();
   const location = useLocation();
   const orderData = location.state?.orderData || null;
 
+  const [showInvoiceModal, setShowInvoiceModal] = useState(true);
   const [utrInput, setUtrInput] = useState('');
   const [utrSubmitted, setUtrSubmitted] = useState(false);
   const [utrLoading, setUtrLoading] = useState(false);
@@ -79,6 +81,13 @@ export const OrderSuccessPage = () => {
         </p>
 
         <div className="pt-2 flex flex-wrap items-center justify-center gap-3 text-xs">
+          <button 
+            type="button"
+            onClick={() => setShowInvoiceModal(true)}
+            className="px-5 py-2.5 rounded-xl bg-brand-cyan hover:bg-cyan-400 text-slate-950 font-black text-xs inline-flex items-center gap-1.5 shadow-cyan-glow cursor-pointer transition-all"
+          >
+            <Printer className="w-4 h-4" /> View &amp; Print Invoice
+          </button>
           <Link 
             to={`/order-tracking?order=${orderNumber}`} 
             className="btn-primary py-2.5 px-5 text-xs inline-flex items-center gap-1.5"
@@ -206,6 +215,42 @@ export const OrderSuccessPage = () => {
           Standard cancellation is permitted within 12 hours of order placement or prior to commencement of customized lens edging in our lab. You can cancel or check live manufacturing updates directly from the order tracking link.
         </p>
       </div>
+
+      {/* Instant Order Confirmation Invoice Modal */}
+      {showInvoiceModal && (
+        <InvoiceModal
+          isOpen={showInvoiceModal}
+          onClose={() => setShowInvoiceModal(false)}
+          invoiceData={{
+            invoiceNumber: orderData?.invoice_number || `NU-INV-${orderNumber}`,
+            orderNumber: orderNumber,
+            invoiceDate: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
+            type: 'ORDER',
+            isGstInvoice: false,
+            status: orderData?.order_status || 'Confirmed',
+            paymentMode: orderData?.payment_mode === 'COD' ? 'Cash on Delivery (COD)' : (orderData?.payment_mode || 'UPI'),
+            paymentStatus: orderData?.payment_mode === 'COD' ? 'Pay on Delivery' : 'Payment Received / Verifying',
+            customerName: orderData?.customer_name || 'Valued Customer',
+            customerPhone: orderData?.customer_phone || '—',
+            customerEmail: orderData?.customer_email || '—',
+            customerAddress: [orderData?.shipping_address_line1, orderData?.shipping_city, orderData?.shipping_state, orderData?.shipping_pincode].filter(Boolean).join(', ') || 'Doorstep Optical Delivery',
+            items: (orderData?.items || []).map(it => ({
+              ...it,
+              product_name: it.name || it.product_name,
+              selected_size: it.frame_size || it.selected_size || 'Medium',
+              selected_color: it.frame_color || it.selected_color || 'Matte Black',
+              image_url: it.image_url || it.primary_image || '/logo_symbol.png'
+            })),
+            subtotal: Number(orderData?.subtotal || totalAmount),
+            discountAmount: Number(orderData?.discount_amount || 0),
+            shippingFee: Number(orderData?.shipping_fee || 0),
+            totalAmount: Number(totalAmount),
+            cashier: 'Netra Web Operations',
+            warrantyNote: '1-Year Optical Guarantee on Frame & Multi-Coat Optics',
+            prescription: orderData?.prescription || null
+          }}
+        />
+      )}
 
     </div>
   );

@@ -43,6 +43,7 @@ export const AdminAddProductPage = () => {
   // Pricing & Stock
   const [price, setPrice] = useState('1499');
   const [discountPrice, setDiscountPrice] = useState('2499');
+  const [extraShippingFee, setExtraShippingFee] = useState('0');
   const [stockQuantity, setStockQuantity] = useState('15');
   const [lowStockThreshold, setLowStockThreshold] = useState('5');
   const [sku, setSku] = useState(() => 'NU-TITAN-' + Math.floor(1000 + Math.random() * 9000));
@@ -84,6 +85,7 @@ export const AdminAddProductPage = () => {
           setDescription(p.description || '');
           setPrice(String(p.price || ''));
           setDiscountPrice(p.discount_price ? String(p.discount_price) : '');
+          setExtraShippingFee(String(p.extra_shipping_fee || '0'));
           setStockQuantity(String(p.stock_quantity ?? '0'));
           setLowStockThreshold(String(p.low_stock_threshold ?? '5'));
           setSku(p.sku || '');
@@ -160,6 +162,7 @@ export const AdminAddProductPage = () => {
         barcode: barcode.trim(),
         price: parseFloat(price),
         discount_price: discountPrice ? parseFloat(discountPrice) : null,
+        extra_shipping_fee: parseFloat(extraShippingFee) || 0,
         stock_quantity: parseInt(stockQuantity) || 0,
         low_stock_threshold: parseInt(lowStockThreshold) || 5,
         frame_shape: frameShape,
@@ -611,6 +614,22 @@ export const AdminAddProductPage = () => {
                     className="w-full glass-input rounded-xl px-3.5 py-2.5 text-sm font-mono text-slate-400"
                   />
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-xs text-slate-300 mb-1">
+                  Extra Shipping Charge (₹)
+                  <span className="text-slate-400 text-[10px] ml-2 font-normal">(Optional additional shipping fee added during checkout)</span>
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={extraShippingFee}
+                  onChange={(e) => setExtraShippingFee(e.target.value)}
+                  placeholder="0"
+                  className="w-full glass-input rounded-xl px-3.5 py-2.5 text-sm font-mono text-brand-cyan"
+                />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

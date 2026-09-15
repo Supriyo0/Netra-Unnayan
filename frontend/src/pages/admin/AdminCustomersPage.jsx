@@ -133,15 +133,15 @@ export const AdminCustomersPage = () => {
   };
 
   const handleDeleteUser = async (user) => {
-    if (!window.confirm(`Are you sure you want to permanently delete/ban "${user.full_name}" (${user.email})? They will be deactivated immediately and blocked from logging in.`)) return;
+    if (!window.confirm(`Are you sure you want to permanently delete user "${user.full_name}" (${user.email || user.phone})? They will be removed and blocked from logging in.`)) return;
     try {
       const res = await api.post('/admin/customers.php', {
         action: 'delete_user',
         customer_id: user.id
       });
       if (res.success) {
-        setFeedback({ type: 'success', message: `User "${user.full_name}" deleted and blocked from login.` });
-        setUsers(prev => prev.map(u => u.id === user.id ? { ...u, is_active: 0 } : u));
+        setFeedback({ type: 'success', message: `User "${user.full_name}" deleted successfully.` });
+        setUsers(prev => prev.filter(u => u.id !== user.id));
         setTimeout(() => setFeedback({ type: '', message: '' }), 4000);
       }
     } catch (err) {
@@ -419,10 +419,11 @@ export const AdminCustomersPage = () => {
                           <button
                             type="button"
                             onClick={() => handleDeleteUser(user)}
-                            className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/25 text-rose-400 hover:text-rose-200 border border-rose-500/20 text-[11px] font-semibold transition-all"
-                            title="Delete / Ban User (They cannot log in again)"
+                            className="px-2 py-1 rounded-lg bg-rose-500/15 hover:bg-rose-500/25 text-rose-400 hover:text-rose-200 border border-rose-500/30 text-[11px] font-semibold transition-all flex items-center gap-1"
+                            title="Delete User (Removes and prevents login)"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
+                            <span>Delete</span>
                           </button>
                         </div>
                       </td>

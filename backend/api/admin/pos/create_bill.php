@@ -21,6 +21,8 @@ $paymentMode = strtoupper(trim($input['payment_mode'] ?? 'CASH')); // CASH, UPI,
 $discountAmount = max(0.00, (float)($input['discount_amount'] ?? 0.00));
 $items = $input['items'] ?? [];
 $notes = trim($input['notes'] ?? '');
+$isGstInvoice = !empty($input['is_gst_invoice']) ? 1 : 0;
+$warrantyNote = trim($input['warranty_note'] ?? '1-Year Optical Warranty on Frame & Multi-Coat Optics');
 
 if (empty($items) || !is_array($items)) {
     Response::error('No items added to invoice.', 422);
@@ -41,7 +43,7 @@ try {
         $customPrice = isset($item['unit_price']) ? (float)$item['unit_price'] : null;
 
         $stmt = $pdo->prepare('
-            SELECT id, name, sku, barcode, price, discount_price, stock_quantity
+            SELECT id, name, sku, barcode, price, discount_price, stock_quantity, primary_image
             FROM products
             WHERE id = ? AND is_active = 1
             FOR UPDATE
@@ -79,6 +81,7 @@ try {
             'product_id'   => $prod['id'],
             'product_name' => $prod['name'],
             'product_sku'  => $prod['sku'],
+            'image_url'    => $prod['primary_image'] ?? '',
             'unit_price'   => $unitPrice,
             'quantity'     => $qty,
             'lens_type'    => $lensType ?: null,
@@ -156,21 +159,40 @@ try {
     }
 
     // Insert Invoice Record
-    $invRec = $pdo->prepare('
-        INSERT INTO invoices (
-            invoice_number, order_id, invoice_type, invoice_date, customer_name,
-            customer_phone, customer_address, subtotal, tax_amount, discount_amount,
-            total_amount, payment_mode, payment_status
-        ) VALUES (
-            ?, ?, "OFFLINE_POS", CURDATE(), ?,
-            ?, ?, ?, 0.00, ?,
-            ?, ?, "Paid"
-        )
-    ');
-    $invRec->execute([
-        $invoiceNumber, $orderId, $customerName, $customerPhone,
-        $customerAddress, $subtotal, $discountAmount, $totalAmount, $paymentMode
-    ]);
+    try {
+        $invRec = $pdo->prepare('
+            INSERT INTO invoices (
+                invoice_number, order_id, invoice_type, invoice_date, customer_name,
+                customer_phone, customer_address, subtotal, tax_amount, discount_amount,
+                total_amount, payment_mode, payment_status, is_gst_invoice
+            ) VALUES (
+                ?, ?, "OFFLINE_POS", CURDATE(), ?,
+                ?, ?, ?, 0.00, ?,
+                ?, ?, "Paid", ?
+            )
+        ');
+        $invRec->execute([
+            $invoiceNumber, $orderId, $customerName, $customerPhone,
+            $customerAddress, $subtotal, $discountAmount, $totalAmount, $paymentMode, $isGstInvoice
+        ]);
+    } catch (Exception $e) {
+        // Fallback if is_gst_invoice column not yet created
+        $invRec = $pdo->prepare('
+            INSERT INTO invoices (
+                invoice_number, order_id, invoice_type, invoice_date, customer_name,
+                customer_phone, customer_address, subtotal, tax_amount, discount_amount,
+                total_amount, payment_mode, payment_status
+            ) VALUES (
+                ?, ?, "OFFLINE_POS", CURDATE(), ?,
+                ?, ?, ?, 0.00, ?,
+                ?, ?, "Paid"
+            )
+        ');
+        $invRec->execute([
+            $invoiceNumber, $orderId, $customerName, $customerPhone,
+            $customerAddress, $subtotal, $discountAmount, $totalAmount, $paymentMode
+        ]);
+    }
     $invoiceId = (int)$pdo->lastInsertId();
 
     // Insert Payment Record
@@ -189,19 +211,23 @@ try {
     $pdo->commit();
 
     Response::created([
-        'order_id'       => $orderId,
-        'order_number'   => $orderNumber,
-        'invoice_id'     => $invoiceId,
-        'invoice_number' => $invoiceNumber,
-        'invoice_date'   => date('Y-m-d'),
-        'customer_name'  => $customerName,
-        'customer_phone' => $customerPhone,
-        'subtotal'       => $subtotal,
-        'discount_amount'=> $discountAmount,
-        'total_amount'   => $totalAmount,
-        'payment_mode'   => $paymentMode,
-        'items'          => $itemsToInsert,
-        'cashier'        => $admin['full_name']
+        'order_id'         => $orderId,
+        'order_number'     => $orderNumber,
+        'invoice_id'       => $invoiceId,
+        'invoice_number'   => $invoiceNumber,
+        'invoice_date'     => date('Y-m-d'),
+        'customer_name'    => $customerName,
+        'customer_phone'   => $customerPhone,
+        'customer_address' => $customerAddress,
+        'subtotal'         => $subtotal,
+        'discount_amount'  => $discountAmount,
+        'total_amount'     => $totalAmount,
+        'payment_mode'     => $paymentMode,
+        'is_gst_invoice'   => $isGstInvoice,
+        'warranty_note'    => $warrantyNote,
+        'notes'            => $notes,
+        'items'            => $itemsToInsert,
+        'cashier'          => $admin['full_name']
     ], "Invoice {$invoiceNumber} finalized successfully. Stock updated in inventory.");
 
 } catch (Exception $e) {

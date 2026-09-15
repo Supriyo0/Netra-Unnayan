@@ -153,4 +153,27 @@ try {
     $log[] = 'order_items.frame_color already exists.';
 }
 
+// 10. Add extra_shipping_fee to products
+try {
+    $pdo->exec("ALTER TABLE `products` ADD COLUMN `extra_shipping_fee` DECIMAL(10,2) DEFAULT 0.00 AFTER `low_stock_threshold`");
+    $log[] = 'Added extra_shipping_fee to products.';
+} catch (Exception $e) {
+    $log[] = 'products.extra_shipping_fee already exists.';
+}
+
+// 11. Add is_gst_invoice to orders and invoices
+try {
+    $pdo->exec("ALTER TABLE `orders` ADD COLUMN `is_gst_invoice` TINYINT(1) DEFAULT 0 AFTER `is_offline_bill`");
+    $log[] = 'Added is_gst_invoice to orders.';
+} catch (Exception $e) {
+    $log[] = 'orders.is_gst_invoice already exists.';
+}
+
+try {
+    $pdo->exec("ALTER TABLE `invoices` ADD COLUMN `is_gst_invoice` TINYINT(1) DEFAULT 0");
+    $log[] = 'Added is_gst_invoice to invoices.';
+} catch (Exception $e) {
+    $log[] = 'invoices.is_gst_invoice already exists.';
+}
+
 Response::json(['status' => 'completed', 'log' => $log]);

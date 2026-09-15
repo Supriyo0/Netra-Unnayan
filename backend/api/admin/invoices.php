@@ -74,15 +74,48 @@ try {
 
     if ($method === 'DELETE') {
         $id = (int)($_GET['id'] ?? 0);
+        $restoreStock = isset($_GET['restore_stock']) ? (int)$_GET['restore_stock'] : 0;
+
         if (!$id) {
             $input = json_decode(file_get_contents('php://input'), true) ?? [];
             $id = (int)($input['id'] ?? 0);
+            if (isset($input['restore_stock'])) {
+                $restoreStock = (int)$input['restore_stock'];
+            }
         }
         if (!$id) Response::error('Invoice ID is required.', 400);
 
+        // Fetch invoice to get order_id
+        $invStmt = $pdo->prepare('SELECT id, order_id, invoice_number FROM invoices WHERE id = ?');
+        $invStmt->execute([$id]);
+        $inv = $invStmt->fetch(PDO::FETCH_ASSOC);
+
+        $stockRestored = 0;
+        if ($inv && !empty($inv['order_id']) && $restoreStock === 1) {
+            $orderId = (int)$inv['order_id'];
+            $itemsStmt = $pdo->prepare('SELECT product_id, quantity FROM order_items WHERE order_id = ?');
+            $itemsStmt->execute([$orderId]);
+            $items = $itemsStmt->fetchAll(PDO::FETCH_ASSOC);
+
+            foreach ($items as $item) {
+                $pId = (int)($item['product_id'] ?? 0);
+                $qty = (int)($item['quantity'] ?? 0);
+                if ($pId > 0 && $qty > 0) {
+                    $pdo->prepare('UPDATE products SET stock_quantity = stock_quantity + ? WHERE id = ?')
+                        ->execute([$qty, $pId]);
+                    $stockRestored += $qty;
+                }
+            }
+        }
+
         $stmt = $pdo->prepare('DELETE FROM invoices WHERE id = ?');
         $stmt->execute([$id]);
-        Response::success(['id' => $id], 'Invoice record deleted successfully.');
+
+        $msg = $restoreStock === 1
+            ? "Invoice deleted and {$stockRestored} item units returned to product stock."
+            : 'Invoice record permanently deleted without modifying stock.';
+
+        Response::success(['id' => $id, 'stock_restored' => $restoreStock === 1], $msg);
     }
 
     Response::error('Method not allowed', 405);

@@ -189,7 +189,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         Response::success(['is_active' => $isActive], 'User account status updated.');
     }
 
-    // Action 4: Permanent Delete / Disable User Account (Cannot Login Again)
+    // Action 4: Permanent Delete / Disable User Account
     if ($action === 'delete_user') {
         $customerId = (int)($input['customer_id'] ?? 0);
         if (!$customerId) Response::error('Customer ID required.', 400);
@@ -199,15 +199,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         $cStmt->execute([$customerId]);
         $cEmail = $cStmt->fetchColumn();
 
-        // Deactivate customer and scramble password hash so they cannot log in
-        $pdo->prepare('UPDATE customers SET is_active = 0, password_hash = CONCAT("DISABLED_", MD5(RAND())) WHERE id = ?')->execute([$customerId]);
+        try {
+            $checkOrders = $pdo->prepare('SELECT COUNT(*) FROM orders WHERE customer_id = ?');
+            $checkOrders->execute([$customerId]);
+            $orderCount = (int)$checkOrders->fetchColumn();
 
-        // Also deactivate any linked staff account
-        if ($cEmail) {
-            $pdo->prepare('UPDATE admins SET is_active = 0 WHERE email = ?')->execute([$cEmail]);
+            if ($orderCount === 0) {
+                $pdo->prepare('DELETE FROM customer_prescriptions WHERE customer_id = ?')->execute([$customerId]);
+                $pdo->prepare('DELETE FROM customers WHERE id = ?')->execute([$customerId]);
+                if ($cEmail) {
+                    $pdo->prepare('DELETE FROM admins WHERE email = ?')->execute([$cEmail]);
+                }
+            } else {
+                $pdo->prepare('UPDATE customers SET is_active = 0, password_hash = CONCAT("DELETED_", MD5(RAND())), email = CONCAT("deleted_", id, "_", email) WHERE id = ?')->execute([$customerId]);
+                if ($cEmail) {
+                    $pdo->prepare('UPDATE admins SET is_active = 0 WHERE email = ?')->execute([$cEmail]);
+                }
+            }
+        } catch (Exception $e) {
+            $pdo->prepare('UPDATE customers SET is_active = 0, password_hash = CONCAT("DELETED_", MD5(RAND())) WHERE id = ?')->execute([$customerId]);
         }
 
-        Response::success(['customer_id' => $customerId], 'User account has been deleted/disabled. They cannot login again.');
+        Response::success(['customer_id' => $customerId], 'User account deleted successfully.');
     }
 
     Response::error('Invalid action requested.', 400);
@@ -220,18 +233,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     }
     if (!$customerId) Response::error('Customer ID required.', 400);
 
-    // Fetch customer email
     $cStmt = $pdo->prepare('SELECT email FROM customers WHERE id = ?');
     $cStmt->execute([$customerId]);
     $cEmail = $cStmt->fetchColumn();
 
-    // Deactivate customer and scramble password hash so they cannot log in again
-    $pdo->prepare('UPDATE customers SET is_active = 0, password_hash = CONCAT("DISABLED_", MD5(RAND())) WHERE id = ?')->execute([$customerId]);
+    try {
+        $checkOrders = $pdo->prepare('SELECT COUNT(*) FROM orders WHERE customer_id = ?');
+        $checkOrders->execute([$customerId]);
+        $orderCount = (int)$checkOrders->fetchColumn();
 
-    // Also deactivate any linked staff account
-    if ($cEmail) {
-        $pdo->prepare('UPDATE admins SET is_active = 0 WHERE email = ?')->execute([$cEmail]);
+        if ($orderCount === 0) {
+            $pdo->prepare('DELETE FROM customer_prescriptions WHERE customer_id = ?')->execute([$customerId]);
+            $pdo->prepare('DELETE FROM customers WHERE id = ?')->execute([$customerId]);
+            if ($cEmail) {
+                $pdo->prepare('DELETE FROM admins WHERE email = ?')->execute([$cEmail]);
+            }
+        } else {
+            $pdo->prepare('UPDATE customers SET is_active = 0, password_hash = CONCAT("DELETED_", MD5(RAND())), email = CONCAT("deleted_", id, "_", email) WHERE id = ?')->execute([$customerId]);
+            if ($cEmail) {
+                $pdo->prepare('UPDATE admins SET is_active = 0 WHERE email = ?')->execute([$cEmail]);
+            }
+        }
+    } catch (Exception $e) {
+        $pdo->prepare('UPDATE customers SET is_active = 0, password_hash = CONCAT("DELETED_", MD5(RAND())) WHERE id = ?')->execute([$customerId]);
     }
 
-    Response::success(['customer_id' => $customerId], 'User account has been deleted/disabled. They cannot login again.');
+    Response::success(['customer_id' => $customerId], 'User account deleted successfully.');
 }

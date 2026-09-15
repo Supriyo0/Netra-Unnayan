@@ -38,13 +38,16 @@ export const AdminPosPage = () => {
   const [customerName, setCustomerName] = useState('Walk-in Customer');
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerAddress, setCustomerAddress] = useState('Digha Store Counter');
-  const [paymentMode, setPaymentMode] = useState('CASH'); // CASH, UPI, CARD
+  const [paymentMode, setPaymentMode] = useState('UPI'); // CASH, UPI, CARD
+  const [isGstInvoice, setIsGstInvoice] = useState(false); // DEFAULT: Non-GST
   const [billNotes, setBillNotes] = useState('');
 
   // Execution & Invoices
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [selectedInvoiceForModal, setSelectedInvoiceForModal] = useState(null);
+  const [invoiceToDelete, setInvoiceToDelete] = useState(null);
+  const [isDeletingInvoice, setIsDeletingInvoice] = useState(false);
 
   // Invoices Archive
   const [archiveInvoices, setArchiveInvoices] = useState([]);
@@ -345,10 +348,12 @@ export const AdminPosPage = () => {
     setIsSubmitting(true);
     try {
       const payload = {
-        customer_name: customerName.trim(),
-        customer_phone: customerPhone.trim() || '9830123456',
-        customer_address: customerAddress.trim(),
+        customer_name: customerName.trim() || 'Walk-in Customer',
+        customer_phone: customerPhone.trim() || '9876543210',
+        customer_address: customerAddress.trim() || 'Digha Store Counter',
         payment_mode: paymentMode,
+        is_gst_invoice: isGstInvoice ? 1 : 0,
+        warranty_note: warrantyNote,
         discount_amount: Number(discountAmount || 0),
         notes: [billNotes.trim(), `Warranty: ${warrantyNote}`].filter(Boolean).join(' | '),
         items: posItems.map(item => ({
@@ -365,28 +370,32 @@ export const AdminPosPage = () => {
       const res = await api.post('/admin/pos/create_bill.php', payload);
       if (res.success && res.data) {
         const inv = res.data;
-        // Open Master Tax Invoice Modal
+        // Open Master Tax/Retail Invoice Modal immediately
         setSelectedInvoiceForModal({
           invoiceNumber: inv.invoice_number,
           orderNumber: inv.order_number,
-          invoiceDate: inv.invoice_date || new Date().toISOString().split('T')[0],
+          invoiceDate: inv.invoice_date || new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
           type: 'POS',
+          isGstInvoice: isGstInvoice,
           status: 'Paid & Delivered',
-          paymentMode: inv.payment_mode,
-          paymentStatus: 'Paid',
-          customerName: inv.customer_name,
-          customerPhone: inv.customer_phone,
-          customerAddress: customerAddress,
-          items: posItems.map(it => ({
+          paymentMode: inv.payment_mode || paymentMode,
+          paymentStatus: 'Payment Received',
+          customerName: inv.customer_name || customerName,
+          customerPhone: inv.customer_phone || customerPhone,
+          customerAddress: inv.customer_address || customerAddress,
+          items: (inv.items || posItems).map(it => ({
             ...it,
-            product_name: it.name,
-            selected_size: it.frame_size,
-            selected_color: it.frame_color
+            product_name: it.product_name || it.name,
+            selected_size: it.frame_size || 'Medium',
+            selected_color: it.frame_color || 'Matte Black',
+            image_url: it.image_url || it.primary_image || '/logo_symbol.png'
           })),
           subtotal: inv.subtotal,
           discountAmount: inv.discount_amount,
+          shippingFee: 0,
           totalAmount: inv.total_amount,
-          warrantyNote: warrantyNote,
+          cashier: inv.cashier || (user?.full_name || 'Supriyo Naskar'),
+          warrantyNote: inv.warranty_note || warrantyNote,
           notes: billNotes
         });
 
@@ -433,19 +442,21 @@ export const AdminPosPage = () => {
     (inv.customer_phone || '').includes(archiveSearch)
   );
 
-  const handleDeleteInvoice = async (invoice) => {
-    if (!window.confirm(`Are you sure you want to permanently delete invoice ${invoice.invoice_number}? This cannot be undone.`)) {
-      return;
-    }
+  const handleDeleteConfirm = async (restoreStock) => {
+    if (!invoiceToDelete) return;
+    setIsDeletingInvoice(true);
     try {
-      const res = await api.delete(`/admin/invoices.php?id=${invoice.id}`);
+      const res = await api.delete(`/admin/invoices.php?id=${invoiceToDelete.id}&restore_stock=${restoreStock ? 1 : 0}`);
       if (res.success) {
-        setArchiveInvoices(prev => prev.filter(inv => inv.id !== invoice.id));
+        setArchiveInvoices(prev => prev.filter(inv => inv.id !== invoiceToDelete.id));
+        setInvoiceToDelete(null);
       } else {
         alert(res.message || 'Failed to delete invoice');
       }
     } catch (err) {
       alert(err.message || 'Error deleting invoice');
+    } finally {
+      setIsDeletingInvoice(false);
     }
   };
 
@@ -516,7 +527,7 @@ export const AdminPosPage = () => {
           <div className="lg:col-span-8 space-y-6">
             
             {/* Fast Search, Camera Scanner, & Hardware Barcode Input */}
-            <div className="relative glass-card rounded-2xl p-4 space-y-3 border border-slate-200 dark:border-white/10 shadow-sm">
+            <div className="relative z-50 glass-card rounded-2xl p-4 space-y-3 border border-slate-200 dark:border-white/10 shadow-sm">
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                 <div className="relative flex-1">
                   <Search className="w-5 h-5 text-brand-cyan absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -602,7 +613,7 @@ export const AdminPosPage = () => {
 
               {/* Instant Search Suggestions Dropdown with Multiple Selection */}
               {searchResults.length > 0 && (
-                <div className="absolute top-full left-0 right-0 z-30 mt-2 bg-white dark:bg-slate-900 rounded-2xl border-2 border-brand-cyan/40 shadow-2xl overflow-hidden divide-y divide-slate-100 dark:divide-white/10 max-h-96 overflow-y-auto">
+                <div className="absolute top-full left-0 right-0 z-50 mt-2 bg-white dark:bg-slate-900 rounded-2xl border-2 border-brand-cyan/60 shadow-2xl overflow-hidden divide-y divide-slate-100 dark:divide-white/10 max-h-96 overflow-y-auto">
                   <div className="p-3 bg-slate-50 dark:bg-slate-950 text-[11px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider flex items-center justify-between sticky top-0 z-10 backdrop-blur-md border-b border-slate-200 dark:border-white/10">
                     <span className="flex items-center gap-2">
                       <Sparkles className="w-3.5 h-3.5 text-brand-cyan" />
@@ -876,6 +887,29 @@ export const AdminPosPage = () => {
                 />
               </div>
 
+              {/* GST vs NON-GST Selector (Default: Non-GST) */}
+              <div className="bg-slate-100 dark:bg-white/5 p-3 rounded-xl border border-slate-200 dark:border-white/10 flex items-center justify-between">
+                <div>
+                  <span className="text-[11px] font-bold text-slate-900 dark:text-white block">
+                    Tax / Invoice Format
+                  </span>
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400">
+                    {isGstInvoice ? 'GST Tax Invoice (18%)' : 'Non-GST Retail Memo (Default)'}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsGstInvoice(prev => !prev)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    isGstInvoice 
+                      ? 'bg-amber-500 text-slate-950 shadow-sm' 
+                      : 'bg-brand-cyan text-slate-950 font-extrabold shadow-sm'
+                  }`}
+                >
+                  {isGstInvoice ? '✓ GST Enabled' : '✓ Non-GST (Default)'}
+                </button>
+              </div>
+
               {/* Payment Mode Selector */}
               <div>
                 <label className="block text-[11px] text-slate-300 mb-1 font-bold">Payment Method</label>
@@ -1079,9 +1113,9 @@ export const AdminPosPage = () => {
                             <span>View / Print</span>
                           </button>
                           <button
-                            onClick={() => handleDeleteInvoice(inv)}
+                            onClick={() => setInvoiceToDelete(inv)}
                             className="ml-2 px-2.5 py-1 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 text-xs font-bold inline-flex items-center gap-1 transition-colors"
-                            title="Permanently Delete Invoice"
+                            title="Delete Invoice (with stock restore option)"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                             <span>Delete</span>
@@ -1168,6 +1202,62 @@ export const AdminPosPage = () => {
         onClose={() => setSelectedInvoiceForModal(null)}
         invoiceData={selectedInvoiceForModal}
       />
+
+      {/* =========================================================================
+          INVOICE DELETE CONFIRMATION MODAL (Add to Stock vs Delete Permanently)
+         ========================================================================= */}
+      {invoiceToDelete && (
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="relative max-w-md w-full bg-slate-900 border border-white/20 rounded-3xl p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-white/10 pb-3">
+              <div className="flex items-center gap-2 text-rose-400 font-bold text-sm">
+                <Trash2 className="w-5 h-5" />
+                <span>Delete Invoice {invoiceToDelete.invoice_number}</span>
+              </div>
+              <button
+                onClick={() => setInvoiceToDelete(null)}
+                className="p-1.5 rounded-lg bg-white/10 hover:bg-rose-500/20 text-slate-300 hover:text-rose-300"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-300 leading-relaxed">
+              How would you like to handle the items associated with invoice <strong className="text-white font-mono">{invoiceToDelete.invoice_number}</strong>?
+            </p>
+
+            <div className="space-y-2.5 pt-2">
+              <button
+                type="button"
+                disabled={isDeletingInvoice}
+                onClick={() => handleDeleteConfirm(true)}
+                className="w-full py-3 px-4 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm"
+              >
+                <Check className="w-4 h-4" />
+                <span>Add Back to Inventory Stock &amp; Delete</span>
+              </button>
+
+              <button
+                type="button"
+                disabled={isDeletingInvoice}
+                onClick={() => handleDeleteConfirm(false)}
+                className="w-full py-3 px-4 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm"
+              >
+                <Trash2 className="w-4 h-4" />
+                <span>Delete Permanently (Do Not Alter Stock)</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setInvoiceToDelete(null)}
+                className="w-full py-2 text-xs text-slate-400 hover:text-white transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

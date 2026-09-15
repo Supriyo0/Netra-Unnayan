@@ -373,7 +373,7 @@ export const HomePage = () => {
             </button>
 
             {/* Slide Content Grid - Side-by-side Landscape Rectangle on all screen sizes */}
-            <div className="relative z-10 grid grid-cols-12 gap-2 sm:gap-8 lg:gap-12 items-center">
+            <div key={currentSlide} className="hero-slide-content relative z-10 grid grid-cols-12 gap-2 sm:gap-8 lg:gap-12 items-center">
               
               {/* Left Column: Tag, Headline & CTAs */}
               <div className="col-span-7 space-y-1.5 sm:space-y-4 lg:space-y-5 text-left">

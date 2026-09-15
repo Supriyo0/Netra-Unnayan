@@ -23,6 +23,16 @@ try {
         $input = json_decode(file_get_contents('php://input'), true) ?? $_POST;
         $action = $input['action'] ?? 'create';
 
+        if ($action === 'delete') {
+            $id = (int)($input['id'] ?? 0);
+            if (!$id) {
+                Response::error('Category ID required', 400);
+            }
+            $stmt = $db->prepare("DELETE FROM categories WHERE id = ?");
+            $stmt->execute([$id]);
+            Response::success(['id' => $id], 'Category removed successfully');
+        }
+
         if ($action === 'toggle_status') {
             $id = (int)($input['id'] ?? 0);
             $isActive = (int)($input['is_active'] ?? 0);
