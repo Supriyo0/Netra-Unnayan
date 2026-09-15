@@ -97,6 +97,7 @@ export default function App() {
                   <Route path="/checkout" element={<CheckoutPage />} />
                   <Route path="/order-success" element={<OrderSuccessPage />} />
                   <Route path="/order-success/:orderNumber" element={<OrderSuccessPage />} />
+                  <Route path="/track" element={<OrderTrackingPage />} />
                   <Route path="/track-order" element={<OrderTrackingPage />} />
                   <Route path="/order-tracking" element={<OrderTrackingPage />} />
                   <Route path="/doctors" element={<DoctorsPage />} />
