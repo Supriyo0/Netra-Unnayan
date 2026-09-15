@@ -180,13 +180,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             INSERT INTO product_images (product_id, image_url, view_type, display_order, is_primary)
             VALUES (?, ?, ?, ?, ?)
         ');
+        $firstImg = '';
         foreach ($images as $idx => $img) {
             $url = is_string($img) ? $img : ($img['image_url'] ?? '');
             if (!empty($url)) {
+                if (empty($firstImg)) $firstImg = $url;
                 $isPrim = ($idx === 0) ? 1 : 0;
                 $viewType = is_array($img) ? ($img['view_type'] ?? 'front') : 'front';
                 $imgIns->execute([$productId, $url, $viewType, $idx, $isPrim]);
             }
+        }
+        if (!empty($firstImg)) {
+            try {
+                $pdo->prepare('UPDATE products SET primary_image = ? WHERE id = ?')->execute([$firstImg, $productId]);
+            } catch (Exception $e) {}
         }
     }
 

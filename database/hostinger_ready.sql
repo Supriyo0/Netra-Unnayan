@@ -725,35 +725,68 @@ INSERT INTO `products` (
 
 -- 10. PRODUCT IMAGES (Curated high quality optical frame angles for each product)
 INSERT INTO `product_images` (`product_id`, `image_url`, `view_type`, `display_order`, `is_primary`) VALUES
--- Product 1: Netra Apex Titanium
+-- Product 1: Netra Apex Titanium (4 Views)
 (1, 'https://images.unsplash.com/photo-1574258495973-f010dfbb5371?w=800&auto=format&fit=crop&q=80', 'front', 1, 1),
 (1, 'https://images.unsplash.com/photo-1591076482161-42ce6da69f67?w=800&auto=format&fit=crop&q=80', 'side', 2, 0),
-(1, 'https://images.unsplash.com/photo-1508296695146-257a814070b4?w=800&auto=format&fit=crop&q=80', 'lifestyle', 3, 0),
--- Product 2: Netra ClearPro
+(1, 'https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=800&auto=format&fit=crop&q=80', 'angled', 3, 0),
+(1, 'https://images.unsplash.com/photo-1508296695146-257a814070b4?w=800&auto=format&fit=crop&q=80', 'lifestyle', 4, 0),
+
+-- Product 2: Netra ClearPro (4 Views)
 (2, 'https://images.unsplash.com/photo-1577803645773-f96470509666?w=800&auto=format&fit=crop&q=80', 'front', 1, 1),
-(2, 'https://images.unsplash.com/photo-1509695503492-412db9d28266?w=800&auto=format&fit=crop&q=80', 'angled', 2, 0),
--- Product 3: Digha Aviator
+(2, 'https://images.unsplash.com/photo-1509695503492-412db9d28266?w=800&auto=format&fit=crop&q=80', 'side', 2, 0),
+(2, 'https://images.unsplash.com/photo-1574258495973-f010dfbb5371?w=800&auto=format&fit=crop&q=80', 'angled', 3, 0),
+(2, 'https://images.unsplash.com/photo-1591076482161-42ce6da69f67?w=800&auto=format&fit=crop&q=80', 'lifestyle', 4, 0),
+
+-- Product 3: Digha Aviator (4 Views)
 (3, 'https://images.unsplash.com/photo-1511499767150-a48a237f0083?w=800&auto=format&fit=crop&q=80', 'front', 1, 1),
 (3, 'https://images.unsplash.com/photo-1473496169904-658ba7c44d8a?w=800&auto=format&fit=crop&q=80', 'lifestyle', 2, 0),
--- Product 4: Lumina Hex
+(3, 'https://images.unsplash.com/photo-1508296695146-257a814070b4?w=800&auto=format&fit=crop&q=80', 'angled', 3, 0),
+(3, 'https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=800&auto=format&fit=crop&q=80', 'side', 4, 0),
+
+-- Product 4: Lumina Hex (3 Views)
 (4, 'https://images.unsplash.com/photo-1508296695146-257a814070b4?w=800&auto=format&fit=crop&q=80', 'front', 1, 1),
 (4, 'https://images.unsplash.com/photo-1574258495973-f010dfbb5371?w=800&auto=format&fit=crop&q=80', 'side', 2, 0),
--- Product 5: FlexRead
+(4, 'https://images.unsplash.com/photo-1591076482161-42ce6da69f67?w=800&auto=format&fit=crop&q=80', 'lifestyle', 3, 0),
+
+-- Product 5: FlexRead (3 Views)
 (5, 'https://images.unsplash.com/photo-1509695503492-412db9d28266?w=800&auto=format&fit=crop&q=80', 'front', 1, 1),
--- Product 6: Kids SafeFlex
+(5, 'https://images.unsplash.com/photo-1577803645773-f96470509666?w=800&auto=format&fit=crop&q=80', 'side', 2, 0),
+(5, 'https://images.unsplash.com/photo-1574258495973-f010dfbb5371?w=800&auto=format&fit=crop&q=80', 'lifestyle', 3, 0),
+
+-- Product 6: Kids SafeFlex (3 Views)
 (6, 'https://images.unsplash.com/photo-1577803645773-f96470509666?w=800&auto=format&fit=crop&q=80', 'front', 1, 1),
--- Product 7: Sovereign Rimless
+(6, 'https://images.unsplash.com/photo-1508296695146-257a814070b4?w=800&auto=format&fit=crop&q=80', 'side', 2, 0),
+(6, 'https://images.unsplash.com/photo-1591076482161-42ce6da69f67?w=800&auto=format&fit=crop&q=80', 'lifestyle', 3, 0),
+
+-- Product 7: Sovereign Rimless (3 Views)
 (7, 'https://images.unsplash.com/photo-1591076482161-42ce6da69f67?w=800&auto=format&fit=crop&q=80', 'front', 1, 1),
--- Product 8: Riviera Cat-Eye
+(7, 'https://images.unsplash.com/photo-1574258495973-f010dfbb5371?w=800&auto=format&fit=crop&q=80', 'side', 2, 0),
+(7, 'https://images.unsplash.com/photo-1511499767150-a48a237f0083?w=800&auto=format&fit=crop&q=80', 'lifestyle', 3, 0),
+
+-- Product 8: Riviera Cat-Eye (3 Views)
 (8, 'https://images.unsplash.com/photo-1511499767150-a48a237f0083?w=800&auto=format&fit=crop&q=80', 'front', 1, 1),
--- Product 9: Vintage Club
+(8, 'https://images.unsplash.com/photo-1473496169904-658ba7c44d8a?w=800&auto=format&fit=crop&q=80', 'lifestyle', 2, 0),
+(8, 'https://images.unsplash.com/photo-1577803645773-f96470509666?w=800&auto=format&fit=crop&q=80', 'angled', 3, 0),
+
+-- Product 9: Vintage Club (3 Views)
 (9, 'https://images.unsplash.com/photo-1574258495973-f010dfbb5371?w=800&auto=format&fit=crop&q=80', 'front', 1, 1),
--- Product 10: BlueGuard Air Round
+(9, 'https://images.unsplash.com/photo-1591076482161-42ce6da69f67?w=800&auto=format&fit=crop&q=80', 'side', 2, 0),
+(9, 'https://images.unsplash.com/photo-1508296695146-257a814070b4?w=800&auto=format&fit=crop&q=80', 'lifestyle', 3, 0),
+
+-- Product 10: BlueGuard Air Round (3 Views)
 (10, 'https://images.unsplash.com/photo-1508296695146-257a814070b4?w=800&auto=format&fit=crop&q=80', 'front', 1, 1),
--- Product 11: Commander Wayfarer
+(10, 'https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=800&auto=format&fit=crop&q=80', 'angled', 2, 0),
+(10, 'https://images.unsplash.com/photo-1574258495973-f010dfbb5371?w=800&auto=format&fit=crop&q=80', 'side', 3, 0),
+
+-- Product 11: Commander Wayfarer (3 Views)
 (11, 'https://images.unsplash.com/photo-1577803645773-f96470509666?w=800&auto=format&fit=crop&q=80', 'front', 1, 1),
--- Product 12: WorkStation Pro
-(12, 'https://images.unsplash.com/photo-1591076482161-42ce6da69f67?w=800&auto=format&fit=crop&q=80', 'front', 1, 1);
+(11, 'https://images.unsplash.com/photo-1509695503492-412db9d28266?w=800&auto=format&fit=crop&q=80', 'side', 2, 0),
+(11, 'https://images.unsplash.com/photo-1591076482161-42ce6da69f67?w=800&auto=format&fit=crop&q=80', 'lifestyle', 3, 0),
+
+-- Product 12: WorkStation Pro (3 Views)
+(12, 'https://images.unsplash.com/photo-1591076482161-42ce6da69f67?w=800&auto=format&fit=crop&q=80', 'front', 1, 1),
+(12, 'https://images.unsplash.com/photo-1574258495973-f010dfbb5371?w=800&auto=format&fit=crop&q=80', 'side', 2, 0),
+(12, 'https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=800&auto=format&fit=crop&q=80', 'lifestyle', 3, 0);
 
 -- 11. INVENTORY INITIAL TRANSACTIONS (Audit Ledger)
 INSERT INTO `inventory_transactions` (`product_id`, `transaction_type`, `quantity`, `previous_quantity`, `new_quantity`, `reference_type`, `reference_id`, `notes`, `created_by_admin_id`)
