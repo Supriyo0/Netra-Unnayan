@@ -52,9 +52,10 @@ try {
         $customPrice = isset($item['unit_price']) ? (float)$item['unit_price'] : null;
 
         $stmt = $pdo->prepare('
-            SELECT id, name, sku, barcode, price, discount_price, stock_quantity, primary_image
-            FROM products
-            WHERE id = ? AND is_active = 1
+            SELECT p.id, p.name, p.sku, p.barcode, p.price, p.discount_price, p.stock_quantity,
+                   COALESCE((SELECT image_url FROM product_images WHERE product_id = p.id ORDER BY is_primary DESC, id ASC LIMIT 1), "") as primary_image
+            FROM products p
+            WHERE p.id = ? AND p.is_active = 1
             FOR UPDATE
         ');
         $stmt->execute([$productId]);
