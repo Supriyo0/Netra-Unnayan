@@ -244,21 +244,23 @@ export const AdminCategoriesPage = () => {
                         <span>{cat.is_active ? 'Live' : 'Hidden'}</span>
                       </button>
                     </td>
-                    <td className="py-3 px-4 text-right space-x-2">
-                      <button
-                        onClick={() => openEditModal(cat)}
-                        className="p-1.5 rounded-lg bg-white/5 hover:bg-brand-cyan/20 text-slate-300 hover:text-brand-cyan transition-colors"
-                        title="Edit Category"
-                      >
-                        <Edit className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(cat.id)}
-                        className="p-1.5 rounded-lg bg-white/5 hover:bg-rose-500/20 text-slate-300 hover:text-rose-400 transition-colors"
-                        title="Delete Category"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                    <td className="py-3 px-4 text-right">
+                      <div className="flex items-center justify-end gap-1.5">
+                        <button
+                          onClick={() => openEditModal(cat)}
+                          className="p-1.5 rounded-lg bg-cyan-500/15 hover:bg-cyan-500 text-cyan-300 hover:text-slate-950 border border-cyan-500/30 transition-all cursor-pointer"
+                          title="Edit Category"
+                        >
+                          <Edit className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(cat.id)}
+                          className="p-1.5 rounded-lg bg-rose-500/15 hover:bg-rose-500 text-rose-300 hover:text-white border border-rose-500/30 transition-all cursor-pointer"
+                          title="Delete Category"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}

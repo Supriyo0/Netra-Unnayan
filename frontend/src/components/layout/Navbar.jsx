@@ -115,37 +115,6 @@ export const Navbar = () => {
 
   return (
     <>
-      {/* Top Announcement Bar */}
-      <div className={`text-xs py-1.5 px-4 sm:px-8 transition-colors border-b select-none ${
-        isDark 
-          ? 'bg-gradient-to-r from-[#071322] via-[#0A192F] to-[#071322] text-slate-300 border-white/10' 
-          : 'bg-gradient-to-r from-sky-50 via-teal-50 to-sky-50 text-slate-700 border-slate-200'
-      }`}>
-        <div className="w-full max-w-[1520px] mx-auto flex justify-between items-center">
-          <div className="flex items-center gap-3 sm:gap-6">
-            <span className="flex items-center gap-1.5 font-medium text-[11px] sm:text-xs">
-              <Sparkles className="w-3.5 h-3.5 text-brand-cyan shrink-0" />
-              <span className="font-semibold">Premium Eyewear — Digha, West Bengal</span>
-            </span>
-            <span className="hidden xl:flex items-center gap-1.5 text-slate-400 text-xs">
-              <Clock className="w-3.5 h-3.5 text-brand-teal" />
-              <span>10:00 AM – 8:00 PM</span>
-            </span>
-          </div>
-
-          <div className="flex items-center gap-4 sm:gap-6 text-[11px] sm:text-xs">
-            <span className="hidden sm:flex items-center gap-1.5 font-semibold text-emerald-600 dark:text-emerald-400">
-              <Truck className="w-3.5 h-3.5" />
-              <span>Free Delivery Above ₹999</span>
-            </span>
-            <span className="flex items-center gap-1.5 font-semibold text-brand-cyan">
-              <Shield className="w-3.5 h-3.5" />
-              <span>14-Day Easy Return</span>
-            </span>
-          </div>
-        </div>
-      </div>
-
       {/* Main Glass Header Bar */}
       <header className={`sticky top-0 z-40 transition-all duration-300 ${
         isDark 

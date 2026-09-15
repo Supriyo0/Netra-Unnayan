@@ -36,6 +36,15 @@ try {
     $subtotal = 0.00;
     $itemsToInsert = [];
 
+    // Ensure valid payment mode enum
+    $validPaymentModes = ['CASH', 'UPI', 'CARD', 'COD'];
+    if (!in_array($paymentMode, $validPaymentModes, true)) {
+        $paymentMode = 'CASH';
+    }
+
+    $adminId = !empty($admin['id']) ? (int)$admin['id'] : null;
+    $adminName = $admin['full_name'] ?? 'Store Admin';
+
     // Lock and verify stock for all items
     foreach ($items as $item) {
         $productId = (int)($item['product_id'] ?? 0);
@@ -70,7 +79,7 @@ try {
 
         // Deduct inventory
         $prevQty = (int)$prod['stock_quantity'];
-        $newQty = $prevQty - $qty;
+        $newQty = max(0, $prevQty - $qty);
 
         $pdo->prepare('UPDATE products SET stock_quantity = ? WHERE id = ?')->execute([$newQty, $prod['id']]);
 
@@ -119,7 +128,7 @@ try {
     $ordStmt->execute([
         $orderNumber, $customerName, $customerPhone,
         $customerAddress, $subtotal, $discountAmount, $totalAmount,
-        $paymentMode, $notes ?: 'Counter POS Billing by ' . $admin['full_name']
+        $paymentMode, $notes ?: 'Counter POS Billing by ' . $adminName
     ]);
     $orderId = (int)$pdo->lastInsertId();
 
@@ -130,69 +139,42 @@ try {
     ');
 
     foreach ($itemsToInsert as $oi) {
-        try {
-            $oiStmt = $pdo->prepare('
-                INSERT INTO order_items (order_id, product_id, product_name, product_sku, unit_price, quantity, lens_type, lens_price, total_price, frame_size, frame_color)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ');
-            $oiStmt->execute([
-                $orderId, $oi['product_id'], $oi['product_name'], $oi['product_sku'],
-                $oi['unit_price'], $oi['quantity'], $oi['lens_type'], $oi['lens_price'], $oi['total_price'],
-                $oi['frame_size'], $oi['frame_color']
-            ]);
-        } catch (Exception $e) {
-            $oiStmt = $pdo->prepare('
-                INSERT INTO order_items (order_id, product_id, product_name, product_sku, unit_price, quantity, lens_type, lens_price, total_price)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ');
-            $displayName = $oi['product_name'] . " [Size: {$oi['frame_size']} | Color: {$oi['frame_color']}]";
-            $oiStmt->execute([
-                $orderId, $oi['product_id'], $displayName, $oi['product_sku'],
-                $oi['unit_price'], $oi['quantity'], $oi['lens_type'], $oi['lens_price'], $oi['total_price']
-            ]);
+        $displayName = $oi['product_name'];
+        if (!empty($oi['frame_size']) || !empty($oi['frame_color'])) {
+            $displayName .= " [Size: {$oi['frame_size']} | Color: {$oi['frame_color']}]";
         }
+
+        $oiStmt = $pdo->prepare('
+            INSERT INTO order_items (order_id, product_id, product_name, product_sku, unit_price, quantity, lens_type, lens_price, total_price)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ');
+        $oiStmt->execute([
+            $orderId, $oi['product_id'], $displayName, $oi['product_sku'],
+            $oi['unit_price'], $oi['quantity'], $oi['lens_type'], $oi['lens_price'], $oi['total_price']
+        ]);
 
         $invStmt->execute([
             $oi['product_id'], -$oi['quantity'], $oi['prev_qty'], $oi['new_qty'],
-            $invoiceNumber, "Offline POS counter sale {$invoiceNumber} by {$admin['full_name']}", $admin['id']
+            $invoiceNumber, "Offline POS counter sale {$invoiceNumber} by {$adminName}", $adminId
         ]);
     }
 
     // Insert Invoice Record
-    try {
-        $invRec = $pdo->prepare('
-            INSERT INTO invoices (
-                invoice_number, order_id, invoice_type, invoice_date, customer_name,
-                customer_phone, customer_address, subtotal, tax_amount, discount_amount,
-                total_amount, payment_mode, payment_status, is_gst_invoice
-            ) VALUES (
-                ?, ?, "OFFLINE_POS", CURDATE(), ?,
-                ?, ?, ?, 0.00, ?,
-                ?, ?, "Paid", ?
-            )
-        ');
-        $invRec->execute([
-            $invoiceNumber, $orderId, $customerName, $customerPhone,
-            $customerAddress, $subtotal, $discountAmount, $totalAmount, $paymentMode, $isGstInvoice
-        ]);
-    } catch (Exception $e) {
-        // Fallback if is_gst_invoice column not yet created
-        $invRec = $pdo->prepare('
-            INSERT INTO invoices (
-                invoice_number, order_id, invoice_type, invoice_date, customer_name,
-                customer_phone, customer_address, subtotal, tax_amount, discount_amount,
-                total_amount, payment_mode, payment_status
-            ) VALUES (
-                ?, ?, "OFFLINE_POS", CURDATE(), ?,
-                ?, ?, ?, 0.00, ?,
-                ?, ?, "Paid"
-            )
-        ');
-        $invRec->execute([
-            $invoiceNumber, $orderId, $customerName, $customerPhone,
-            $customerAddress, $subtotal, $discountAmount, $totalAmount, $paymentMode
-        ]);
-    }
+    $invRec = $pdo->prepare('
+        INSERT INTO invoices (
+            invoice_number, order_id, invoice_type, invoice_date, customer_name,
+            customer_phone, customer_address, subtotal, tax_amount, discount_amount,
+            total_amount, payment_mode, payment_status
+        ) VALUES (
+            ?, ?, "OFFLINE_POS", CURDATE(), ?,
+            ?, ?, ?, 0.00, ?,
+            ?, ?, "Paid"
+        )
+    ');
+    $invRec->execute([
+        $invoiceNumber, $orderId, $customerName, $customerPhone,
+        $customerAddress, $subtotal, $discountAmount, $totalAmount, $paymentMode
+    ]);
     $invoiceId = (int)$pdo->lastInsertId();
 
     // Insert Payment Record
@@ -200,13 +182,13 @@ try {
     $pdo->prepare('
         INSERT INTO payments (order_id, payment_number, amount, payment_mode, payment_provider, status, verified_by_admin_id, verified_at)
         VALUES (?, ?, ?, ?, "COUNTER_POS", "Paid", ?, NOW())
-    ')->execute([$orderId, $payNumber, $totalAmount, $paymentMode, $admin['id']]);
+    ')->execute([$orderId, $payNumber, $totalAmount, $paymentMode, $adminId]);
 
     // Insert status history
     $pdo->prepare('
         INSERT INTO order_status_history (order_id, old_status, new_status, note, updated_by_admin_id)
         VALUES (?, "None", "Delivered", "Offline POS bill generated and fulfilled at store counter.", ?)
-    ')->execute([$orderId, $admin['id']]);
+    ')->execute([$orderId, $adminId]);
 
     $pdo->commit();
 
@@ -215,7 +197,7 @@ try {
         'order_number'     => $orderNumber,
         'invoice_id'       => $invoiceId,
         'invoice_number'   => $invoiceNumber,
-        'invoice_date'     => date('Y-m-d'),
+        'invoice_date'     => date('d M Y'),
         'customer_name'    => $customerName,
         'customer_phone'   => $customerPhone,
         'customer_address' => $customerAddress,
@@ -227,7 +209,7 @@ try {
         'warranty_note'    => $warrantyNote,
         'notes'            => $notes,
         'items'            => $itemsToInsert,
-        'cashier'          => $admin['full_name']
+        'cashier'          => $adminName
     ], "Invoice {$invoiceNumber} finalized successfully. Stock updated in inventory.");
 
 } catch (Exception $e) {

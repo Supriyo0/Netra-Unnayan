@@ -608,9 +608,10 @@ export const ProductDetailPage = () => {
                 type="button"
                 onClick={handleAddToCart}
                 disabled={product.stock_quantity <= 0}
-                className="flex-1 py-3 rounded-xl border-2 border-brand-cyan text-brand-cyan font-bold text-sm flex items-center justify-center gap-2 hover:bg-brand-cyan hover:text-slate-950 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                className="flex-1 py-3.5 px-4 rounded-xl bg-brand-cyan hover:bg-cyan-400 text-slate-950 font-black text-sm flex items-center justify-center gap-2 shadow-cyan-glow transition-all duration-200 hover:scale-[1.02] active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
               >
-                <ShoppingBag className="w-4 h-4" /> Add to Cart
+                <ShoppingBag className="w-4 h-4 text-slate-950 stroke-[2.5]" />
+                <span className="text-slate-950 font-black">Add to Cart</span>
               </button>
             </div>
 
@@ -619,9 +620,10 @@ export const ProductDetailPage = () => {
               type="button"
               onClick={handleBuyNow}
               disabled={product.stock_quantity <= 0}
-              className="w-full btn-primary py-3.5 text-sm font-black flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
+              className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-400 hover:to-emerald-400 text-slate-950 font-black text-sm flex items-center justify-center gap-2 shadow-lg hover:shadow-emerald-500/25 transition-all duration-200 hover:scale-[1.01] active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
             >
-              <Zap className="w-4 h-4" /> Buy Now
+              <Zap className="w-4 h-4 text-slate-950 stroke-[2.5]" />
+              <span className="text-slate-950 font-black">Instant Buy Now</span>
             </button>
 
             {addedToast && (

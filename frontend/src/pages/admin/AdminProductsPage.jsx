@@ -298,36 +298,38 @@ export const AdminProductsPage = () => {
                       </td>
 
                       {/* Actions */}
-                      <td className="p-3.5 text-right space-x-1 whitespace-nowrap">
-                        <Link
-                          to={`/admin/products/edit/${p.id}`}
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-brand-cyan hover:bg-brand-cyan/10 inline-flex"
-                          title="Edit Frame Details, Images & Pricing"
-                        >
-                          <Edit3 className="w-4 h-4" />
-                        </Link>
-                        <Link
-                          to={`/product/${p.sku}`}
-                          target="_blank"
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-brand-cyan hover:bg-white/5 inline-flex"
-                          title="View on Storefront"
-                        >
-                          <ExternalLink className="w-4 h-4" />
-                        </Link>
-                        <Link
-                          to={`/admin/labels?sku=${p.sku}`}
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-brand-teal hover:bg-white/5 inline-flex"
-                          title="Print Barcode Label"
-                        >
-                          <QrCode className="w-4 h-4" />
-                        </Link>
-                        <button
-                          onClick={() => setDeleteConfirmId(p.id)}
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 inline-flex"
-                          title="Archive Frame"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                      <td className="p-3.5 text-right whitespace-nowrap">
+                        <div className="flex items-center justify-end gap-1.5">
+                          <Link
+                            to={`/admin/products/edit/${p.id}`}
+                            className="p-1.5 rounded-lg bg-cyan-500/15 hover:bg-cyan-500 text-cyan-300 hover:text-slate-950 border border-cyan-500/30 inline-flex items-center transition-all"
+                            title="Edit Frame Details, Images & Pricing"
+                          >
+                            <Edit3 className="w-3.5 h-3.5" />
+                          </Link>
+                          <Link
+                            to={`/product/${p.sku}`}
+                            target="_blank"
+                            className="p-1.5 rounded-lg bg-slate-700/30 hover:bg-white/20 text-slate-200 border border-white/10 inline-flex items-center transition-all"
+                            title="View on Storefront"
+                          >
+                            <ExternalLink className="w-3.5 h-3.5" />
+                          </Link>
+                          <Link
+                            to={`/admin/labels?sku=${p.sku}`}
+                            className="p-1.5 rounded-lg bg-teal-500/15 hover:bg-teal-500 text-teal-300 hover:text-slate-950 border border-teal-500/30 inline-flex items-center transition-all"
+                            title="Print Barcode Label"
+                          >
+                            <QrCode className="w-3.5 h-3.5" />
+                          </Link>
+                          <button
+                            onClick={() => setDeleteConfirmId(p.id)}
+                            className="p-1.5 rounded-lg bg-rose-500/15 hover:bg-rose-500 text-rose-300 hover:text-white border border-rose-500/30 inline-flex items-center transition-all cursor-pointer"
+                            title="Archive Frame"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </td>
 
                     </tr>

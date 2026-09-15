@@ -613,8 +613,8 @@ export const AdminPosPage = () => {
 
               {/* Instant Search Suggestions Dropdown with Multiple Selection */}
               {searchResults.length > 0 && (
-                <div className="absolute top-full left-0 right-0 z-50 mt-2 bg-white dark:bg-slate-900 rounded-2xl border-2 border-brand-cyan/60 shadow-2xl overflow-hidden divide-y divide-slate-100 dark:divide-white/10 max-h-96 overflow-y-auto">
-                  <div className="p-3 bg-slate-50 dark:bg-slate-950 text-[11px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider flex items-center justify-between sticky top-0 z-10 backdrop-blur-md border-b border-slate-200 dark:border-white/10">
+                <div className="absolute top-full left-0 right-0 z-[100] mt-2 bg-white dark:bg-slate-900 rounded-2xl border-2 border-brand-cyan shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden divide-y divide-slate-100 dark:divide-white/10 max-h-96 overflow-y-auto">
+                  <div className="p-3 bg-slate-100 dark:bg-slate-950 text-[11px] text-slate-700 dark:text-slate-300 font-bold uppercase tracking-wider flex items-center justify-between sticky top-0 z-20 backdrop-blur-md border-b border-slate-200 dark:border-white/10">
                     <span className="flex items-center gap-2">
                       <Sparkles className="w-3.5 h-3.5 text-brand-cyan" />
                       <span>{searchResults.length} Products Found &bull; Click to add multiple items</span>
@@ -622,7 +622,7 @@ export const AdminPosPage = () => {
                     <button
                       type="button"
                       onClick={() => setSearchResults([])}
-                      className="px-3 py-1 rounded-xl bg-brand-cyan hover:bg-brand-cyan/90 text-slate-950 font-extrabold text-xs flex items-center gap-1 shadow-sm transition-all"
+                      className="px-3 py-1 rounded-xl bg-brand-cyan hover:bg-brand-cyan/90 text-slate-950 font-extrabold text-xs flex items-center gap-1 shadow-sm transition-all cursor-pointer"
                     >
                       <Check className="w-3.5 h-3.5" />
                       <span>Done ({posItems.reduce((acc, it) => acc + it.quantity, 0)} In Bill)</span>
@@ -989,14 +989,32 @@ export const AdminPosPage = () => {
                 </div>
               </div>
 
+              {/* Error Display above Button */}
+              {errorMessage && (
+                <div className="p-3 rounded-xl bg-rose-500/20 border border-rose-500/40 text-rose-200 text-xs flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+                  <span className="font-semibold">{errorMessage}</span>
+                </div>
+              )}
+
               {/* Finalize Button */}
               <button
                 type="button"
                 onClick={handleFinalizeBill}
                 disabled={isSubmitting || posItems.length === 0}
-                className="w-full btn-primary py-3.5 text-xs font-bold rounded-xl shadow-cyan-glow flex items-center justify-center gap-2 disabled:opacity-50 transition-all"
+                className="w-full py-3.5 px-4 rounded-xl bg-brand-cyan hover:bg-cyan-400 text-slate-950 font-black text-xs shadow-cyan-glow flex items-center justify-center gap-2 disabled:opacity-50 transition-all cursor-pointer hover:scale-[1.01] active:scale-95"
               >
-                {isSubmitting ? 'Finalizing Invoice...' : `Finalize & Deduct Stock (₹${finalTotal.toLocaleString('en-IN')})`}
+                {isSubmitting ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 text-slate-950 animate-spin" />
+                    <span>Finalizing &amp; Deducting Stock...</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="w-4 h-4 text-slate-950 stroke-[2.5]" />
+                    <span>Finalize &amp; Deduct Stock (₹{finalTotal.toLocaleString('en-IN')})</span>
+                  </>
+                )}
               </button>
 
               <p className="text-[10px] text-slate-500 text-center">

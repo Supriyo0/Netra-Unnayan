@@ -7,10 +7,10 @@ export const Footer = () => {
   const { isDark } = useTheme();
 
   return (
-    <footer className={`border-t text-sm mt-24 pb-20 lg:pb-8 transition-colors ${
+    <footer className={`border-t text-sm mt-16 pb-8 transition-colors ${
       isDark ? 'bg-[#050A12] border-white/10 text-slate-400' : 'bg-slate-100 border-slate-200 text-slate-600'
     }`}>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10">
           
           {/* Brand Column */}
@@ -88,6 +88,18 @@ export const Footer = () => {
                 <Phone className="w-4 h-4 text-brand-teal shrink-0" />
                 <span>+91 9382293614</span>
               </p>
+              
+              {/* WhatsApp Direct Chat Button */}
+              <a
+                href="https://wa.me/919382293614?text=Hello%20Netra%20Unnayan!%20I%20have%20an%20inquiry%20regarding%20eyewear%20/%20eye%20checkup."
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[#25D366] hover:bg-[#20BD5A] text-white font-bold text-xs shadow-md transition-all duration-200 hover:scale-102"
+              >
+                <MessageCircle className="w-4 h-4 fill-white shrink-0" />
+                <span>Chat on WhatsApp</span>
+              </a>
+
               <p className="flex items-center gap-2">
                 <Mail className="w-4 h-4 text-brand-cyan shrink-0" />
                 <span>netraunnayan7@gmail.com</span>
