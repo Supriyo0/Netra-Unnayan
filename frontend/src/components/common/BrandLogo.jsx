@@ -189,31 +189,79 @@ export const NetraSymbolSVG = ({ size = 60, spin = true, className = '' }) => {
 /**
  * BrandLogo — Official Netra Unnayan Logo (Mobile & Desktop)
  *
- * Displays our actual logo from root image.png with brand name "NETRA UNNAYAN"
- * and tag line "CLARITY YOU CAN TRUST".
+ * Displays the transparent animated eye logo on the left, with brand name
+ * "NETRA UNNAYAN" and tagline "CLARITY YOU CAN TRUST" right below it.
  */
-export const BrandLogo = ({ isDark = false, className = '', size = 'default' }) => {
-  const hSize =
-    size === 'sm' ? 'h-8 sm:h-9 md:h-11'
-    : size === 'lg' ? 'h-12 sm:h-14 md:h-17'
-    : 'h-10 sm:h-11 md:h-13 lg:h-14';
+export const BrandLogo = ({ isDark = false, className = '', size = 'default', showTagline = true }) => {
+  // Sizing tokens for icon, brand name, and tagline
+  const iconH =
+    size === 'sm' ? 'h-8 sm:h-9'
+    : size === 'lg' ? 'h-14 sm:h-16 md:h-18'
+    : 'h-9 sm:h-10 md:h-12';
+
+  const brandText =
+    size === 'sm' ? 'text-sm sm:text-base tracking-tight'
+    : size === 'lg' ? 'text-2xl sm:text-3xl md:text-4xl tracking-tight'
+    : 'text-base sm:text-lg md:text-xl tracking-tight';
+
+  const taglineText =
+    size === 'sm' ? 'text-[8px] sm:text-[9px] tracking-[0.14em]'
+    : size === 'lg' ? 'text-[11px] sm:text-xs md:text-sm tracking-[0.22em]'
+    : 'text-[8.5px] sm:text-[9.5px] md:text-[10.5px] tracking-[0.18em]';
 
   return (
-    <div className={`relative inline-flex items-center select-none group py-0.5 ${className}`}>
-      <img
-        src="/image.png"
-        alt="Netra Unnayan — Clarity You Can Trust"
-        className={`${hSize} w-auto max-w-[210px] sm:max-w-xs md:max-w-none object-contain shrink-0 transition-transform duration-300 group-hover:scale-[1.02]`}
-        style={{ 
-          filter: isDark 
-            ? 'drop-shadow(0 2px 10px rgba(0, 180, 216, 0.35)) brightness(1.05)' 
-            : 'drop-shadow(0 1px 4px rgba(0, 0, 0, 0.08))' 
-        }}
-        onError={(e) => {
-          e.currentTarget.onerror = null;
-          e.currentTarget.src = '/logo_official.png';
-        }}
-      />
+    <div className={`relative inline-flex items-center gap-2.5 sm:gap-3 select-none group py-0.5 ${className}`}>
+      {/* 1. Left: Transparent Animated Eye Logo */}
+      <div className="relative shrink-0 flex items-center justify-center">
+        <picture>
+          <source srcSet="/logo_animated.webp" type="image/webp" />
+          <img
+            src="/logo_animated.gif"
+            alt="Netra Unnayan Eye Logo"
+            className={`${iconH} w-auto object-contain transition-transform duration-300 group-hover:scale-105`}
+            style={{
+              filter: isDark
+                ? 'drop-shadow(0 2px 10px rgba(0, 180, 216, 0.45)) drop-shadow(0 0 16px rgba(0, 180, 216, 0.2))'
+                : 'drop-shadow(0 2px 8px rgba(2, 132, 199, 0.18))',
+            }}
+            onError={(e) => {
+              e.currentTarget.onerror = null;
+              e.currentTarget.src = '/image.png';
+            }}
+          />
+        </picture>
+      </div>
+
+      {/* 2. Beside it: Brand Name on top, Tagline right below */}
+      <div className="flex flex-col justify-center min-w-0">
+        {/* Brand Name */}
+        <span
+          className={`font-black font-heading uppercase leading-none whitespace-nowrap transition-colors duration-200 ${brandText} ${
+            isDark
+              ? 'text-white group-hover:text-cyan-200'
+              : 'text-[#041E42] group-hover:text-[#0052CC]'
+          }`}
+          style={{
+            letterSpacing: '-0.02em',
+            textShadow: isDark ? '0 1px 12px rgba(0, 180, 216, 0.35)' : 'none',
+          }}
+        >
+          NETRA UNNAYAN
+        </span>
+
+        {/* Tagline right below brand name */}
+        {showTagline && (
+          <span
+            className={`font-bold uppercase font-sans leading-tight whitespace-nowrap mt-0.5 sm:mt-1 transition-colors duration-200 ${taglineText} ${
+              isDark
+                ? 'text-cyan-400/90 group-hover:text-cyan-300'
+                : 'text-[#0284C7] group-hover:text-[#0369A1]'
+            }`}
+          >
+            CLARITY YOU CAN TRUST
+          </span>
+        )}
+      </div>
     </div>
   );
 };
