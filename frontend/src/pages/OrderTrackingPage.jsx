@@ -90,7 +90,7 @@ export const OrderTrackingPage = () => {
     }
   };
 
-  const allStages = [
+  const defaultStages = [
     { key: 'Order Placed', label: 'Order Placed' },
     { key: 'Payment Confirmed', label: 'Payment Confirmed' },
     { key: 'Prescription Review', label: 'Prescription Review' },
@@ -102,10 +102,26 @@ export const OrderTrackingPage = () => {
     { key: 'Delivered', label: 'Delivered' },
   ];
 
+  const activeStages = React.useMemo(() => {
+    if (order?.timeline_stages && typeof order.timeline_stages === 'object') {
+      return Object.entries(order.timeline_stages).map(([label, info]) => ({
+        key: label,
+        label,
+        ...(typeof info === 'object' ? info : {})
+      }));
+    }
+    return defaultStages;
+  }, [order?.timeline_stages]);
+
   const getCurrentStageIndex = (currentStatus) => {
-    if (currentStatus === 'Cancelled') return -1;
-    const idx = allStages.findIndex(s => s.key.toLowerCase() === currentStatus?.toLowerCase());
-    return idx > -1 ? idx : 0;
+    if (!currentStatus || currentStatus === 'Cancelled') return -1;
+    const lower = String(currentStatus).toLowerCase();
+    const idx = activeStages.findIndex(s => 
+      s.key.toLowerCase() === lower || 
+      s.label.toLowerCase() === lower ||
+      (s.key.toLowerCase().includes(lower) || lower.includes(s.key.toLowerCase()))
+    );
+    return idx > -1 ? idx : (lower === 'completed' || lower === 'delivered' ? activeStages.length - 1 : 1);
   };
 
   const isOrderOwner = Boolean(
@@ -258,7 +274,7 @@ export const OrderTrackingPage = () => {
                   {/* Connecting line */}
                   <div className="absolute top-4 left-4 right-4 h-0.5 bg-white/10 -z-0" />
 
-                  {allStages.map((stage, i) => {
+                  {activeStages.map((stage, i) => {
                     const currentIdx = getCurrentStageIndex(order.order_status);
                     const isCompleted = i <= currentIdx;
                     const isCurrent = i === currentIdx;

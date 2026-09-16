@@ -58,6 +58,242 @@ if (!$order) {
     $order = $stmt->fetch();
 }
 
+// 2. If not found in retail orders, check DOCTOR APPOINTMENTS
+if (!$order) {
+    // Check if input references appointment number, ticket number, or ID
+    $cleanId = preg_replace('/[^0-9]/', '', $searchCode);
+    $aptStmt = $pdo->prepare("
+        SELECT a.*, d.name as doctor_name, d.specialization, d.qualification, d.consultation_fee as doc_fee
+        FROM appointments a
+        LEFT JOIN doctors d ON a.doctor_id = d.id
+        WHERE UPPER(TRIM(a.appointment_number)) = ?
+           OR UPPER(TRIM(COALESCE(a.ticket_no, ''))) = ?
+           OR (a.appointment_number LIKE ?)
+           OR (? != '' AND (
+                (a.id = ? AND (? LIKE '%DOC%' OR ? LIKE '%APT%'))
+                OR (a.ticket_no LIKE ?)
+           ))
+        ORDER BY a.id DESC
+        LIMIT 1
+    ");
+    $likeTerm = '%' . $searchCode . '%';
+    $likeId = '%' . $cleanId . '%';
+    $aptStmt->execute([
+        $searchCode,
+        $searchCode,
+        $likeTerm,
+        $cleanId,
+        (int)$cleanId,
+        $searchCode,
+        $searchCode,
+        $likeId
+    ]);
+    $apt = $aptStmt->fetch();
+
+    if ($apt) {
+        $createdAtTs = strtotime($apt['created_at'] ?? 'now');
+        $docFee = (float)($apt['consultation_fee'] ?: ($apt['doc_fee'] ?? 500));
+        $docInvNum = 'NU/DOC/' . date('Y', $createdAtTs) . '/' . str_pad($apt['id'], 4, '0', STR_PAD_LEFT);
+
+        $docStages = [
+            'Booking Requested' => ['key' => 'placed', 'desc' => 'Appointment slot requested by patient'],
+            'Clinic Confirmed'  => ['key' => 'confirmed', 'desc' => 'Appointment confirmed by Netra Unnayan clinical desk'],
+            'Token Issued'      => ['key' => 'token', 'desc' => 'Consultation token active for visiting surgeon'],
+            'Consultation Done' => ['key' => 'completed', 'desc' => 'Consultation & ophthalmic evaluation completed']
+        ];
+
+        $orderData = [
+            'id'                     => (int)$apt['id'],
+            'order_number'           => $apt['appointment_number'],
+            'orderNumber'            => $apt['appointment_number'],
+            'order_type'             => 'DOCTOR',
+            'type'                   => 'DOCTOR',
+            'is_doctor'              => true,
+            'customer_id'            => (int)($apt['customer_id'] ?? 0),
+            'customer_name'          => $apt['patient_name'] ?: 'Valued Patient',
+            'customer_phone'         => $apt['patient_phone'] ?: '',
+            'customer_email'         => $apt['patient_email'] ?: '',
+            'patient_name'           => $apt['patient_name'] ?: 'Valued Patient',
+            'patient_phone'          => $apt['patient_phone'] ?: '',
+            'patient_email'          => $apt['patient_email'] ?: '',
+            'shipping_address_line1' => 'Netra Unnayan Eye Clinic, Digha Bypass Rd',
+            'shipping_address_line2' => 'Jatimati',
+            'shipping_city'          => 'Digha',
+            'shipping_state'         => 'West Bengal',
+            'shipping_pincode'       => '721428',
+            'customerAddress'        => 'Netra Unnayan Eye Clinic, Digha Bypass Rd, Jatimati, Digha — 721428',
+            'subtotal'               => $docFee,
+            'discount_amount'        => 0.00,
+            'discountAmount'         => 0.00,
+            'shipping_fee'           => 0.00,
+            'shippingFee'            => 0.00,
+            'tax_amount'             => 0.00,
+            'total_amount'           => $docFee,
+            'totalAmount'            => $docFee,
+            'payment_mode'           => ($apt['payment_status'] === 'Paid') ? 'UPI' : 'CLINIC_DESK',
+            'paymentMode'            => ($apt['payment_status'] === 'Paid') ? 'UPI' : 'CLINIC_DESK',
+            'payment_status'         => $apt['payment_status'] ?: 'Pay at Clinic',
+            'paymentStatus'          => $apt['payment_status'] ?: 'Pay at Clinic',
+            'order_status'           => $apt['status'] ?: 'Confirmed',
+            'status'                 => $apt['status'] ?: 'Confirmed',
+            'prescription_status'    => 'Doctor Consultation',
+            'can_cancel_until'       => null,
+            'can_cancel'             => false,
+            'created_at'             => $apt['created_at'],
+            'invoice_number'         => $docInvNum,
+            'invoiceNumber'          => $docInvNum,
+            'invoiceDate'            => date('d M Y', strtotime($apt['appointment_date'] ?: $apt['created_at'])),
+            'invoiceTime'            => $apt['appointment_time'] ?: '11:00 AM',
+            'appointmentDate'        => $apt['appointment_date'],
+            'appointmentTime'        => $apt['appointment_time'],
+            'ticket_no'              => $apt['ticket_no'] ?: ('TKT-' . str_pad($apt['id'], 3, '0', STR_PAD_LEFT)),
+            'ticketNo'               => $apt['ticket_no'] ?: ('TKT-' . str_pad($apt['id'], 3, '0', STR_PAD_LEFT)),
+            'doctor_name'            => $apt['doctor_name'] ?: 'Senior Eye Surgeon',
+            'doctorName'             => $apt['doctor_name'] ?: 'Senior Eye Surgeon',
+            'specialization'         => $apt['specialization'] ?: 'Cataract & Comprehensive Ophthalmology',
+            'doctor_specialty'       => $apt['specialization'] ?: 'Cataract & Comprehensive Ophthalmology',
+            'qualification'          => $apt['qualification'] ?: 'MBBS, MS (Ophthalmology)',
+            'cashier'                => 'Clinical Reception Desk',
+            'warrantyNote'           => 'Official Consultation Slip & Clinical Prescription Token',
+            'notes'                  => $apt['notes'] ?: 'Please report 10 minutes prior to your scheduled consultation slot at our Digha clinical facility.',
+            'items'                  => [
+                [
+                    'id'           => 1,
+                    'product_name' => 'Doctor Consultation - ' . ($apt['doctor_name'] ?: 'Senior Eye Surgeon'),
+                    'details'      => 'Doctor: ' . ($apt['doctor_name'] ?: 'Senior Eye Surgeon') . ' (' . ($apt['qualification'] ?? 'MBBS, MS') . ")\nSlot: " . ($apt['appointment_date'] ?? '') . ' at ' . ($apt['appointment_time'] ?? '') . "\nVenue: Netra Unnayan Eye Clinic, Digha",
+                    'product_sku'  => $apt['ticket_no'] ?: $apt['appointment_number'],
+                    'quantity'     => 1,
+                    'unit_price'   => $docFee,
+                    'discount'     => 0.00,
+                    'total_price'  => $docFee,
+                    'image_url'    => '/logo_symbol.png'
+                ]
+            ],
+            'status_history'         => [
+                ['status' => 'Requested', 'note' => 'Slot requested online', 'timestamp' => $apt['created_at']],
+                ['status' => $apt['status'] ?: 'Confirmed', 'note' => 'Status verified by clinical desk', 'timestamp' => $apt['created_at']]
+            ],
+            'timeline_stages'        => $docStages
+        ];
+
+        Response::success($orderData, 'Doctor appointment details loaded successfully');
+    }
+}
+
+// 3. If not found in retail or doctor, check HOME EYE TEST APPOINTMENTS
+if (!$order) {
+    $cleanId = preg_replace('/[^0-9]/', '', $searchCode);
+    $homeStmt = $pdo->prepare("
+        SELECT h.*
+        FROM home_eye_appointments h
+        WHERE UPPER(TRIM(h.booking_number)) = ?
+           OR UPPER(TRIM(COALESCE(h.ticket_no, ''))) = ?
+           OR (h.booking_number LIKE ?)
+           OR (? != '' AND (
+                (h.id = ? AND (? LIKE '%HET%' OR ? LIKE '%HOME%'))
+                OR (h.ticket_no LIKE ?)
+           ))
+        ORDER BY h.id DESC
+        LIMIT 1
+    ");
+    $likeTerm = '%' . $searchCode . '%';
+    $likeId = '%' . $cleanId . '%';
+    $homeStmt->execute([
+        $searchCode,
+        $searchCode,
+        $likeTerm,
+        $cleanId,
+        (int)$cleanId,
+        $searchCode,
+        $searchCode,
+        $likeId
+    ]);
+    $home = $homeStmt->fetch();
+
+    if ($home) {
+        $createdAtTs = strtotime($home['created_at'] ?? 'now');
+        $homeFee = (float)($home['service_fee'] ?: 299.00);
+        $homeInvNum = 'NU/HET/' . date('Y', $createdAtTs) . '/' . str_pad($home['id'], 4, '0', STR_PAD_LEFT);
+        $custAddr = trim(($home['address_line1'] ?? '') . ' ' . ($home['address_line2'] ?? '') . ', ' . ($home['landmark'] ?? '') . ', PIN ' . ($home['pincode'] ?? ''));
+
+        $homeStages = [
+            'Booking Confirmed'   => ['key' => 'placed', 'desc' => 'Doorstep vision checkup requested'],
+            'Optometrist Assigned'=> ['key' => 'assigned', 'desc' => 'Certified optometrist assigned with mobile kit'],
+            'Kit Dispatched'      => ['key' => 'dispatched', 'desc' => 'Optometrist en route with 100+ frames & autorefractor'],
+            'Checkup Completed'   => ['key' => 'completed', 'desc' => 'Vision test completed & prescription issued']
+        ];
+
+        $orderData = [
+            'id'                     => (int)$home['id'],
+            'order_number'           => $home['booking_number'],
+            'orderNumber'            => $home['booking_number'],
+            'order_type'             => 'HOME_EYE',
+            'type'                   => 'HOME_EYE',
+            'is_home_eye'            => true,
+            'customer_id'            => (int)($home['customer_id'] ?? 0),
+            'customer_name'          => $home['customer_name'] ?: 'Valued Customer',
+            'customer_phone'         => $home['customer_phone'] ?: '',
+            'customer_email'         => $home['customer_email'] ?: '',
+            'shipping_address_line1' => $home['address_line1'] ?: '',
+            'shipping_address_line2' => $home['address_line2'] ?: '',
+            'shipping_city'          => $home['landmark'] ?: 'Digha Area',
+            'shipping_state'         => 'West Bengal',
+            'shipping_pincode'       => $home['pincode'] ?: '',
+            'customerAddress'        => $custAddr ?: 'Doorstep Service Address',
+            'subtotal'               => $homeFee,
+            'discount_amount'        => 0.00,
+            'discountAmount'         => 0.00,
+            'shipping_fee'           => 0.00,
+            'shippingFee'            => 0.00,
+            'tax_amount'             => 0.00,
+            'total_amount'           => $homeFee,
+            'totalAmount'            => $homeFee,
+            'payment_mode'           => ($home['payment_status'] === 'Paid') ? 'UPI' : 'DOORSTEP_COD',
+            'paymentMode'            => ($home['payment_status'] === 'Paid') ? 'UPI' : 'DOORSTEP_COD',
+            'payment_status'         => $home['payment_status'] ?: 'Pay on Visit',
+            'paymentStatus'          => $home['payment_status'] ?: 'Pay on Visit',
+            'order_status'           => $home['status'] ?: 'Confirmed',
+            'status'                 => $home['status'] ?: 'Confirmed',
+            'prescription_status'    => 'Doorstep Clinical Test',
+            'can_cancel_until'       => $home['can_cancel_until'] ?? null,
+            'can_cancel'             => !empty($home['can_cancel_until']) && (strtotime($home['can_cancel_until']) > time()),
+            'created_at'             => $home['created_at'],
+            'invoice_number'         => $homeInvNum,
+            'invoiceNumber'          => $homeInvNum,
+            'invoiceDate'            => date('d M Y', strtotime($home['service_date'] ?: $home['created_at'])),
+            'invoiceTime'            => $home['service_slot'] ?: '10:00 AM - 01:00 PM',
+            'service_date'           => $home['service_date'],
+            'service_slot'           => $home['service_slot'],
+            'time_slot'              => $home['service_slot'],
+            'ticket_no'              => $home['ticket_no'] ?: ('HET-' . str_pad($home['id'], 3, '0', STR_PAD_LEFT)),
+            'ticketNo'               => $home['ticket_no'] ?: ('HET-' . str_pad($home['id'], 3, '0', STR_PAD_LEFT)),
+            'cashier'                => 'Mobile Dispatch Coordinator',
+            'warrantyNote'           => 'Doorstep Optometry Exam & 100+ Frame Trial',
+            'notes'                  => $home['notes'] ?: 'Our certified optometrist will bring 100+ trial frames and digital autorefractor directly to your doorstep.',
+            'items'                  => [
+                [
+                    'id'           => 1,
+                    'product_name' => 'Doorstep Home Eye Checkup Service',
+                    'details'      => 'Scheduled Slot: ' . ($home['service_date'] ?? '') . ' (' . ($home['service_slot'] ?? '') . ")\nAddress: " . $custAddr,
+                    'product_sku'  => $home['ticket_no'] ?: $home['booking_number'],
+                    'quantity'     => 1,
+                    'unit_price'   => $homeFee,
+                    'discount'     => 0.00,
+                    'total_price'  => $homeFee,
+                    'image_url'    => '/logo_symbol.png'
+                ]
+            ],
+            'status_history'         => [
+                ['status' => 'Requested', 'note' => 'Doorstep visit requested', 'timestamp' => $home['created_at']],
+                ['status' => $home['status'] ?: 'Confirmed', 'note' => 'Visit confirmed by dispatch desk', 'timestamp' => $home['created_at']]
+            ],
+            'timeline_stages'        => $homeStages
+        ];
+
+        Response::success($orderData, 'Home eye checkup details loaded successfully');
+    }
+}
+
 if (!$order) {
     Response::notFound('Order or invoice not found. Please verify the order number.');
 }
