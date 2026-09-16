@@ -63,8 +63,12 @@ if ($admin && password_verify($password, $admin['password_hash'])) {
 }
 
 // 2. Check Customer Account (by email or phone)
+try {
+    $pdo->exec("ALTER TABLE customers ADD COLUMN IF NOT EXISTS avatar_url TEXT NULL");
+} catch (Exception $e) {}
+
 $stmt = $pdo->prepare('
-    SELECT id, full_name, email, phone, password_hash, is_active
+    SELECT id, full_name, email, phone, COALESCE(avatar_url, "") as avatar_url, password_hash, is_active
     FROM customers
     WHERE LOWER(email) = LOWER(?) OR phone = ?
     LIMIT 1
@@ -87,11 +91,12 @@ if ($customer && password_verify($password, $customer['password_hash'])) {
     Response::success([
         'token' => $token,
         'user'  => [
-            'id'        => (int)$customer['id'],
-            'type'      => 'customer',
-            'full_name' => $customer['full_name'],
-            'email'     => $customer['email'],
-            'phone'     => $customer['phone']
+            'id'         => (int)$customer['id'],
+            'type'       => 'customer',
+            'full_name'  => $customer['full_name'],
+            'email'      => $customer['email'],
+            'phone'      => $customer['phone'],
+            'avatar_url' => $customer['avatar_url'] ?? ''
         ]
     ], 'Welcome back, ' . $customer['full_name']);
 }

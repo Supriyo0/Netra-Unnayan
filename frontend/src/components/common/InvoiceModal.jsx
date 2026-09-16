@@ -3,7 +3,7 @@ import QRCode from 'qrcode';
 import { 
   Printer, X, CheckCircle2, ShieldCheck, Eye, Sparkles, 
   MapPin, Phone, Mail, Globe, Facebook, Instagram, Youtube,
-  User, Building, Award, Stethoscope, ShoppingBag
+  User, Building, Award, Stethoscope, ShoppingBag, Download, Loader2
 } from 'lucide-react';
 
 function numberToWords(num) {
@@ -28,38 +28,34 @@ export const InvoiceModal = ({ isOpen, onClose, invoiceData }) => {
   const printRef = useRef(null);
   const [verifyQrDataUrl, setVerifyQrDataUrl] = useState('');
   const [upiQrDataUrl, setUpiQrDataUrl] = useState('');
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
 
   const activeData = invoiceData || {};
 
-  const {
-    invoiceNumber = 'NU/INV/2026/00123',
-    orderNumber = 'NU-ORD-00123',
-    invoiceDate = '15 Sep 2026',
-    invoiceTime = '11:32 AM',
-    type = 'POS', // 'POS' | 'ORDER'
-    isGstInvoice = true,
-    status = 'Paid & Delivered',
-    paymentMode = 'UPI',
-    paymentStatus = 'Payment Received',
-    transactionId = '629455389712',
-    customerName = 'Mr. Rakesh Patra',
-    customerPhone = '+91 98765 43210',
-    customerEmail = 'info@netraunnayan.in',
-    customerAddress = 'Jatimati, Digha, Purba Medinipur, West Bengal 721428',
-    items = [],
-    subtotal = 0,
-    discountAmount = 0,
-    shippingFee = 0,
-    taxAmount = 0,
-    totalAmount = 0,
-    cashier = 'Supriyo Naskar',
-    warrantyNote = '1-Year Optical Warranty on Frame & Multi-Coat Optics',
-    prescription = null,
-    notes = '',
-    upi_id = '',
-    payment_qr = '',
-    payment_qr_image = ''
-  } = activeData;
+  // Universal normalization for snake_case and camelCase data
+  const invoiceNumber = activeData.invoiceNumber || activeData.invoice_number || (activeData.order_number ? `NU/INV/${activeData.order_number.replace('NU-', '')}` : (activeData.id ? `NU/INV/${new Date().getFullYear()}/${activeData.id}` : 'NU/INV/2026/00123'));
+  const orderNumber = activeData.orderNumber || activeData.order_number || (activeData.id ? `NU-ORD-${activeData.id}` : 'NU-ORD-00123');
+  const invoiceDate = activeData.invoiceDate || (activeData.created_at ? new Date(activeData.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }));
+  const invoiceTime = activeData.invoiceTime || (activeData.created_at ? new Date(activeData.created_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '11:30 AM');
+  const type = activeData.type || (activeData.order_type === 'POS_OFFLINE' ? 'POS' : (activeData.order_type || 'ORDER'));
+  const isGstInvoice = activeData.isGstInvoice !== undefined ? activeData.isGstInvoice : false;
+  const status = activeData.status || activeData.order_status || 'Paid & Delivered';
+  const paymentMode = activeData.paymentMode || activeData.payment_mode || activeData.payment_method || 'UPI';
+  const paymentStatus = activeData.paymentStatus || activeData.payment_status || 'Payment Received';
+  const transactionId = activeData.transactionId || activeData.transaction_id || activeData.payment_id || '629455389712';
+  const customerName = activeData.customerName || activeData.customer_name || activeData.patient_name || activeData.full_name || 'Walk-in Customer';
+  const customerPhone = activeData.customerPhone || activeData.customer_phone || activeData.patient_phone || activeData.phone || '+91 6294 553 897';
+  const customerEmail = activeData.customerEmail || activeData.customer_email || activeData.email || 'info@netraunnayan.in';
+  const customerAddress = activeData.customerAddress || (activeData.shipping_address_line1 
+    ? `${activeData.shipping_address_line1}${activeData.shipping_city ? `, ${activeData.shipping_city}` : ''}${activeData.shipping_state ? `, ${activeData.shipping_state}` : ''} ${activeData.shipping_pincode ? `— ${activeData.shipping_pincode}` : ''}`
+    : (activeData.shipping_address || activeData.address || 'In-store Counter Pickup (Digha Flagship)'));
+  const cashier = activeData.cashier || 'Sagar Shaoo';
+  const warrantyNote = activeData.warrantyNote || '1-Year Optical Warranty on Frame & Multi-Coat Optics';
+  const prescription = activeData.prescription || activeData.rx || (activeData.prescriptions && activeData.prescriptions[0]) || null;
+  const notes = activeData.notes || 'Thank you for choosing Netra Unnayan for your vision care!';
+  const upi_id = activeData.upi_id || activeData.payment_upi || '';
+  const payment_qr = activeData.payment_qr || '';
+  const payment_qr_image = activeData.payment_qr_image || '';
 
   // Calculate totals
   const defaultSampleItems = [
@@ -107,26 +103,38 @@ export const InvoiceModal = ({ isOpen, onClose, invoiceData }) => {
     }
   ];
 
-  const activeItems = (items && items.length > 0) ? items : defaultSampleItems;
+  const rawItems = activeData.items || activeData.order_items || activeData.preview_items || [];
+  const activeItems = (rawItems && rawItems.length > 0) ? rawItems.map((it, idx) => ({
+    product_name: it.product_name || it.name || it.title || 'Optical Eyewear Frame',
+    product_sku: it.product_sku || it.sku || `NU-OPT-00${idx + 1}`,
+    unit_price: Number(it.unit_price || it.price || 0),
+    quantity: Number(it.quantity || 1),
+    discount: Number(it.discount || it.discount_amount || 0),
+    lens_type: it.lens_type || it.details || '',
+    lens_price: Number(it.lens_price || 0),
+    total_price: Number(it.total_price !== undefined ? it.total_price : ((Number(it.unit_price || it.price || 0) * Number(it.quantity || 1)) - Number(it.discount || 0))),
+    image_url: it.image_url || it.primary_image || it.image || '/logo_symbol.png',
+    frame_size: it.frame_size || it.selected_size || it.size || '',
+    frame_color: it.frame_color || it.selected_color || it.color || '',
+    material: it.material || ''
+  })) : defaultSampleItems;
 
   const calculatedSubtotal = Number(
-    subtotal || activeItems.reduce((acc, it) => acc + (Number(it.unit_price || it.price || 0) * (it.quantity || 1)), 0)
+    activeData.subtotal !== undefined ? activeData.subtotal : (activeData.total_amount || activeItems.reduce((acc, it) => acc + (Number(it.unit_price || 0) * (it.quantity || 1)), 0))
   );
-  const calculatedDiscount = Number(discountAmount || activeItems.reduce((acc, it) => acc + Number(it.discount || 0), 0));
-  const calculatedShipping = Number(shippingFee || 0);
-  const calculatedTotal = Number(totalAmount || Math.max(0, calculatedSubtotal - calculatedDiscount + calculatedShipping));
+  const calculatedDiscount = Number(activeData.discountAmount !== undefined ? activeData.discountAmount : (activeData.discount_amount || activeItems.reduce((acc, it) => acc + Number(it.discount || 0), 0)));
+  const calculatedShipping = Number(activeData.shippingFee !== undefined ? activeData.shippingFee : (activeData.shipping_fee || 0));
+  const calculatedTotal = Number(activeData.totalAmount !== undefined ? activeData.totalAmount : (activeData.total_amount || Math.max(0, calculatedSubtotal - calculatedDiscount + calculatedShipping)));
 
-  // Scannable Online Verification QR: points to valid live order tracking route
-  const invoiceVerifyUrl = `https://netraunnayan.com/order-tracking?order=${encodeURIComponent(orderNumber || invoiceNumber)}`;
+  // Scannable Online Verification QR: directly shows authentic invoice when scanned from any phone
+  const invoiceVerifyUrl = `https://netraunnayan.com/order-tracking?order=${encodeURIComponent(orderNumber || invoiceNumber)}&view=invoice`;
   const verifyQrFallback = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&margin=1&data=${encodeURIComponent(invoiceVerifyUrl)}`;
 
   // Payment UPI QR: ONLY if admin explicitly provided upi_id or payment_qr image
   const configuredUpiId = (upi_id || activeData.payment_upi || (typeof window !== 'undefined' ? localStorage.getItem('nu_admin_upi_id') : '') || '').trim();
   const configuredQrImage = (payment_qr || payment_qr_image || (typeof window !== 'undefined' ? localStorage.getItem('nu_admin_payment_qr') : '') || '').trim();
-  const hasConfiguredPaymentQr = Boolean(configuredUpiId || configuredQrImage);
 
   const upiPayload = configuredUpiId ? `upi://pay?pa=${configuredUpiId}&pn=Netra%20Unnayan&am=${calculatedTotal}&tn=Invoice%20${invoiceNumber}` : '';
-  const upiQrFallback = upiPayload ? `https://api.qrserver.com/v1/create-qr-code/?size=160x160&margin=1&data=${encodeURIComponent(upiPayload)}` : '';
 
   // Generate offline base64 QR codes synchronously
   useEffect(() => {
@@ -153,15 +161,213 @@ export const InvoiceModal = ({ isOpen, onClose, invoiceData }) => {
     return () => { isMounted = false; };
   }, [isOpen, invoiceData, invoiceVerifyUrl, upiPayload, configuredQrImage]);
 
+  // Responsive mobile scaling state: shows full invoice in small without clipping
+  const [mobileScale, setMobileScale] = useState(1);
+  const [fitScreen, setFitScreen] = useState(true);
+  const [canvasHeight, setCanvasHeight] = useState(1050);
+
+  useEffect(() => {
+    const handleMobileResize = () => {
+      if (typeof window === 'undefined') return;
+      const w = window.innerWidth;
+      if (printRef.current) {
+        const measured = printRef.current.offsetHeight || printRef.current.scrollHeight;
+        if (measured > 300) {
+          setCanvasHeight(measured);
+        }
+      }
+      if (w < 820 && fitScreen) {
+        // Leave 16px total horizontal margins (8px on each side)
+        const availableW = Math.max(280, w - 16);
+        const newScale = Number((availableW / 780).toFixed(4));
+        setMobileScale(newScale);
+      } else {
+        setMobileScale(1);
+      }
+    };
+
+    handleMobileResize();
+    window.addEventListener('resize', handleMobileResize);
+    const timer = setTimeout(handleMobileResize, 120);
+    return () => {
+      window.removeEventListener('resize', handleMobileResize);
+      clearTimeout(timer);
+    };
+  }, [fitScreen, isOpen, invoiceData]);
+
   if (!isOpen || !invoiceData) return null;
+
+  const handleDownloadPdf = async (e) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    if (downloadingPdf || !printRef.current) return;
+
+    try {
+      setDownloadingPdf(true);
+      const html2canvasModule = (await import('html2canvas')).default || window.html2canvas;
+      const { jsPDF } = await import('jspdf');
+
+      const element = printRef.current;
+      const wrapper = element.parentElement;
+      const origTransform = wrapper ? wrapper.style.transform : '';
+      const origMarginBottom = wrapper ? wrapper.style.marginBottom : '';
+
+      // Temporarily reset CSS transform to unscaled 100% so canvas captures razor-sharp vector pixels
+      if (wrapper) {
+        wrapper.style.transform = 'none';
+        wrapper.style.marginBottom = '0';
+      }
+
+      const canvas = await html2canvasModule(element, {
+        scale: 2, // 2x high-DPI retina sharpness
+        useCORS: true,
+        allowTaint: true,
+        logging: false,
+        backgroundColor: '#ffffff',
+        windowWidth: 800
+      });
+
+      // Restore zoom/scale transform
+      if (wrapper) {
+        wrapper.style.transform = origTransform;
+        wrapper.style.marginBottom = origMarginBottom;
+      }
+
+      const imgData = canvas.toDataURL('image/jpeg', 0.98);
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      });
+
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+
+      pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, Math.min(297, pdfHeight));
+      
+      const safeFilename = `Netra_Unnayan_Invoice_${(invoiceNumber || 'NU-INV').replace(/[^a-zA-Z0-9_-]/g, '_')}.pdf`;
+      pdf.save(safeFilename);
+    } catch (err) {
+      console.error('PDF generation error, falling back to window.print():', err);
+      window.print();
+    } finally {
+      setDownloadingPdf(false);
+    }
+  };
 
   const handlePrint = (e) => {
     if (e) {
       e.preventDefault();
       e.stopPropagation();
     }
-    window.focus();
-    window.print();
+    
+    const printElement = printRef.current;
+    if (!printElement) {
+      window.print();
+      return;
+    }
+
+    try {
+      // 1. Create or reuse hidden print iframe with concrete dimensions
+      let printFrame = document.getElementById('nu-print-iframe');
+      if (!printFrame) {
+        printFrame = document.createElement('iframe');
+        printFrame.id = 'nu-print-iframe';
+        printFrame.style.position = 'fixed';
+        printFrame.style.left = '-9999px';
+        printFrame.style.top = '0';
+        printFrame.style.width = '800px';
+        printFrame.style.height = '1150px';
+        printFrame.style.border = 'none';
+        printFrame.style.visibility = 'hidden';
+        printFrame.style.pointerEvents = 'none';
+        document.body.appendChild(printFrame);
+      }
+
+      const frameDoc = printFrame.contentWindow.document;
+      frameDoc.open();
+
+      // Collect all active stylesheets and style tags
+      const styles = Array.from(document.querySelectorAll('link[rel="stylesheet"], style'))
+        .map(node => node.outerHTML)
+        .join('\n');
+
+      frameDoc.write(`
+        <!DOCTYPE html>
+        <html lang="en">
+          <head>
+            <meta charset="utf-8">
+            <title>${isGstInvoice ? 'Tax_Invoice' : 'Retail_Invoice'}_${(invoiceNumber || 'NU-INV').replace(/[^a-zA-Z0-9_-]/g, '_')}</title>
+            ${styles}
+            <style>
+              @page {
+                size: A4 portrait;
+                margin: 0;
+              }
+              *, *:before, *:after {
+                box-sizing: border-box !important;
+                visibility: visible !important;
+              }
+              html, body {
+                margin: 0 !important;
+                padding: 0 !important;
+                background: #ffffff !important;
+                color: #0F172A !important;
+                width: 100% !important;
+                height: auto !important;
+                visibility: visible !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+              }
+              .nu-iframe-print-wrapper {
+                display: flex !important;
+                justify-content: center !important;
+                align-items: flex-start !important;
+                width: 100% !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                visibility: visible !important;
+              }
+              #printable-invoice-canvas {
+                width: 780px !important;
+                min-width: 780px !important;
+                box-shadow: none !important;
+                border: none !important;
+                margin: 0 auto !important;
+                visibility: visible !important;
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+              }
+              #printable-invoice-canvas * {
+                visibility: visible !important;
+              }
+            </style>
+          </head>
+          <body>
+            <div class="nu-iframe-print-wrapper">
+              ${printElement.outerHTML}
+            </div>
+          </body>
+        </html>
+      `);
+      frameDoc.close();
+
+      // Allow iframe DOM, images, and fonts to paint then trigger print
+      setTimeout(() => {
+        try {
+          printFrame.contentWindow.focus();
+          printFrame.contentWindow.print();
+        } catch (printErr) {
+          console.error('Iframe print error, falling back to window.print():', printErr);
+          window.print();
+        }
+      }, 400);
+    } catch (err) {
+      console.error('Print iframe creation error, falling back to window.print():', err);
+      window.print();
+    }
   };
 
   const rx = prescription || activeData.rx || {
@@ -177,52 +383,114 @@ export const InvoiceModal = ({ isOpen, onClose, invoiceData }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/90 backdrop-blur-md flex items-start sm:items-center justify-center p-0 sm:p-4 print:p-0 print:bg-white print:static print:overflow-visible">
+    <div 
+      id="printable-modal-scroll-wrapper"
+      className="fixed inset-0 z-[70] overflow-y-auto bg-black/90 backdrop-blur-md flex flex-col items-center justify-start p-0 sm:p-4 pt-0 sm:pt-4 pb-16 print:p-0 print:m-0 print:bg-white print:static print:overflow-visible print:block print:min-h-0 print:h-auto"
+    >
       
       {/* Screen Wrapper */}
       <div 
         id="printable-invoice-container" 
-        className="relative w-full sm:max-w-4xl bg-white text-slate-900 sm:rounded-2xl shadow-2xl overflow-hidden border-0 sm:border border-slate-200 print:border-none print:shadow-none print:rounded-none print:max-w-none print:w-full print:m-0 print:p-0 min-h-screen sm:min-h-0"
+        className="relative w-full sm:max-w-4xl bg-slate-950 sm:bg-white text-slate-900 sm:rounded-2xl shadow-2xl border-0 sm:border border-slate-200/50 print:border-none print:shadow-none print:rounded-none print:max-w-none print:w-full print:m-0 print:p-0 print:static print:min-h-0 print:h-auto min-h-screen sm:min-h-0"
       >
         
-        {/* Screen Top Action Bar (Hidden in Physical Print) */}
-        <div className="print:hidden bg-slate-950 text-white px-3 sm:px-5 py-3 sm:py-3.5 flex items-center justify-between border-b border-white/10 sticky top-0 z-10">
-          <div className="flex items-center gap-1.5 min-w-0">
-            <ShieldCheck className="w-4 h-4 text-brand-cyan shrink-0" />
+        {/* Screen Top Action Bar (Hidden in Physical Print) - Persistent & High-Contrast */}
+        <div className="print:hidden bg-slate-950 text-white px-3 sm:px-5 py-3 sm:py-3.5 flex items-center justify-between border-b border-white/10 sticky top-0 z-30 shadow-md">
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="w-2.5 h-2.5 rounded-full bg-brand-cyan animate-pulse shrink-0" />
             <span className="font-extrabold text-xs sm:text-sm font-heading tracking-wide truncate">
-              {isGstInvoice ? 'Tax Invoice' : 'Bill of Supply'} &bull; <span className="hidden sm:inline">{invoiceNumber}</span>
+              {isGstInvoice ? 'Tax Invoice' : 'Retail Invoice'} &bull; <span className="font-mono text-cyan-300">{invoiceNumber}</span>
             </span>
           </div>
-          <div className="flex items-center gap-1.5 shrink-0">
+
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            {/* Direct High-Quality PDF Download (1-Click Safe for Android & Desktop) */}
+            <button
+              type="button"
+              onClick={handleDownloadPdf}
+              disabled={downloadingPdf}
+              className="px-2.5 sm:px-3.5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-[11px] sm:text-xs flex items-center gap-1 sm:gap-1.5 shadow-sm transition-all cursor-pointer disabled:opacity-60"
+              title="Download instant high-resolution A4 PDF directly to your device"
+            >
+              {downloadingPdf ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <span className="hidden sm:inline">Saving PDF...</span>
+                </>
+              ) : (
+                <>
+                  <Download className="w-3.5 h-3.5 stroke-[2.5]" />
+                  <span>Download PDF</span>
+                </>
+              )}
+            </button>
+
+            {/* Native Print / System Spooler */}
             <button
               type="button"
               onClick={handlePrint}
-              className="px-2.5 sm:px-4 py-2 rounded-xl bg-brand-cyan hover:bg-cyan-400 text-slate-950 font-black text-[11px] sm:text-xs flex items-center gap-1 sm:gap-1.5 shadow-cyan-glow transition-all cursor-pointer"
+              className="px-2.5 sm:px-3.5 py-2 rounded-xl bg-brand-cyan hover:bg-cyan-400 text-slate-950 font-black text-[11px] sm:text-xs flex items-center gap-1 sm:gap-1.5 shadow-cyan-glow transition-all cursor-pointer"
+              title="Print via network or local connected printer"
             >
-              <Printer className="w-3.5 h-3.5" />
-              <span className="hidden xs:inline sm:inline">Print / Save PDF</span>
-              <span className="xs:hidden sm:hidden">Print</span>
+              <Printer className="w-3.5 h-3.5 stroke-[2.5]" />
+              <span className="hidden sm:inline">Print Slip</span>
+              <span className="sm:hidden">Print</span>
             </button>
+
+            {/* Close Button */}
             <button
               type="button"
               onClick={onClose}
-              className="p-2 rounded-xl bg-white/10 hover:bg-rose-500/20 text-slate-300 hover:text-rose-300 transition-colors cursor-pointer"
+              className="p-2 rounded-xl bg-white/10 hover:bg-rose-500 text-slate-300 hover:text-white transition-colors cursor-pointer"
+              title="Close invoice modal"
             >
-              <X className="w-4 h-4" />
+              <X className="w-4 h-4 stroke-[2.5]" />
             </button>
           </div>
+        </div>
+
+        {/* Mobile View Toggle Bar: Shows Full Invoice in Small vs Zoom 100% */}
+        <div className="print:hidden sm:hidden bg-slate-900/95 px-3 py-2 flex items-center justify-between border-b border-white/10 text-[11px] text-slate-300 sticky top-12 z-20">
+          <span className="flex items-center gap-1.5 text-[10.5px] font-medium text-slate-300">
+            <Eye className="w-3.5 h-3.5 text-brand-cyan shrink-0" />
+            {fitScreen ? 'Full Invoice (Miniature Preview)' : 'Actual Size (Pan & Scroll)'}
+          </span>
+          <button
+            type="button"
+            onClick={() => setFitScreen(!fitScreen)}
+            className="px-2.5 py-1 rounded-lg bg-brand-cyan/20 hover:bg-brand-cyan/30 text-brand-cyan font-bold text-[10.5px] border border-brand-cyan/40 transition-colors cursor-pointer"
+          >
+            {fitScreen ? '🔍 Zoom 100%' : '📱 Fit Full Invoice'}
+          </button>
         </div>
 
         {/* =========================================================================
             EXACT PIXEL-MATCH PRINTABLE INVOICE CANVAS (1-PAGE STRICT A4 DIMENSION)
            ========================================================================= */}
-        {/* Mobile scale wrapper: shrinks the A4 canvas to fit small screens using CSS transform */}
-        <div className="invoice-scale-wrapper print:contents">
+        {/* Scaled/Scrollable container: Auto-fits mobile screen cleanly, shows full invoice */}
+        <div 
+          className="w-full overflow-x-auto print:overflow-visible flex justify-center py-3 px-2 sm:p-5 bg-slate-950 sm:bg-slate-100"
+          style={{
+            WebkitOverflowScrolling: 'touch'
+          }}
+        >
           <div 
-            ref={printRef}
-            className="invoice-canvas p-5 sm:p-6 md:p-8 bg-white text-slate-900 font-sans text-[9px] leading-tight selection:bg-cyan-100 print:transform-none print:w-full print:p-7"
-            style={{ minWidth: '780px', boxSizing: 'border-box' }}
+            className="invoice-scale-wrapper print:contents flex justify-center"
+            style={{
+              width: '780px',
+              minWidth: '780px',
+              transform: (mobileScale < 1 && fitScreen) ? `scale(${mobileScale})` : 'none',
+              transformOrigin: 'top center',
+              marginBottom: (mobileScale < 1 && fitScreen && canvasHeight > 0) ? `-${Math.round(canvasHeight * (1 - mobileScale))}px` : '0',
+              transition: 'transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), margin-bottom 0.18s cubic-bezier(0.16, 1, 0.3, 1)'
+            }}
           >
+            <div 
+              ref={printRef}
+              id="printable-invoice-canvas"
+              className="invoice-canvas p-4 sm:p-6 md:p-8 bg-white text-slate-900 font-sans text-[9px] leading-tight selection:bg-cyan-100 shadow-2xl sm:shadow-md rounded-xl sm:rounded-none border border-slate-200 flex flex-col justify-between"
+              style={{ width: '780px', minWidth: '780px', minHeight: '1050px', boxSizing: 'border-box' }}
+            >
           
           {/* ================= 1. HEADER ROW ================= */}
           <div className="grid grid-cols-12 gap-2 items-center pb-2.5">
@@ -334,21 +602,21 @@ export const InvoiceModal = ({ isOpen, onClose, invoiceData }) => {
             {/* Title */}
             <div>
               <h2 className="text-2xl font-black uppercase tracking-wide leading-none text-white font-heading">
-                {isGstInvoice ? 'TAX INVOICE' : 'RETAIL INVOICE'}
+                {type === 'CONSULTATION' ? 'CONSULTATION SLIP' : type === 'HOME_EYE' ? 'HOME TEST SLIP' : (isGstInvoice ? 'TAX INVOICE' : 'RETAIL INVOICE')}
               </h2>
               <p className="text-[8.5px] font-bold uppercase tracking-[0.25em] text-cyan-300 mt-1">
-                EYEWEAR FOR A BRIGHTER LIFE
+                {type === 'CONSULTATION' || type === 'HOME_EYE' ? 'CLINICAL EYE CARE TOKEN' : 'EYEWEAR FOR A BRIGHTER LIFE'}
               </p>
             </div>
 
             {/* Meta Table */}
             <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 text-[9.5px] border-l border-white/20 pl-3">
-              <div className="text-slate-300">Invoice No</div>
+              <div className="text-slate-300">Invoice / Slip No</div>
               <div className="font-mono font-bold text-cyan-200">: {invoiceNumber}</div>
-              <div className="text-slate-300">Invoice Date</div>
+              <div className="text-slate-300">Date</div>
               <div>: {invoiceDate}</div>
-              <div className="text-slate-300">Order Type</div>
-              <div>: {type === 'POS' ? 'Offline Sale (Counter)' : 'Online Store Order'}</div>
+              <div className="text-slate-300">Order / Service Type</div>
+              <div>: {type === 'POS' ? 'Offline Sale (Counter)' : type === 'CONSULTATION' ? 'Clinical Doctor Consultation' : type === 'HOME_EYE' ? 'Doorstep Eye Test Visit' : 'Online Eyewear Order'}</div>
               <div className="text-slate-300">Payment Mode</div>
               <div className="font-bold">: {paymentMode}</div>
               <div className="text-slate-300">Staff</div>
@@ -463,8 +731,8 @@ export const InvoiceModal = ({ isOpen, onClose, invoiceData }) => {
 
                   return (
                     <tr key={idx} className="hover:bg-slate-50/70">
-                      <td className="py-1.5 px-2 text-center text-slate-500 font-mono">{idx + 1}</td>
-                      <td className="py-1.5 px-2.5">
+                      <td className="py-1.5 print:py-2.5 px-2 text-center text-slate-500 font-mono">{idx + 1}</td>
+                      <td className="py-1.5 print:py-2.5 px-2.5">
                         <div className="flex items-center gap-2">
                           <div className="w-8 h-7 rounded border border-slate-200 bg-white p-0.5 flex items-center justify-center shrink-0 overflow-hidden">
                             <img 
@@ -474,27 +742,27 @@ export const InvoiceModal = ({ isOpen, onClose, invoiceData }) => {
                               onError={(e) => { e.currentTarget.src = '/logo_symbol.png'; }}
                             />
                           </div>
-                          <span className="font-extrabold text-slate-950 text-[9.5px] leading-tight">
+                          <span className="font-extrabold text-slate-950 text-[9.5px] print:text-[10px] leading-tight">
                             {it.product_name || it.name || 'Optical Eyewear'}
                           </span>
                         </div>
                       </td>
-                      <td className="py-1.5 px-2.5 text-slate-600 text-[8.5px] leading-tight whitespace-pre-line">
+                      <td className="py-1.5 print:py-2.5 px-2.5 text-slate-600 text-[8.5px] print:text-[9.5px] leading-tight whitespace-pre-line">
                         {detailText}
                       </td>
-                      <td className="py-1.5 px-2 text-center font-mono text-slate-600 text-[8.5px]">
+                      <td className="py-1.5 print:py-2.5 px-2 text-center font-mono text-slate-600 text-[8.5px] print:text-[9.5px]">
                         {it.product_sku || it.sku || `NU-OPT-00${idx + 1}`}
                       </td>
-                      <td className="py-1.5 px-1.5 text-center font-bold text-slate-900 font-mono">
+                      <td className="py-1.5 print:py-2.5 px-1.5 text-center font-bold text-slate-900 font-mono">
                         {qty}
                       </td>
-                      <td className="py-1.5 px-2 text-right font-mono text-slate-700">
+                      <td className="py-1.5 print:py-2.5 px-2 text-right font-mono text-slate-700">
                         {rate.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </td>
-                      <td className="py-1.5 px-2 text-right font-mono text-slate-500">
+                      <td className="py-1.5 print:py-2.5 px-2 text-right font-mono text-slate-500">
                         {disc.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </td>
-                      <td className="py-1.5 px-2.5 text-right font-black font-mono text-slate-950">
+                      <td className="py-1.5 print:py-2.5 px-2.5 text-right font-black font-mono text-slate-950">
                         {lineTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </td>
                     </tr>
@@ -584,66 +852,32 @@ export const InvoiceModal = ({ isOpen, onClose, invoiceData }) => {
 
           </div>
 
-          {/* ================= 6. PAYMENT INFO, UPI & SIGNATORY ================= */}
+          {/* ================= 6. INVOICE DATE & SIGNATORY ================= */}
           <div className="grid grid-cols-12 gap-3 mt-2.5 border-t border-b border-slate-200 py-2 items-center">
             
-            {/* Col 1 (4 cols): Payment Information */}
-            <div className="col-span-4 space-y-1 text-[9px] text-slate-800">
+            {/* Col 1 (8 cols): Invoice Date only */}
+            <div className="col-span-8 space-y-1 text-[9px] text-slate-800">
               <div className="flex items-center gap-1.5 font-black text-[#002D5B] uppercase tracking-wider text-[9.5px]">
                 <ShieldCheck className="w-3.5 h-3.5 text-cyan-800" />
-                <span>Payment Information</span>
+                <span>Invoice Details</span>
               </div>
-              <div className="grid grid-cols-12">
-                <span className="col-span-6 text-slate-600">UPI Transaction ID</span>
-                <span className="col-span-6 font-mono font-bold text-slate-900">: {transactionId || '629455389712'}</span>
-              </div>
-              <div className="grid grid-cols-12">
-                <span className="col-span-6 text-slate-600">Payment Date</span>
-                <span className="col-span-6 font-mono text-slate-800">: {invoiceDate}, {invoiceTime}</span>
-              </div>
-              <div className="grid grid-cols-12">
-                <span className="col-span-6 text-slate-600">Payment Status</span>
-                <span className="col-span-6 font-bold text-emerald-600 flex items-center gap-1">
-                  : <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" /> Payment Received
-                </span>
-              </div>
-            </div>
-
-            {/* Col 2 (4 cols): Scan to Pay (UPI) - ONLY IF ADMIN CONFIGURED UPI ID */}
-            <div className="col-span-4 flex items-center justify-center min-h-[70px]">
-              {hasConfiguredPaymentQr ? (
-                <div className="flex items-center gap-2 bg-slate-50 border border-slate-300 rounded-xl p-1.5 w-full">
-                  <img 
-                    src={configuredQrImage || upiQrDataUrl || upiQrFallback} 
-                    alt="Scan to Pay UPI" 
-                    width="54"
-                    height="54"
-                    style={{ width: '54px', height: '54px', display: 'block' }}
-                    className="object-contain rounded bg-white p-0.5 border border-slate-200 shrink-0"
-                  />
-                  <div className="text-left leading-tight">
-                    <span className="text-[8px] font-black uppercase tracking-wider text-[#002D5B] block">
-                      Scan to Pay (UPI)
-                    </span>
-                    <span className="text-[9px] font-extrabold text-slate-900 block mt-0.5">
-                      NETRA UNNAYAN
-                    </span>
-                    <span className="text-[7.5px] font-mono text-slate-600 block">
-                      UPI ID: {configuredUpiId}
-                    </span>
-                    <div className="flex items-center gap-1 mt-0.5">
-                      <span className="text-[7.5px] font-black bg-cyan-100 text-cyan-900 px-1 rounded">BHIM</span>
-                      <span className="text-[7.5px] font-black bg-emerald-100 text-emerald-900 px-1 rounded">UPI</span>
-                      <span className="text-[6.5px] text-slate-500 font-medium">Scan &amp; Pay with any UPI App</span>
-                    </div>
-                  </div>
+              <div className="flex items-center gap-6 mt-1">
+                <div className="flex flex-col">
+                  <span className="text-[8px] text-slate-500 uppercase tracking-wider font-semibold">Invoice Date</span>
+                  <span className="text-[11px] font-bold text-slate-900 font-mono">{invoiceDate}</span>
                 </div>
-              ) : (
-                <div className="w-full h-full" />
-              )}
+                <div className="flex flex-col">
+                  <span className="text-[8px] text-slate-500 uppercase tracking-wider font-semibold">Invoice No</span>
+                  <span className="text-[10px] font-bold text-[#002D5B] font-mono">{invoiceNumber}</span>
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-[8px] text-slate-500 uppercase tracking-wider font-semibold">Payment Mode</span>
+                  <span className="text-[10px] font-bold text-slate-800">{paymentMode}</span>
+                </div>
+              </div>
             </div>
 
-            {/* Col 3 (4 cols): Authorized Signatory */}
+            {/* Col 2 (4 cols): Authorized Signatory */}
             <div className="col-span-4 flex items-center justify-end relative">
               <div className="flex flex-col items-center text-center pr-3 z-10">
                   {/* Signature — Proprietor Name in Cursive */}
@@ -740,6 +974,8 @@ export const InvoiceModal = ({ isOpen, onClose, invoiceData }) => {
           </div>{/* end invoice-canvas */}
 
         </div>{/* end invoice-scale-wrapper */}
+
+        </div>{/* end scroll wrapper */}
 
       </div>
 

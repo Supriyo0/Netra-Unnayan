@@ -27,7 +27,11 @@ if (($auth['type'] ?? '') === 'admin') {
     $admin['permissions'] = json_decode($admin['permissions'] ?? '[]', true);
     Response::success($admin, 'Admin profile retrieved');
 } else {
-    $stmt = $pdo->prepare('SELECT id, full_name, email, phone, created_at FROM customers WHERE id = ?');
+    try {
+        $pdo->exec("ALTER TABLE customers ADD COLUMN IF NOT EXISTS avatar_url TEXT NULL");
+    } catch (Exception $e) {}
+
+    $stmt = $pdo->prepare('SELECT id, full_name, email, phone, COALESCE(avatar_url, "") as avatar_url, created_at FROM customers WHERE id = ?');
     $stmt->execute([$auth['id']]);
     $customer = $stmt->fetch();
     if (!$customer) Response::unauthorized('Customer session expired.');

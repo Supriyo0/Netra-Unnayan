@@ -408,7 +408,7 @@ export const AdminPosPage = () => {
           discountAmount: inv.discount_amount,
           shippingFee: 0,
           totalAmount: inv.total_amount,
-          cashier: inv.cashier || (user?.full_name || 'Supriyo Naskar'),
+          cashier: inv.cashier || (user?.full_name || 'Sagar Shaoo'),
           warrantyNote: inv.warranty_note || warrantyNote,
           notes: billNotes
         });
@@ -875,7 +875,7 @@ export const AdminPosPage = () => {
           <div className="lg:col-span-4 space-y-6">
             <div className="glass-card rounded-2xl p-6 space-y-4 border border-white/10">
               
-              <h3 className="text-xs font-bold uppercase tracking-wider text-brand-cyan border-b border-white/10 pb-2">
+              <h3 className="text-xs font-black uppercase tracking-wider text-sky-700 dark:text-brand-cyan border-b border-slate-200 dark:border-white/10 pb-2">
                 Customer &amp; Payment Details
               </h3>
 
@@ -933,10 +933,10 @@ export const AdminPosPage = () => {
                       key={pm}
                       type="button"
                       onClick={() => setPaymentMode(pm)}
-                      className={`py-2 rounded-xl border text-center transition-all ${
+                      className={`py-2 rounded-xl border text-center font-black transition-all cursor-pointer ${
                         paymentMode === pm 
-                          ? 'bg-brand-cyan text-slate-950 font-black border-brand-cyan shadow-cyan-glow' 
-                          : 'bg-white/5 border-white/10 text-slate-300 hover:border-white/30'
+                          ? 'bg-brand-cyan text-slate-950 border-brand-cyan shadow-sm' 
+                          : 'bg-white dark:bg-white/5 border-slate-300 dark:border-white/10 text-slate-800 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/10 shadow-xs'
                       }`}
                     >
                       {pm}
@@ -997,16 +997,16 @@ export const AdminPosPage = () => {
                     <span className="font-mono">-₹{discountAmount.toLocaleString('en-IN')}</span>
                   </div>
                 )}
-                <div className="border-t border-white/10 pt-2 flex justify-between items-baseline">
-                  <span className="font-bold text-white text-sm">Grand Total</span>
-                  <span className="text-2xl font-black text-brand-cyan font-mono">₹{finalTotal.toLocaleString('en-IN')}</span>
+                <div className="border-t border-slate-200 dark:border-white/10 pt-2 flex justify-between items-baseline">
+                  <span className="font-bold text-slate-900 dark:text-white text-sm">Grand Total</span>
+                  <span className="text-2xl font-black text-sky-700 dark:text-brand-cyan font-mono">₹{finalTotal.toLocaleString('en-IN')}</span>
                 </div>
               </div>
 
               {/* Error Display above Button */}
               {errorMessage && (
-                <div className="p-3 rounded-xl bg-rose-500/20 border border-rose-500/40 text-rose-200 text-xs flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+                <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-500/20 border border-rose-300 dark:border-rose-500/40 text-rose-800 dark:text-rose-200 text-xs flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0" />
                   <span className="font-semibold">{errorMessage}</span>
                 </div>
               )}
@@ -1016,7 +1016,7 @@ export const AdminPosPage = () => {
                 type="button"
                 onClick={handleFinalizeBill}
                 disabled={isSubmitting || posItems.length === 0}
-                className="w-full py-3.5 px-4 rounded-xl bg-brand-cyan hover:bg-cyan-400 text-slate-950 font-black text-xs shadow-cyan-glow flex items-center justify-center gap-2 disabled:opacity-50 transition-all cursor-pointer hover:scale-[1.01] active:scale-95"
+                className="w-full py-3.5 px-4 rounded-xl bg-brand-cyan hover:bg-cyan-400 text-slate-950 font-black text-xs shadow-cyan-glow flex items-center justify-center gap-2 disabled:opacity-60 disabled:bg-slate-200 dark:disabled:bg-slate-800 disabled:text-slate-600 dark:disabled:text-slate-400 disabled:shadow-none transition-all cursor-pointer hover:scale-[1.01] active:scale-95"
               >
                 {isSubmitting ? (
                   <>
@@ -1233,7 +1233,7 @@ export const AdminPosPage = () => {
         isOpen={!!selectedInvoiceForModal}
         onClose={() => setSelectedInvoiceForModal(null)}
         invoiceData={selectedInvoiceForModal
-          ? { ...selectedInvoiceForModal, upi_id: storeSettings.upi_id, payment_qr_image: storeSettings.upi_qr_image }
+          ? { ...selectedInvoiceForModal, upi_id: storeSettings?.upi_id || '', payment_qr_image: storeSettings?.upi_qr_image || '' }
           : null
         }
       />

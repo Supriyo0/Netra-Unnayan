@@ -226,7 +226,7 @@ export const AdminLayout = () => {
 
           {/* Staff Profile Pill */}
           <div className="p-3 rounded-xl bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/5 flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-brand-cyan/20 text-brand-cyan flex items-center justify-center font-extrabold text-xs shrink-0 border border-brand-cyan/40">
+            <div className="w-9 h-9 rounded-full bg-cyan-100 dark:bg-brand-cyan/20 text-cyan-900 dark:text-brand-cyan flex items-center justify-center font-black text-xs shrink-0 border border-cyan-300 dark:border-brand-cyan/40">
               {user.full_name?.charAt(0) || 'S'}
             </div>
             <div className="overflow-hidden flex-1">
@@ -372,7 +372,7 @@ export const AdminLayout = () => {
 
             {/* Admin Avatar Pill */}
             <div className="flex items-center gap-2 pl-2 border-l border-slate-200 dark:border-white/10">
-              <div className="w-8 h-8 rounded-full bg-brand-cyan/20 border border-brand-cyan/40 text-brand-cyan font-extrabold text-xs flex items-center justify-center">
+              <div className="w-8 h-8 rounded-full bg-cyan-100 dark:bg-brand-cyan/20 border border-cyan-300 dark:border-brand-cyan/40 text-cyan-900 dark:text-brand-cyan font-black text-xs flex items-center justify-center">
                 {user.full_name?.charAt(0) || 'A'}
               </div>
             </div>

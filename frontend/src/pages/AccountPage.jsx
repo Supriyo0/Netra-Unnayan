@@ -253,29 +253,66 @@ export const AccountPage = () => {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploadingAvatar(true);
+    setProfileFeedback({ type: '', message: '' });
     try {
       const formData = new FormData();
       formData.append('file', file);
       const res = await api.post('/upload_imgbb.php', formData);
       if (res.success && res.data?.url) {
-        setProfileForm(prev => ({ ...prev, avatar_url: res.data.url }));
-        setProfileFeedback({ type: 'success', message: 'Photo uploaded! Click "Save Profile Changes" to apply.' });
+        const newUrl = res.data.url;
+        setProfileForm(prev => ({ ...prev, avatar_url: newUrl }));
+        // Automatically persist to backend database immediately so it never disappears
+        try {
+          const saveRes = await api.post('/account/profile.php', {
+            ...profileForm,
+            avatar_url: newUrl
+          });
+          if (saveRes.success) {
+            updateUser({ avatar_url: newUrl });
+            setProfileFeedback({ type: 'success', message: 'Profile photo updated and saved permanently!' });
+            setTimeout(() => setProfileFeedback({ type: '', message: '' }), 4000);
+          }
+        } catch {
+          setProfileFeedback({ type: 'success', message: 'Photo uploaded! Click "Save Profile Changes" below to confirm.' });
+        }
       } else {
-        const reader = new FileReader();
-        reader.onload = () => {
-          setProfileForm(prev => ({ ...prev, avatar_url: reader.result }));
-        };
-        reader.readAsDataURL(file);
+        setProfileFeedback({ type: 'error', message: res.message || 'Image upload failed. Please try again.' });
       }
-    } catch {
-      const reader = new FileReader();
-      reader.onload = () => {
-        setProfileForm(prev => ({ ...prev, avatar_url: reader.result }));
-      };
-      reader.readAsDataURL(file);
+    } catch (err) {
+      setProfileFeedback({ type: 'error', message: err.message || 'Upload error. Please check your image file.' });
     } finally {
       setUploadingAvatar(false);
     }
+  };
+
+  const handleSelectPresetAvatar = async (url) => {
+    setProfileForm(prev => ({ ...prev, avatar_url: url }));
+    try {
+      const saveRes = await api.post('/account/profile.php', {
+        ...profileForm,
+        avatar_url: url
+      });
+      if (saveRes.success) {
+        updateUser({ avatar_url: url });
+        setProfileFeedback({ type: 'success', message: 'Avatar updated successfully!' });
+        setTimeout(() => setProfileFeedback({ type: '', message: '' }), 4000);
+      }
+    } catch {}
+  };
+
+  const handleRemoveAvatar = async () => {
+    setProfileForm(prev => ({ ...prev, avatar_url: '' }));
+    try {
+      const saveRes = await api.post('/account/profile.php', {
+        ...profileForm,
+        avatar_url: ''
+      });
+      if (saveRes.success) {
+        updateUser({ avatar_url: '' });
+        setProfileFeedback({ type: 'success', message: 'Profile photo removed.' });
+        setTimeout(() => setProfileFeedback({ type: '', message: '' }), 4000);
+      }
+    } catch {}
   };
 
   // Refresh addresses
@@ -504,7 +541,7 @@ export const AccountPage = () => {
         <button
           onClick={() => handleTabChange('orders')}
           className={`px-4 py-2.5 rounded-xl font-bold flex items-center gap-2 transition-all shrink-0 ${
-            activeTab === 'orders' ? 'bg-brand-cyan text-slate-950 shadow-cyan-glow' : 'glass-nav-pill text-slate-300 hover:text-white'
+            activeTab === 'orders' ? 'bg-brand-cyan text-slate-950 shadow-cyan-glow' : 'glass-nav-pill text-slate-700 dark:text-slate-300 hover:text-slate-950 dark:hover:text-white'
           }`}
         >
           <Package className="w-4 h-4" /> My Orders ({orders.length})
@@ -513,7 +550,7 @@ export const AccountPage = () => {
         <button
           onClick={() => handleTabChange('bookings')}
           className={`px-4 py-2.5 rounded-xl font-bold flex items-center gap-2 transition-all shrink-0 ${
-            activeTab === 'bookings' ? 'bg-emerald-400 text-slate-950 shadow-emerald-glow' : 'glass-nav-pill text-slate-300 hover:text-white'
+            activeTab === 'bookings' ? 'bg-emerald-400 text-slate-950 shadow-emerald-glow' : 'glass-nav-pill text-slate-700 dark:text-slate-300 hover:text-slate-950 dark:hover:text-white'
           }`}
         >
           <Calendar className="w-4 h-4" /> My Bookings ({totalBookingsCount})
@@ -525,7 +562,7 @@ export const AccountPage = () => {
         <button
           onClick={() => handleTabChange('addresses')}
           className={`px-4 py-2.5 rounded-xl font-bold flex items-center gap-2 transition-all shrink-0 ${
-            activeTab === 'addresses' ? 'bg-brand-cyan text-slate-950 shadow-cyan-glow' : 'glass-nav-pill text-slate-300 hover:text-white'
+            activeTab === 'addresses' ? 'bg-brand-cyan text-slate-950 shadow-cyan-glow' : 'glass-nav-pill text-slate-700 dark:text-slate-300 hover:text-slate-950 dark:hover:text-white'
           }`}
         >
           <MapPin className="w-4 h-4" /> Saved Addresses ({addresses.length})
@@ -534,7 +571,7 @@ export const AccountPage = () => {
         <button
           onClick={() => handleTabChange('prescriptions')}
           className={`px-4 py-2.5 rounded-xl font-bold flex items-center gap-2 transition-all shrink-0 ${
-            activeTab === 'prescriptions' ? 'bg-brand-cyan text-slate-950 shadow-cyan-glow' : 'glass-nav-pill text-slate-300 hover:text-white'
+            activeTab === 'prescriptions' ? 'bg-brand-cyan text-slate-950 shadow-cyan-glow' : 'glass-nav-pill text-slate-700 dark:text-slate-300 hover:text-slate-950 dark:hover:text-white'
           }`}
         >
           <FileText className="w-4 h-4" /> Optical Health Vault ({prescriptions.length})
@@ -543,7 +580,7 @@ export const AccountPage = () => {
         <button
           onClick={() => handleTabChange('profile')}
           className={`px-4 py-2.5 rounded-xl font-bold flex items-center gap-2 transition-all shrink-0 ${
-            activeTab === 'profile' ? 'bg-brand-cyan text-slate-950 shadow-cyan-glow' : 'glass-nav-pill text-slate-300 hover:text-white'
+            activeTab === 'profile' ? 'bg-brand-cyan text-slate-950 shadow-cyan-glow' : 'glass-nav-pill text-slate-700 dark:text-slate-300 hover:text-slate-950 dark:hover:text-white'
           }`}
         >
           <User className="w-4 h-4" /> Profile &amp; Settings
@@ -556,24 +593,24 @@ export const AccountPage = () => {
           {cancelFeedback.text && (
             <div className={`p-4 rounded-2xl flex items-center justify-between gap-3 text-xs font-bold ${
               cancelFeedback.type === 'success' 
-                ? 'bg-teal-500/15 border border-teal-500/30 text-teal-300' 
-                : 'bg-rose-500/15 border border-rose-500/30 text-rose-300'
+                ? 'bg-teal-500/15 border border-teal-500/30 text-teal-700 dark:text-teal-300' 
+                : 'bg-rose-500/15 border border-rose-500/30 text-rose-700 dark:text-rose-300'
             }`}>
               <div className="flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-teal-400" />
+                <CheckCircle2 className="w-4 h-4 text-teal-500" />
                 <span>{cancelFeedback.text}</span>
               </div>
-              <button onClick={() => setCancelFeedback({ type: '', text: '' })} className="text-slate-400 hover:text-white">
+              <button onClick={() => setCancelFeedback({ type: '', text: '' })} className="text-slate-500 hover:text-slate-900 dark:hover:text-white">
                 <X className="w-4 h-4" />
               </button>
             </div>
           )}
 
           {orders.length === 0 ? (
-            <div className="glass-card rounded-2xl p-12 text-center space-y-3">
-              <Package className="w-10 h-10 text-slate-600 mx-auto" />
-              <h3 className="text-sm font-bold text-white">No Eyewear Orders Yet</h3>
-              <p className="text-xs text-slate-400">Discover our collection of prescription frames and polarized sunglasses.</p>
+            <div className="glass-card rounded-2xl p-12 text-center space-y-3 border border-slate-200 dark:border-white/10">
+              <Package className="w-10 h-10 text-slate-400 mx-auto" />
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white">No Eyewear Orders Yet</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Discover our collection of prescription frames and polarized sunglasses.</p>
               <Link to="/catalog" className="btn-primary text-xs py-2 px-4 inline-flex">
                 Shop Eyewear Now
               </Link>
@@ -585,11 +622,11 @@ export const AccountPage = () => {
                 const rejectionNote = rejectionHistory?.note?.replace('Cancellation Request Rejected:', '').trim() || (ord.notes?.includes('[Cancellation Rejected by Admin]:') ? ord.notes.split('[Cancellation Rejected by Admin]:')[1]?.trim() : '');
 
                 return (
-                  <div key={ord.id} className="glass-card rounded-2xl p-5 space-y-4 border border-white/10">
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-white/10 pb-3">
+                  <div key={ord.id} className="glass-card rounded-2xl p-5 space-y-4 border border-slate-200 dark:border-white/10 shadow-sm">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-slate-200 dark:border-white/10 pb-3">
                       <div>
-                        <div className="text-[10px] text-slate-400 font-mono">Order Number</div>
-                        <Link to={`/order-tracking?order=${ord.order_number}`} className="font-bold text-white text-base hover:text-brand-cyan transition-colors flex items-center gap-1.5">
+                        <div className="text-[10px] text-slate-500 dark:text-slate-400 font-mono font-semibold">Order Number</div>
+                        <Link to={`/order-tracking?order=${ord.order_number}`} className="font-extrabold text-slate-900 dark:text-white text-base hover:text-cyan-600 dark:hover:text-brand-cyan transition-colors flex items-center gap-1.5">
                           {ord.order_number}
                           <ExternalLink className="w-3.5 h-3.5 text-slate-400" />
                         </Link>
@@ -597,18 +634,18 @@ export const AccountPage = () => {
 
                       <div className="flex flex-wrap items-center gap-2.5">
                         <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                          ord.order_status === 'Delivered' ? 'bg-teal-500/20 text-teal-300 border border-teal-500/30' :
-                          ord.order_status === 'Shipped' ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30' :
-                          ord.order_status === 'Cancelled' ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30' :
-                          ord.order_status === 'Processing' ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30' :
-                          'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                          ord.order_status === 'Delivered' ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-500/30' :
+                          ord.order_status === 'Shipped' ? 'bg-blue-100 dark:bg-blue-500/20 text-blue-800 dark:text-blue-300 border border-blue-300 dark:border-blue-500/30' :
+                          ord.order_status === 'Cancelled' ? 'bg-rose-100 dark:bg-rose-500/20 text-rose-800 dark:text-rose-300 border border-rose-300 dark:border-rose-500/30' :
+                          ord.order_status === 'Processing' ? 'bg-purple-100 dark:bg-purple-500/20 text-purple-800 dark:text-purple-300 border border-purple-300 dark:border-purple-500/30' :
+                          'bg-amber-100 dark:bg-amber-500/20 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-500/30'
                         }`}>
                           {ord.order_status}
                         </span>
 
                         <Link 
                           to={`/order-tracking?order=${ord.order_number}`}
-                          className="btn-secondary text-[11px] py-1.5 px-3 rounded-lg flex items-center gap-1"
+                          className="btn-secondary text-[11px] py-1.5 px-3 rounded-lg flex items-center gap-1 text-slate-800 dark:text-slate-200 border-slate-300 dark:border-white/15"
                         >
                           <Truck className="w-3.5 h-3.5 text-brand-cyan" /> Track Shipment
                         </Link>
@@ -617,12 +654,12 @@ export const AccountPage = () => {
 
                     {/* Rejection Notice Banner (if admin declined cancellation) */}
                     {rejectionNote && ord.order_status !== 'Cancelled' && (
-                      <div className="p-3.5 rounded-xl bg-amber-500/15 border border-amber-500/30 text-xs space-y-1">
-                        <div className="flex items-center gap-1.5 text-amber-400 font-bold uppercase text-[10px] tracking-wider">
+                      <div className="p-3.5 rounded-xl bg-amber-50 dark:bg-amber-500/15 border border-amber-300 dark:border-amber-500/30 text-xs space-y-1">
+                        <div className="flex items-center gap-1.5 text-amber-700 dark:text-amber-400 font-bold uppercase text-[10px] tracking-wider">
                           <AlertCircle className="w-3.5 h-3.5" />
                           <span>Cancellation Request Status: Maintained in Production</span>
                         </div>
-                        <p className="text-slate-200 leading-relaxed">
+                        <p className="text-slate-800 dark:text-slate-200 leading-relaxed">
                           <strong>Team Note:</strong> {rejectionNote}
                         </p>
                       </div>
@@ -630,38 +667,38 @@ export const AccountPage = () => {
 
                     {/* Cancelled Banner */}
                     {ord.order_status === 'Cancelled' && (
-                      <div className="p-3.5 rounded-xl bg-rose-500/15 border border-rose-500/30 text-xs space-y-1">
-                        <div className="flex items-center gap-1.5 text-rose-400 font-bold uppercase text-[10px] tracking-wider">
+                      <div className="p-3.5 rounded-xl bg-rose-50 dark:bg-rose-500/15 border border-rose-300 dark:border-rose-500/30 text-xs space-y-1">
+                        <div className="flex items-center gap-1.5 text-rose-700 dark:text-rose-400 font-bold uppercase text-[10px] tracking-wider">
                           <X className="w-3.5 h-3.5" />
                           <span>Order Cancelled</span>
                         </div>
-                        <p className="text-slate-300">
+                        <p className="text-slate-700 dark:text-slate-300">
                           <strong>Reason:</strong> {ord.cancel_reason || 'Customer requested cancellation'}
                         </p>
                         {ord.payment_status && (
-                          <p className="text-slate-400 text-[11px]">Refund / Payment Status: {ord.payment_status}</p>
+                          <p className="text-slate-500 dark:text-slate-400 text-[11px]">Refund / Payment Status: {ord.payment_status}</p>
                         )}
                       </div>
                     )}
 
                     {/* Courier & Shipping Tracking Banner (if assigned) */}
                     {(ord.courier_name || ord.tracking_number) && (
-                      <div className="p-3.5 rounded-xl bg-blue-500/10 border border-blue-500/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
+                      <div className="p-3.5 rounded-xl bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
                         <div className="flex items-center gap-2.5">
-                          <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center text-blue-400 shrink-0">
+                          <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-500/20 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0">
                             <Truck className="w-4 h-4" />
                           </div>
                           <div>
-                            <div className="font-bold text-white flex items-center gap-2">
+                            <div className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
                               <span>Dispatched via {ord.courier_name || 'Express Logistics'}</span>
                               {ord.estimated_delivery_date && (
-                                <span className="text-[10px] text-blue-300 font-normal">
+                                <span className="text-[10px] text-blue-600 dark:text-blue-300 font-normal">
                                   (Est. Delivery: {new Date(ord.estimated_delivery_date).toLocaleDateString()})
                                 </span>
                               )}
                             </div>
-                            <div className="text-[11px] text-slate-300 font-mono">
-                              AWB Tracking: <strong className="text-brand-cyan">{ord.tracking_number}</strong>
+                            <div className="text-[11px] text-slate-600 dark:text-slate-300 font-mono">
+                              AWB Tracking: <strong className="text-cyan-700 dark:text-brand-cyan">{ord.tracking_number}</strong>
                             </div>
                           </div>
                         </div>
@@ -679,20 +716,20 @@ export const AccountPage = () => {
                     )}
 
                     {/* Preview Items */}
-                    <div className="space-y-2 bg-white/5 p-3 rounded-xl">
+                    <div className="space-y-2 bg-slate-50 dark:bg-white/5 border border-slate-200/60 dark:border-white/5 p-3 rounded-xl">
                       {(ord.preview_items || ord.items || []).map((it, idx) => (
-                        <div key={idx} className="flex items-center justify-between text-xs text-slate-300">
+                        <div key={idx} className="flex items-center justify-between text-xs text-slate-700 dark:text-slate-300">
                           <span className="font-medium">{it.product_name} ({it.product_sku || 'Frame'}) &times; {it.quantity}</span>
-                          <span className="font-mono text-white font-bold">₹{parseFloat(it.total_price || (it.unit_price * it.quantity) || 0).toLocaleString('en-IN')}</span>
+                          <span className="font-mono text-slate-950 dark:text-white font-bold">₹{parseFloat(it.total_price || (it.unit_price * it.quantity) || 0).toLocaleString('en-IN')}</span>
                         </div>
                       ))}
                     </div>
 
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between pt-2 border-t border-white/5 text-xs text-slate-400 gap-2">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between pt-2 border-t border-slate-200 dark:border-white/5 text-xs text-slate-500 dark:text-slate-400 gap-2">
                       <span>Placed on: {new Date(ord.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
                       <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                        <span>Payment: <span className="font-semibold text-slate-200">{ord.payment_mode}</span></span>
-                        <span>Total: <strong className="text-white text-sm font-mono text-brand-cyan">₹{parseFloat(ord.total_amount || 0).toLocaleString('en-IN')}</strong></span>
+                        <span>Payment: <span className="font-semibold text-slate-800 dark:text-slate-200">{ord.payment_mode}</span></span>
+                        <span>Total: <strong className="text-slate-950 dark:text-white text-sm font-mono font-bold text-cyan-600 dark:text-brand-cyan">₹{parseFloat(ord.total_amount || 0).toLocaleString('en-IN')}</strong></span>
                         
                         {/* Cancel Button (if allowed) */}
                         {ord.can_cancel && ord.order_status !== 'Cancelled' && (
@@ -703,7 +740,7 @@ export const AccountPage = () => {
                               setCancelReasonOption('Change of mind / Found alternative');
                               setCancelCustomReason('');
                             }}
-                            className="px-2.5 py-1 rounded-lg text-[11px] font-bold text-rose-400 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 transition-all cursor-pointer"
+                            className="px-2.5 py-1 rounded-lg text-[11px] font-bold text-rose-700 dark:text-rose-400 bg-rose-100 dark:bg-rose-500/15 hover:bg-rose-200 dark:hover:bg-rose-500/25 border border-rose-300 dark:border-rose-500/30 transition-all cursor-pointer"
                           >
                             Cancel Order
                           </button>
@@ -713,7 +750,7 @@ export const AccountPage = () => {
                           onClick={() => setInvoiceModalData({
                             invoiceNumber: ord.invoice_number || `NU-INV-${ord.order_number?.replace('NU-', '') || ord.id}`,
                             orderNumber: ord.order_number,
-                            invoiceDate: new Date(ord.created_at).toISOString().split('T')[0],
+                            invoiceDate: ord.created_at ? new Date(ord.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : new Date().toLocaleDateString('en-GB'),
                             type: ord.order_type === 'POS_OFFLINE' ? 'POS' : 'ORDER',
                             status: ord.order_status,
                             paymentMode: ord.payment_mode,
@@ -738,10 +775,10 @@ export const AccountPage = () => {
                             totalAmount: Number(ord.total_amount || 0),
                             warrantyNote: '1-Year Optical Warranty on Frame & Multi-Coat Anti-Glare Optics against manufacturing defects.'
                           })}
-                          className="btn-secondary text-[11px] py-1 px-2.5 rounded-lg flex items-center gap-1 text-brand-cyan border-brand-cyan/30 hover:bg-brand-cyan/10 transition-colors cursor-pointer"
+                          className="text-[11px] font-bold py-1 px-3 rounded-lg flex items-center gap-1.5 text-cyan-800 dark:text-cyan-300 bg-cyan-100/80 dark:bg-cyan-950/50 border border-cyan-400/60 dark:border-cyan-700 hover:bg-cyan-200 dark:hover:bg-cyan-900/80 shadow-xs transition-all cursor-pointer"
                           title="Download / View Tax Invoice"
                         >
-                          <FileText className="w-3.5 h-3.5" />
+                          <FileText className="w-3.5 h-3.5 text-cyan-700 dark:text-cyan-300" />
                           <span>Tax Invoice</span>
                         </button>
                       </div>
@@ -760,22 +797,22 @@ export const AccountPage = () => {
           
           {/* Section A: Doctor Consultations */}
           <div className="space-y-4">
-            <div className="flex items-center justify-between border-b border-white/10 pb-3">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/10 pb-3">
               <div>
-                <h3 className="text-base font-bold text-white flex items-center gap-2">
-                  <Stethoscope className="w-5 h-5 text-emerald-400" /> Doctor Clinic Consultations
+                <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  <Stethoscope className="w-5 h-5 text-emerald-600 dark:text-emerald-400" /> Doctor Clinic Consultations
                 </h3>
-                <p className="text-xs text-slate-400">Bookings with ophthalmologists &amp; optometrists at Netra Unnayan Digha Clinic.</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Bookings with ophthalmologists &amp; optometrists at Netra Unnayan Digha Clinic.</p>
               </div>
-              <Link to="/doctors" className="btn-secondary text-xs py-1.5 px-3 rounded-lg flex items-center gap-1 text-emerald-400 border-emerald-500/20">
+              <Link to="/doctors" className="btn-secondary text-xs py-1.5 px-3 rounded-lg flex items-center gap-1 text-emerald-700 dark:text-emerald-400 border-emerald-300 dark:border-emerald-500/20">
                 <Plus className="w-3.5 h-3.5" /> Book Doctor
               </Link>
             </div>
 
             {(!bookings.doctor_appointments || bookings.doctor_appointments.length === 0) ? (
-              <div className="glass-card rounded-2xl p-8 text-center space-y-2">
-                <Stethoscope className="w-8 h-8 text-slate-600 mx-auto" />
-                <p className="text-xs text-slate-400">No clinic appointments booked yet.</p>
+              <div className="glass-card rounded-2xl p-8 text-center space-y-2 border border-slate-200 dark:border-white/10">
+                <Stethoscope className="w-8 h-8 text-slate-400 mx-auto" />
+                <p className="text-xs text-slate-500 dark:text-slate-400">No clinic appointments booked yet.</p>
                 <Link to="/doctors" className="btn-primary text-xs py-2 px-4 inline-flex">
                   Explore Doctors &amp; Schedule Slot
                 </Link>
@@ -783,24 +820,24 @@ export const AccountPage = () => {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {bookings.doctor_appointments.map((apt) => (
-                  <div key={apt.id} className="glass-card rounded-2xl p-5 space-y-4 border border-white/10 relative overflow-hidden">
+                  <div key={apt.id} className="glass-card rounded-2xl p-5 space-y-4 border border-slate-200 dark:border-white/10 relative overflow-hidden shadow-sm">
                     {/* Top Status Header */}
-                    <div className="flex items-start justify-between gap-3 border-b border-white/10 pb-3">
+                    <div className="flex items-start justify-between gap-3 border-b border-slate-200 dark:border-white/10 pb-3">
                       <div>
-                        <span className="text-[10px] font-mono text-slate-400 block">Token: {apt.booking_number}</span>
-                        <h4 className="font-extrabold text-sm text-white mt-0.5">{apt.doctor_name || 'Senior Consultant'}</h4>
-                        <span className="text-[11px] text-emerald-400 font-semibold">{apt.doctor_specialty}</span>
+                        <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400 block font-semibold">Token: {apt.booking_number}</span>
+                        <h4 className="font-extrabold text-sm text-slate-900 dark:text-white mt-0.5">{apt.doctor_name || 'Senior Consultant'}</h4>
+                        <span className="text-[11px] text-emerald-700 dark:text-emerald-400 font-semibold">{apt.doctor_specialty}</span>
                       </div>
 
                       {/* Status Badge */}
                       <span className={`px-2.5 py-1 rounded-full text-xs font-extrabold flex items-center gap-1.5 ${
                         apt.status === 'Confirmed' 
-                          ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-emerald-glow'
+                          ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-500/40 shadow-xs'
                           : apt.status === 'Completed'
-                          ? 'bg-teal-500/20 text-teal-300 border border-teal-500/40'
+                          ? 'bg-teal-100 dark:bg-teal-500/20 text-teal-800 dark:text-teal-300 border border-teal-300 dark:border-teal-500/40'
                           : apt.status === 'Cancelled'
-                          ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40'
-                          : 'bg-amber-500/20 text-amber-300 border border-amber-500/40 animate-pulse'
+                          ? 'bg-rose-100 dark:bg-rose-500/20 text-rose-800 dark:text-rose-300 border border-rose-300 dark:border-rose-500/40'
+                          : 'bg-amber-100 dark:bg-amber-500/20 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-500/40 animate-pulse'
                       }`}>
                         {apt.status === 'Confirmed' && <CheckCircle2 className="w-3.5 h-3.5" />}
                         {apt.status === 'Pending' && <Clock className="w-3.5 h-3.5" />}
@@ -811,19 +848,19 @@ export const AccountPage = () => {
                     {/* Status Message Info Box */}
                     <div className={`p-3 rounded-xl text-xs leading-relaxed ${
                       apt.status === 'Confirmed' 
-                        ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-200' 
+                        ? 'bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 text-emerald-800 dark:text-emerald-200' 
                         : apt.status === 'Pending'
-                        ? 'bg-amber-500/10 border border-amber-500/20 text-amber-200'
-                        : 'bg-white/5 text-slate-300'
+                        ? 'bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 text-amber-800 dark:text-amber-200'
+                        : 'bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-slate-300'
                     }`}>
                       {apt.status === 'Confirmed' ? (
                         <div>
-                          <strong className="block font-bold mb-0.5">Booking Confirmed by Clinic</strong>
+                          <strong className="block font-bold mb-0.5 text-emerald-900 dark:text-emerald-100">Booking Confirmed by Clinic</strong>
                           Your slot has been approved and confirmed. A confirmation SMS/Email has been dispatched. Please report 10 minutes prior to slot time.
                         </div>
                       ) : apt.status === 'Pending' ? (
                         <div>
-                          <strong className="block font-bold mb-0.5">Awaiting Clinic Verification</strong>
+                          <strong className="block font-bold mb-0.5 text-amber-900 dark:text-amber-100">Awaiting Clinic Verification</strong>
                           Your booking request has been forwarded to the clinic desk. Once verified by our reception, the status will immediately turn Confirmed and you will receive an alert.
                         </div>
                       ) : (
@@ -832,32 +869,32 @@ export const AccountPage = () => {
                     </div>
 
                     {/* Slot Details */}
-                    <div className="grid grid-cols-2 gap-2 text-xs bg-white/5 p-3 rounded-xl">
+                    <div className="grid grid-cols-2 gap-2 text-xs bg-slate-50 dark:bg-white/5 border border-slate-200/60 dark:border-white/5 p-3 rounded-xl">
                       <div>
-                        <span className="text-[10px] text-slate-400 block">Appointment Date</span>
-                        <span className="font-bold text-white font-mono flex items-center gap-1 mt-0.5">
-                          <Calendar className="w-3.5 h-3.5 text-brand-cyan" />
+                        <span className="text-[10px] text-slate-500 dark:text-slate-400 block font-semibold">Appointment Date</span>
+                        <span className="font-bold text-slate-900 dark:text-white font-mono flex items-center gap-1 mt-0.5">
+                          <Calendar className="w-3.5 h-3.5 text-cyan-600 dark:text-brand-cyan" />
                           {apt.appointment_date}
                         </span>
                       </div>
                       <div>
-                        <span className="text-[10px] text-slate-400 block">Time Slot</span>
-                        <span className="font-bold text-white font-mono flex items-center gap-1 mt-0.5">
-                          <Clock className="w-3.5 h-3.5 text-amber-400" />
+                        <span className="text-[10px] text-slate-500 dark:text-slate-400 block font-semibold">Time Slot</span>
+                        <span className="font-bold text-slate-900 dark:text-white font-mono flex items-center gap-1 mt-0.5">
+                          <Clock className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
                           {apt.appointment_time}
                         </span>
                       </div>
                     </div>
 
                     {/* Patient & Clinic Details */}
-                    <div className="space-y-1.5 text-xs text-slate-300">
+                    <div className="space-y-1.5 text-xs text-slate-600 dark:text-slate-300">
                       <div className="flex justify-between">
-                        <span className="text-slate-400">Patient Name:</span>
-                        <span className="font-semibold text-white">{apt.patient_name} {apt.patient_age ? `(${apt.patient_age} yrs)` : ''}</span>
+                        <span className="text-slate-500 dark:text-slate-400">Patient Name:</span>
+                        <span className="font-semibold text-slate-900 dark:text-white">{apt.patient_name} {apt.patient_age ? `(${apt.patient_age} yrs)` : ''}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-slate-400">Consultation Fee:</span>
-                        <span className="font-bold text-brand-cyan font-mono">₹{apt.doctor_fee || 500}</span>
+                        <span className="text-slate-500 dark:text-slate-400">Consultation Fee:</span>
+                        <span className="font-bold text-cyan-700 dark:text-brand-cyan font-mono">₹{apt.doctor_fee || 500}</span>
                       </div>
                       <div className="flex justify-between items-center pt-2 border-t border-white/5">
                         <span className="text-slate-400">Clinic Location:</span>
@@ -885,9 +922,9 @@ export const AccountPage = () => {
                             subtotal: apt.doctor_fee || 500,
                             warrantyNote: 'Official Consultation Slip & Optical Prescription Token'
                           })}
-                          className="btn-secondary text-[11px] py-1 px-3 rounded-lg flex items-center gap-1.5 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/10 transition-colors"
+                          className="text-[11px] font-bold py-1 px-3 rounded-lg flex items-center gap-1.5 text-emerald-800 dark:text-emerald-300 bg-emerald-100/80 dark:bg-emerald-950/50 border border-emerald-400/60 dark:border-emerald-700 hover:bg-emerald-200 dark:hover:bg-emerald-900/80 shadow-xs transition-all cursor-pointer"
                         >
-                          <FileText className="w-3.5 h-3.5" />
+                          <FileText className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-300" />
                           <span>Download Slip / Invoice</span>
                         </button>
                       </div>
@@ -899,23 +936,23 @@ export const AccountPage = () => {
           </div>
 
           {/* Section B: Home Eye Test Appointments */}
-          <div className="space-y-4 pt-4 border-t border-white/10">
-            <div className="flex items-center justify-between border-b border-white/10 pb-3">
+          <div className="space-y-4 pt-4 border-t border-slate-200 dark:border-white/10">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/10 pb-3">
               <div>
-                <h3 className="text-base font-bold text-white flex items-center gap-2">
-                  <HomeIcon className="w-5 h-5 text-brand-cyan" /> Home Eye Test Checkups
+                <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  <HomeIcon className="w-5 h-5 text-cyan-600 dark:text-brand-cyan" /> Home Eye Test Checkups
                 </h3>
-                <p className="text-xs text-slate-400">Certified optometrist doorstep vision test &amp; frame trial sessions.</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Certified optometrist doorstep vision test &amp; frame trial sessions.</p>
               </div>
-              <Link to="/home-eye-checkup" className="btn-secondary text-xs py-1.5 px-3 rounded-lg flex items-center gap-1 text-brand-cyan border-brand-cyan/20">
+              <Link to="/home-eye-checkup" className="btn-secondary text-xs py-1.5 px-3 rounded-lg flex items-center gap-1 text-cyan-800 dark:text-brand-cyan border-slate-300 dark:border-brand-cyan/20">
                 <Plus className="w-3.5 h-3.5" /> Book Home Visit
               </Link>
             </div>
 
             {(!bookings.home_visits || bookings.home_visits.length === 0) ? (
-              <div className="glass-card rounded-2xl p-8 text-center space-y-2">
-                <HomeIcon className="w-8 h-8 text-slate-600 mx-auto" />
-                <p className="text-xs text-slate-400">No home eye test visits requested yet.</p>
+              <div className="glass-card rounded-2xl p-8 text-center space-y-2 border border-slate-200 dark:border-white/10">
+                <HomeIcon className="w-8 h-8 text-slate-400 dark:text-slate-600 mx-auto" />
+                <p className="text-xs text-slate-500 dark:text-slate-400">No home eye test visits requested yet.</p>
                 <Link to="/home-eye-checkup" className="btn-primary text-xs py-2 px-4 inline-flex">
                   Schedule Free Home Eye Test
                 </Link>
@@ -923,22 +960,22 @@ export const AccountPage = () => {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {bookings.home_visits.map((vis) => (
-                  <div key={vis.id} className="glass-card rounded-2xl p-5 space-y-4 border border-white/10">
-                    <div className="flex items-start justify-between gap-3 border-b border-white/10 pb-3">
+                  <div key={vis.id} className="glass-card rounded-2xl p-5 space-y-4 border border-slate-200 dark:border-white/10 shadow-sm">
+                    <div className="flex items-start justify-between gap-3 border-b border-slate-200 dark:border-white/10 pb-3">
                       <div>
-                        <span className="text-[10px] font-mono text-slate-400 block">Visit ID: #{vis.id}</span>
-                        <h4 className="font-extrabold text-sm text-white mt-0.5">{vis.full_name}</h4>
-                        <span className="text-[11px] text-brand-cyan font-mono">{vis.phone}</span>
+                        <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400 block">Visit ID: #{vis.id}</span>
+                        <h4 className="font-extrabold text-sm text-slate-900 dark:text-white mt-0.5">{vis.full_name}</h4>
+                        <span className="text-[11px] text-cyan-700 dark:text-brand-cyan font-mono font-bold">{vis.phone}</span>
                       </div>
 
                       <span className={`px-2.5 py-1 rounded-full text-xs font-extrabold flex items-center gap-1.5 ${
                         vis.status === 'Confirmed' 
-                          ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-emerald-glow'
+                          ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-500/40 shadow-xs'
                           : vis.status === 'Completed'
-                          ? 'bg-teal-500/20 text-teal-300 border border-teal-500/40'
+                          ? 'bg-teal-100 dark:bg-teal-500/20 text-teal-800 dark:text-teal-300 border border-teal-300 dark:border-teal-500/40'
                           : vis.status === 'Cancelled'
-                          ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40'
-                          : 'bg-amber-500/20 text-amber-300 border border-amber-500/40 animate-pulse'
+                          ? 'bg-rose-100 dark:bg-rose-500/20 text-rose-800 dark:text-rose-300 border border-rose-300 dark:border-rose-500/40'
+                          : 'bg-amber-100 dark:bg-amber-500/20 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-500/40'
                       }`}>
                         {vis.status === 'Confirmed' && <CheckCircle2 className="w-3.5 h-3.5" />}
                         {vis.status === 'Pending' && <Clock className="w-3.5 h-3.5" />}
@@ -949,10 +986,10 @@ export const AccountPage = () => {
                     {/* Status Info */}
                     <div className={`p-3 rounded-xl text-xs leading-relaxed ${
                       vis.status === 'Confirmed' 
-                        ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-200' 
+                        ? 'bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 text-emerald-900 dark:text-emerald-200' 
                         : vis.status === 'Pending'
-                        ? 'bg-amber-500/10 border border-amber-500/20 text-amber-200'
-                        : 'bg-white/5 text-slate-300'
+                        ? 'bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 text-amber-900 dark:text-amber-200'
+                        : 'bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-slate-300'
                     }`}>
                       {vis.status === 'Confirmed' ? (
                         <div>
@@ -970,18 +1007,18 @@ export const AccountPage = () => {
                     </div>
 
                     {/* Slot & Location */}
-                    <div className="space-y-2 text-xs bg-white/5 p-3 rounded-xl">
+                    <div className="space-y-2 text-xs bg-slate-50 dark:bg-white/5 border border-slate-200/60 dark:border-transparent p-3 rounded-xl">
                       <div className="flex justify-between">
-                        <span className="text-slate-400">Scheduled Date:</span>
-                        <span className="font-bold text-white font-mono">{vis.visit_date}</span>
+                        <span className="text-slate-500 dark:text-slate-400">Scheduled Date:</span>
+                        <span className="font-bold text-slate-900 dark:text-white font-mono">{vis.visit_date}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-slate-400">Time Window:</span>
-                        <span className="font-bold text-white font-mono">{vis.time_slot}</span>
+                        <span className="text-slate-500 dark:text-slate-400">Time Window:</span>
+                        <span className="font-bold text-slate-900 dark:text-white font-mono">{vis.time_slot}</span>
                       </div>
-                      <div className="pt-2 border-t border-white/5">
-                        <span className="text-slate-400 block">Address:</span>
-                        <span className="text-slate-200 mt-0.5 block leading-relaxed">
+                      <div className="pt-2 border-t border-slate-200 dark:border-white/5">
+                        <span className="text-slate-500 dark:text-slate-400 block">Address:</span>
+                        <span className="text-slate-800 dark:text-slate-200 mt-0.5 block leading-relaxed font-medium">
                           {vis.address}{vis.landmark ? ` (Landmark: ${vis.landmark})` : ''} - {vis.pincode}
                         </span>
                       </div>
@@ -1006,9 +1043,9 @@ export const AccountPage = () => {
                             subtotal: vis.service_fee || 0,
                             warrantyNote: 'Doorstep Optometry Eye Exam & 100+ Designer Frame Trial'
                           })}
-                          className="btn-secondary text-[11px] py-1 px-3 rounded-lg flex items-center gap-1.5 text-brand-cyan border-brand-cyan/20 hover:bg-brand-cyan/10 transition-colors"
+                          className="text-[11px] font-bold py-1 px-3 rounded-lg flex items-center gap-1.5 text-cyan-800 dark:text-cyan-300 bg-cyan-100/80 dark:bg-cyan-950/50 border border-cyan-400/60 dark:border-cyan-700 hover:bg-cyan-200 dark:hover:bg-cyan-900/80 shadow-xs transition-all cursor-pointer"
                         >
-                          <FileText className="w-3.5 h-3.5" />
+                          <FileText className="w-3.5 h-3.5 text-cyan-700 dark:text-cyan-300" />
                           <span>Download Slip / Invoice</span>
                         </button>
                       </div>
@@ -1163,8 +1200,10 @@ export const AccountPage = () => {
         <div className="space-y-6">
           <div className="flex justify-between items-center">
             <div>
-              <h3 className="text-sm font-bold text-white">Your Optical Health Vault</h3>
-              <p className="text-xs text-slate-400">Secure digital archive of your vision corrective prescriptions.</p>
+              <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <Eye className="w-5 h-5 text-cyan-600 dark:text-brand-cyan" /> Your Optical Health Vault
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Secure digital archive of your vision corrective prescriptions.</p>
             </div>
             <button
               onClick={() => setAddRxOpen(true)}
@@ -1175,10 +1214,10 @@ export const AccountPage = () => {
           </div>
 
           {prescriptions.length === 0 ? (
-            <div className="glass-card rounded-2xl p-12 text-center space-y-3">
-              <Eye className="w-10 h-10 text-slate-600 mx-auto" />
-              <h4 className="text-sm font-bold text-white">No Prescriptions Vaulted</h4>
-              <p className="text-xs text-slate-400">Upload your eye power parameters to auto-populate future lens orders.</p>
+            <div className="glass-card rounded-2xl p-12 text-center space-y-3 border border-slate-200 dark:border-white/10">
+              <Eye className="w-10 h-10 text-slate-400 dark:text-slate-600 mx-auto" />
+              <h4 className="text-sm font-bold text-slate-900 dark:text-white">No Prescriptions Vaulted</h4>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Upload your eye power parameters to auto-populate future lens orders.</p>
               <button onClick={() => setAddRxOpen(true)} className="btn-primary text-xs py-2 px-4 inline-flex">
                 Save First Prescription
               </button>
@@ -1186,13 +1225,13 @@ export const AccountPage = () => {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {prescriptions.map((rx) => (
-                <div key={rx.id} className="glass-card rounded-2xl p-5 space-y-3 border border-white/10">
-                  <div className="flex justify-between items-start border-b border-white/10 pb-2">
+                <div key={rx.id} className="glass-card rounded-2xl p-5 space-y-3 border border-slate-200 dark:border-white/10 shadow-sm">
+                  <div className="flex justify-between items-start border-b border-slate-200 dark:border-white/10 pb-2">
                     <div>
-                      <h4 className="font-bold text-sm text-white">{rx.label}</h4>
-                      <span className="text-[11px] text-slate-400">{rx.prescription_date || 'Current Active'}</span>
+                      <h4 className="font-bold text-sm text-slate-900 dark:text-white">{rx.label}</h4>
+                      <span className="text-[11px] text-slate-500 dark:text-slate-400">{rx.prescription_date || 'Current Active'}</span>
                     </div>
-                    <span className="px-2.5 py-0.5 rounded-full bg-brand-cyan/20 text-brand-cyan text-[10px] font-bold">
+                    <span className="px-2.5 py-0.5 rounded-full bg-cyan-50 dark:bg-brand-cyan/20 text-cyan-800 dark:text-brand-cyan border border-cyan-300 dark:border-brand-cyan/30 text-[10px] font-bold">
                       PD: {rx.single_pd ? `${rx.single_pd} mm` : `${rx.right_pd}/${rx.left_pd} mm`}
                     </span>
                   </div>
@@ -1200,7 +1239,7 @@ export const AccountPage = () => {
                   <div className="overflow-x-auto">
                     <table className="w-full text-xs text-center font-mono">
                       <thead>
-                        <tr className="text-slate-400 border-b border-white/5">
+                        <tr className="text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-white/5">
                           <th className="py-1 text-left">Eye</th>
                           <th className="py-1">SPH</th>
                           <th className="py-1">CYL</th>
@@ -1208,16 +1247,16 @@ export const AccountPage = () => {
                           <th className="py-1">ADD</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-white/5">
+                      <tbody className="divide-y divide-slate-100 dark:divide-white/5 text-slate-800 dark:text-slate-200">
                         <tr>
-                          <td className="py-1.5 text-left font-bold text-brand-cyan">Right (OD)</td>
+                          <td className="py-1.5 text-left font-bold text-cyan-700 dark:text-brand-cyan">Right (OD)</td>
                           <td>{rx.right_sph ?? '0.00'}</td>
                           <td>{rx.right_cyl ?? '0.00'}</td>
                           <td>{rx.right_axis ? `${rx.right_axis}°` : '-'}</td>
                           <td>{rx.right_add ?? '-'}</td>
                         </tr>
                         <tr>
-                          <td className="py-1.5 text-left font-bold text-brand-teal">Left (OS)</td>
+                          <td className="py-1.5 text-left font-bold text-teal-700 dark:text-brand-teal">Left (OS)</td>
                           <td>{rx.left_sph ?? '0.00'}</td>
                           <td>{rx.left_cyl ?? '0.00'}</td>
                           <td>{rx.left_axis ? `${rx.left_axis}°` : '-'}</td>
@@ -1228,7 +1267,7 @@ export const AccountPage = () => {
                   </div>
 
                   {rx.notes && (
-                    <p className="text-[11px] text-slate-400 bg-white/5 p-2.5 rounded-lg">
+                    <p className="text-[11px] text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-white/5 border border-slate-200/60 dark:border-transparent p-2.5 rounded-lg">
                       {rx.notes}
                     </p>
                   )}
@@ -1307,8 +1346,8 @@ export const AccountPage = () => {
                       {profileForm.avatar_url && (
                         <button
                           type="button"
-                          onClick={() => setProfileForm(prev => ({ ...prev, avatar_url: '' }))}
-                          className="text-[11px] text-rose-600 dark:text-rose-400 hover:underline font-bold"
+                          onClick={handleRemoveAvatar}
+                          className="text-[11px] text-rose-600 dark:text-rose-400 hover:underline font-bold cursor-pointer"
                         >
                           Remove Photo
                         </button>
@@ -1350,7 +1389,7 @@ export const AccountPage = () => {
                       <button
                         key={idx}
                         type="button"
-                        onClick={() => setProfileForm(prev => ({ ...prev, avatar_url: av.url }))}
+                        onClick={() => handleSelectPresetAvatar(av.url)}
                         className={`group flex items-center gap-2 p-1.5 pr-3 rounded-full border transition-all cursor-pointer ${
                           profileForm.avatar_url === av.url
                             ? 'bg-cyan-500/15 border-brand-cyan text-cyan-800 dark:text-brand-cyan font-bold shadow-sm'
@@ -1797,88 +1836,90 @@ export const AccountPage = () => {
 
       {/* ADD NEW PRESCRIPTION MODAL */}
       {addRxOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
-          <div className="w-full max-w-lg bg-[#0A192F] border border-white/15 rounded-3xl p-6 space-y-4 shadow-2xl">
-            <div className="flex justify-between items-center border-b border-white/10 pb-3">
-              <h3 className="text-sm font-bold text-white">Save Prescription to Vault</h3>
-              <button onClick={() => setAddRxOpen(false)} className="text-slate-400 hover:text-white">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 dark:bg-black/85 backdrop-blur-md">
+          <div className="w-full max-w-lg bg-white dark:bg-[#0A192F] border border-slate-200 dark:border-white/15 rounded-3xl p-6 space-y-4 shadow-2xl text-slate-900 dark:text-white">
+            <div className="flex justify-between items-center border-b border-slate-200 dark:border-white/10 pb-3">
+              <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <Eye className="w-4 h-4 text-cyan-600 dark:text-brand-cyan" /> Save Prescription to Vault
+              </h3>
+              <button onClick={() => setAddRxOpen(false)} className="text-slate-400 hover:text-slate-700 dark:hover:text-white p-1">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleSavePrescription} className="space-y-3 text-xs">
+            <form onSubmit={handleSavePrescription} className="space-y-3.5 text-xs">
               <div>
-                <label className="block text-slate-300 mb-1">Prescription Label</label>
+                <label className="block text-slate-700 dark:text-slate-300 font-bold mb-1">Prescription Label *</label>
                 <input 
                   type="text" 
                   required
                   value={newRxLabel} 
                   onChange={(e) => setNewRxLabel(e.target.value)} 
                   placeholder="e.g. Daily Screen Rx"
-                  className="w-full glass-input rounded-xl px-3 py-2"
+                  className="w-full glass-input rounded-xl px-3 py-2 text-xs font-semibold"
                 />
               </div>
 
               {/* Right Eye */}
-              <div className="p-3 rounded-xl bg-white/5 space-y-2">
-                <span className="font-bold text-brand-cyan block">Right Eye (OD)</span>
+              <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 space-y-2">
+                <span className="font-bold text-cyan-700 dark:text-brand-cyan block">Right Eye (OD)</span>
                 <div className="grid grid-cols-4 gap-2">
                   <div>
-                    <span className="text-[10px] text-slate-400">SPH</span>
-                    <input type="text" value={rSph} onChange={(e) => setRSph(e.target.value)} placeholder="0.00" className="w-full glass-input rounded px-1 text-center py-1 font-mono" />
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold">SPH</span>
+                    <input type="text" value={rSph} onChange={(e) => setRSph(e.target.value)} placeholder="0.00" className="w-full glass-input rounded-lg px-1 text-center py-1.5 font-mono text-xs font-bold" />
                   </div>
                   <div>
-                    <span className="text-[10px] text-slate-400">CYL</span>
-                    <input type="text" value={rCyl} onChange={(e) => setRCyl(e.target.value)} placeholder="0.00" className="w-full glass-input rounded px-1 text-center py-1 font-mono" />
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold">CYL</span>
+                    <input type="text" value={rCyl} onChange={(e) => setRCyl(e.target.value)} placeholder="0.00" className="w-full glass-input rounded-lg px-1 text-center py-1.5 font-mono text-xs font-bold" />
                   </div>
                   <div>
-                    <span className="text-[10px] text-slate-400">AXIS</span>
-                    <input type="number" value={rAxis} onChange={(e) => setRAxis(e.target.value)} placeholder="90" className="w-full glass-input rounded px-1 text-center py-1 font-mono" />
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold">AXIS</span>
+                    <input type="number" value={rAxis} onChange={(e) => setRAxis(e.target.value)} placeholder="90" className="w-full glass-input rounded-lg px-1 text-center py-1.5 font-mono text-xs font-bold" />
                   </div>
                   <div>
-                    <span className="text-[10px] text-slate-400">PD</span>
-                    <input type="text" value={rPd} onChange={(e) => setRPd(e.target.value)} placeholder="31.5" className="w-full glass-input rounded px-1 text-center py-1 font-mono" />
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold">PD</span>
+                    <input type="text" value={rPd} onChange={(e) => setRPd(e.target.value)} placeholder="31.5" className="w-full glass-input rounded-lg px-1 text-center py-1.5 font-mono text-xs font-bold" />
                   </div>
                 </div>
               </div>
 
               {/* Left Eye */}
-              <div className="p-3 rounded-xl bg-white/5 space-y-2">
-                <span className="font-bold text-brand-teal block">Left Eye (OS)</span>
+              <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 space-y-2">
+                <span className="font-bold text-teal-700 dark:text-brand-teal block">Left Eye (OS)</span>
                 <div className="grid grid-cols-4 gap-2">
                   <div>
-                    <span className="text-[10px] text-slate-400">SPH</span>
-                    <input type="text" value={lSph} onChange={(e) => setLSph(e.target.value)} placeholder="0.00" className="w-full glass-input rounded px-1 text-center py-1 font-mono" />
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold">SPH</span>
+                    <input type="text" value={lSph} onChange={(e) => setLSph(e.target.value)} placeholder="0.00" className="w-full glass-input rounded-lg px-1 text-center py-1.5 font-mono text-xs font-bold" />
                   </div>
                   <div>
-                    <span className="text-[10px] text-slate-400">CYL</span>
-                    <input type="text" value={lCyl} onChange={(e) => setLCyl(e.target.value)} placeholder="0.00" className="w-full glass-input rounded px-1 text-center py-1 font-mono" />
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold">CYL</span>
+                    <input type="text" value={lCyl} onChange={(e) => setLCyl(e.target.value)} placeholder="0.00" className="w-full glass-input rounded-lg px-1 text-center py-1.5 font-mono text-xs font-bold" />
                   </div>
                   <div>
-                    <span className="text-[10px] text-slate-400">AXIS</span>
-                    <input type="number" value={lAxis} onChange={(e) => setLAxis(e.target.value)} placeholder="90" className="w-full glass-input rounded px-1 text-center py-1 font-mono" />
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold">AXIS</span>
+                    <input type="number" value={lAxis} onChange={(e) => setLAxis(e.target.value)} placeholder="90" className="w-full glass-input rounded-lg px-1 text-center py-1.5 font-mono text-xs font-bold" />
                   </div>
                   <div>
-                    <span className="text-[10px] text-slate-400">PD</span>
-                    <input type="text" value={lPd} onChange={(e) => setLPd(e.target.value)} placeholder="31.5" className="w-full glass-input rounded px-1 text-center py-1 font-mono" />
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold">PD</span>
+                    <input type="text" value={lPd} onChange={(e) => setLPd(e.target.value)} placeholder="31.5" className="w-full glass-input rounded-lg px-1 text-center py-1.5 font-mono text-xs font-bold" />
                   </div>
                 </div>
               </div>
 
               <div>
-                <label className="block text-slate-300 mb-1">Doctor / Clinic Notes</label>
+                <label className="block text-slate-700 dark:text-slate-300 font-bold mb-1">Doctor / Clinic Notes</label>
                 <input 
                   type="text" 
                   value={rxNotes} 
                   onChange={(e) => setRxNotes(e.target.value)} 
                   placeholder="e.g. Anti-glare coating recommended..."
-                  className="w-full glass-input rounded-xl px-3 py-2"
+                  className="w-full glass-input rounded-xl px-3 py-2 text-xs"
                 />
               </div>
 
-              <div className="flex justify-end gap-2 pt-2">
-                <button type="button" onClick={() => setAddRxOpen(false)} className="px-4 py-2 text-slate-400">Cancel</button>
-                <button type="submit" className="btn-primary text-xs py-2 px-5 rounded-xl">Save to Vault</button>
+              <div className="flex justify-end gap-2.5 pt-3 border-t border-slate-200 dark:border-white/10">
+                <button type="button" onClick={() => setAddRxOpen(false)} className="px-4 py-2 font-bold text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white cursor-pointer">Cancel</button>
+                <button type="submit" className="btn-primary text-xs py-2 px-5 rounded-xl cursor-pointer shadow-cyan-glow">Save to Vault</button>
               </div>
             </form>
           </div>
@@ -1887,27 +1928,27 @@ export const AccountPage = () => {
 
       {/* Customer Order Cancellation Modal */}
       {cancelModalOrder && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
-          <div className="w-full max-w-md bg-[#0A192F] border border-rose-500/30 rounded-3xl p-6 shadow-2xl space-y-4 text-white">
-            <div className="flex items-center justify-between border-b border-white/10 pb-3">
-              <h3 className="text-base font-bold flex items-center gap-2 text-rose-400">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 dark:bg-black/85 backdrop-blur-md">
+          <div className="w-full max-w-md bg-white dark:bg-[#0A192F] border border-rose-500/30 rounded-3xl p-6 shadow-2xl space-y-4 text-slate-900 dark:text-white">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/10 pb-3">
+              <h3 className="text-base font-bold flex items-center gap-2 text-rose-600 dark:text-rose-400">
                 <X className="w-5 h-5" /> Cancel Order #{cancelModalOrder.order_number}
               </h3>
               <button 
                 onClick={() => setCancelModalOrder(null)}
-                className="p-1 rounded-lg text-slate-400 hover:text-white"
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <p className="text-xs text-slate-300 leading-relaxed">
-              Cancellation is permitted at this stage before precision lens cutting starts. If you paid online, a full refund of <strong className="text-brand-cyan">₹{cancelModalOrder.total_amount}</strong> will be initiated.
+            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+              Cancellation is permitted at this stage before precision lens cutting starts. If you paid online, a full refund of <strong className="text-cyan-700 dark:text-brand-cyan">₹{cancelModalOrder.total_amount}</strong> will be initiated.
             </p>
 
             <form onSubmit={handleCancelCustomerOrder} className="space-y-3.5">
               <div>
-                <label className="block text-[11px] font-bold text-slate-400 mb-1 uppercase tracking-wider">
+                <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1 uppercase tracking-wider">
                   Reason for Cancellation *
                 </label>
                 <select
@@ -1925,7 +1966,7 @@ export const AccountPage = () => {
               </div>
 
               <div>
-                <label className="block text-[11px] font-bold text-slate-400 mb-1 uppercase tracking-wider">
+                <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1 uppercase tracking-wider">
                   Additional Details / Notes
                 </label>
                 <textarea
@@ -1937,18 +1978,18 @@ export const AccountPage = () => {
                 />
               </div>
 
-              <div className="flex justify-end gap-2.5 pt-2 border-t border-white/10">
+              <div className="flex justify-end gap-2.5 pt-2 border-t border-slate-200 dark:border-white/10">
                 <button
                   type="button"
                   onClick={() => setCancelModalOrder(null)}
-                  className="px-4 py-2 text-xs font-bold text-slate-400 hover:text-white"
+                  className="px-4 py-2 text-xs font-bold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white cursor-pointer"
                 >
                   Keep Order
                 </button>
                 <button
                   type="submit"
                   disabled={cancellingOrder}
-                  className="btn-primary bg-rose-600 hover:bg-rose-500 text-white text-xs px-5 py-2.5 rounded-xl font-black shadow-lg"
+                  className="btn-primary bg-rose-600 hover:bg-rose-500 text-white text-xs px-5 py-2.5 rounded-xl font-black shadow-lg cursor-pointer"
                 >
                   {cancellingOrder ? 'Processing Cancellation...' : 'Confirm Cancellation'}
                 </button>

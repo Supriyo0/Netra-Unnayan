@@ -11,7 +11,8 @@ $method = $_SERVER['REQUEST_METHOD'];
 
 // Ensure optional columns exist in customers table
 try {
-    $pdo->exec("ALTER TABLE customers ADD COLUMN IF NOT EXISTS avatar_url VARCHAR(500) NULL AFTER phone");
+    $pdo->exec("ALTER TABLE customers ADD COLUMN IF NOT EXISTS avatar_url TEXT NULL AFTER phone");
+    $pdo->exec("ALTER TABLE customers MODIFY COLUMN avatar_url TEXT NULL");
     $pdo->exec("ALTER TABLE customers ADD COLUMN IF NOT EXISTS alternate_phone VARCHAR(20) NULL AFTER phone");
     $pdo->exec("ALTER TABLE customers ADD COLUMN IF NOT EXISTS gender VARCHAR(20) NULL AFTER phone");
     $pdo->exec("ALTER TABLE customers ADD COLUMN IF NOT EXISTS dob DATE NULL AFTER phone");

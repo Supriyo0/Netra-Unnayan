@@ -2,10 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { 
   Search, Package, Clock, CheckCircle2, AlertCircle, 
-  ShieldCheck, XCircle, ArrowRight, Truck 
+  ShieldCheck, XCircle, ArrowRight, Truck, FileText, Printer 
 } from 'lucide-react';
 import api from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import { InvoiceModal } from '../components/common/InvoiceModal';
 
 export const OrderTrackingPage = () => {
   const [searchParams] = useSearchParams();
@@ -16,6 +17,9 @@ export const OrderTrackingPage = () => {
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // Invoice modal state (can be directly triggered by QR scan)
+  const [invoiceModalOpen, setInvoiceModalOpen] = useState(false);
 
   // Cancel modal state
   const [cancelModalOpen, setCancelModalOpen] = useState(false);
@@ -33,6 +37,9 @@ export const OrderTrackingPage = () => {
       const res = await api.get(url);
       if (res.success && res.data) {
         setOrder(res.data);
+        if (searchParams.get('view') === 'invoice') {
+          setInvoiceModalOpen(true);
+        }
       } else {
         setError(res.message || 'Order not found.');
       }
@@ -45,8 +52,9 @@ export const OrderTrackingPage = () => {
   };
 
   useEffect(() => {
-    const initialOrder = searchParams.get('order');
+    const initialOrder = searchParams.get('order') || searchParams.get('invoice');
     if (initialOrder) {
+      setOrderNumber(initialOrder);
       fetchTracking(initialOrder, phone);
     }
   }, [searchParams]);
@@ -125,10 +133,10 @@ export const OrderTrackingPage = () => {
             />
           </div>
           <div>
-            <label className="block text-[11px] text-slate-700 dark:text-slate-300 mb-1 font-semibold">Phone Number (Verification) *</label>
+            <label className="block text-[11px] text-slate-700 dark:text-slate-300 mb-1 font-semibold">Phone Number (Optional)</label>
             <input 
               type="tel"
-              required={!user}
+              required={false}
               placeholder="e.g. 9830123456"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
@@ -189,6 +197,16 @@ export const OrderTrackingPage = () => {
               }`}>
                 {order.order_status}
               </span>
+
+              {/* View Invoice Button */}
+              <button 
+                type="button"
+                onClick={() => setInvoiceModalOpen(true)}
+                className="px-3.5 py-1 rounded-full bg-brand-cyan hover:bg-cyan-400 text-slate-950 text-xs font-black flex items-center gap-1.5 shadow-cyan-glow transition-all cursor-pointer"
+              >
+                <FileText className="w-3.5 h-3.5" />
+                <span>Invoice</span>
+              </button>
 
               {order.can_cancel && (
                 <button 
@@ -255,16 +273,16 @@ export const OrderTrackingPage = () => {
 
           {/* Order Status History Log (Excluding admin internal private notes) */}
           {order.status_history && order.status_history.length > 0 && (
-            <div className="space-y-3 border-t border-white/10 pt-5">
-              <h4 className="text-xs font-bold text-white uppercase tracking-wider">
+            <div className="space-y-3 border-t border-slate-200 dark:border-white/10 pt-5">
+              <h4 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
                 Status History Log
               </h4>
               <div className="space-y-2 text-xs">
                 {order.status_history.map((log, idx) => (
-                  <div key={idx} className="flex items-start justify-between p-2.5 rounded-lg bg-white/5">
+                  <div key={idx} className="flex items-start justify-between p-2.5 rounded-lg bg-slate-50 dark:bg-white/5 border border-slate-200/60 dark:border-transparent">
                     <div>
-                      <strong className="text-white">{log.status}</strong>
-                      <div className="text-slate-400 mt-0.5">{log.note}</div>
+                      <strong className="text-slate-900 dark:text-white">{log.status}</strong>
+                      <div className="text-slate-600 dark:text-slate-400 mt-0.5">{log.note}</div>
                     </div>
                     <span className="text-[10px] text-slate-500 font-mono shrink-0 ml-4">
                       {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -276,24 +294,24 @@ export const OrderTrackingPage = () => {
           )}
 
           {/* Items & Shipping Details */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 border-t border-white/10 pt-5 text-xs">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 border-t border-slate-200 dark:border-white/10 pt-5 text-xs">
             
             {/* Items */}
             <div className="space-y-3">
-              <h4 className="font-bold text-white uppercase tracking-wider text-[11px]">Ordered Frames</h4>
+              <h4 className="font-bold text-slate-900 dark:text-white uppercase tracking-wider text-[11px]">Ordered Frames</h4>
               <div className="space-y-2">
                 {order.items?.map((item, i) => (
-                  <div key={i} className="flex items-center justify-between p-2 rounded-lg bg-white/5">
+                  <div key={i} className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200/60 dark:border-transparent">
                     <div>
-                      <div className="font-bold text-white">{item.product_name}</div>
-                      <div className="text-slate-400 text-[11px]">
+                      <div className="font-bold text-slate-900 dark:text-white">{item.product_name}</div>
+                      <div className="text-slate-500 dark:text-slate-400 text-[11px]">
                         SKU: {item.product_sku} &bull; Qty: {item.quantity}
                       </div>
                       {item.lens_type && (
-                        <div className="text-brand-teal text-[11px]">{item.lens_type}</div>
+                        <div className="text-teal-700 dark:text-brand-teal font-semibold text-[11px]">{item.lens_type}</div>
                       )}
                     </div>
-                    <div className="font-mono text-white font-bold">
+                    <div className="font-mono text-slate-950 dark:text-white font-bold">
                       ₹{item.total_price}
                     </div>
                   </div>
@@ -302,16 +320,16 @@ export const OrderTrackingPage = () => {
             </div>
 
             {/* Delivery Details */}
-            <div className="space-y-2 p-4 rounded-xl bg-white/5">
-              <h4 className="font-bold text-white uppercase tracking-wider text-[11px]">Delivery Recipient</h4>
-              <p className="text-white font-bold">{order.customer_name}</p>
-              <p className="text-slate-300">{order.customer_phone}</p>
-              <p className="text-slate-400 leading-relaxed">
+            <div className="space-y-2 p-4 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200/60 dark:border-transparent">
+              <h4 className="font-bold text-slate-900 dark:text-white uppercase tracking-wider text-[11px]">Delivery Recipient</h4>
+              <p className="text-slate-900 dark:text-white font-bold">{order.customer_name}</p>
+              <p className="text-slate-700 dark:text-slate-300 font-mono">{order.customer_phone}</p>
+              <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
                 {order.shipping_address_line1} {order.shipping_address_line2}, {order.shipping_city}, {order.shipping_state} - {order.shipping_pincode}
               </p>
-              <div className="pt-2 border-t border-white/10 flex justify-between font-bold text-white">
+              <div className="pt-2 border-t border-slate-200 dark:border-white/10 flex justify-between font-bold text-slate-900 dark:text-white">
                 <span>Total Amount:</span>
-                <span className="text-brand-cyan font-mono">₹{order.total_amount} ({order.payment_mode})</span>
+                <span className="text-cyan-700 dark:text-brand-cyan font-mono">₹{order.total_amount} ({order.payment_mode})</span>
               </div>
             </div>
 
@@ -364,6 +382,13 @@ export const OrderTrackingPage = () => {
           </div>
         </div>
       )}
+
+      {/* INVOICE MODAL */}
+      <InvoiceModal
+        isOpen={invoiceModalOpen}
+        onClose={() => setInvoiceModalOpen(false)}
+        invoiceData={order}
+      />
 
     </div>
   );

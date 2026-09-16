@@ -613,59 +613,376 @@ html.dark .nav-dropdown-solid {
   color: #0F172A;
 }
 
-/* Headings and titles with text-white become deep slate in light mode */
+/* Headings and titles with text-white become deep slate in light mode (unless inside dark buttons/badges) */
 .light h1.text-white,
 .light h2.text-white,
 .light h3.text-white,
 .light h4.text-white,
 .light h5.text-white,
 .light h6.text-white,
-.light .glass-card .text-white:not([class*="bg-"]):not(button):not(a),
+.light p.text-white:not([class*="bg-slate-9"]):not([class*="bg-black"]):not([class*="bg-rose-"]):not([class*="bg-emerald-"]):not([class*="bg-teal-6"]):not([class*="btn-"]),
+.light span.text-white:not([class*="bg-slate-9"]):not([class*="bg-black"]):not([class*="bg-rose-"]):not([class*="bg-emerald-"]):not([class*="bg-teal-6"]):not([class*="btn-"]):not([class*="badge"]),
+.light strong.text-white:not([class*="bg-slate-9"]):not([class*="bg-black"]):not([class*="bg-rose-"]):not([class*="bg-emerald-"]):not([class*="bg-teal-6"]):not([class*="btn-"]),
+.light div.text-white:not([class*="bg-slate-9"]):not([class*="bg-black"]):not([class*="bg-rose-"]):not([class*="bg-emerald-"]):not([class*="bg-teal-6"]):not([class*="btn-"]):not([class*="badge"]),
+.light td.text-white,
+.light th.text-white,
+.light .glass-card .text-white:not([class*="bg-"]):not([class*="btn-primary"]):not([class*="badge"]),
+.light .glass-card a.text-white:not([class*="bg-"]):not([class*="btn-primary"]),
+.light .glass-card button.text-white:not([class*="bg-"]):not([class*="btn-primary"]),
 .light form label.text-white,
 .light aside .text-white,
 .light header .text-white:not([class*="bg-"]) {
   color: #0F172A !important;
 }
 
-/* High contrast for muted texts in Light Mode */
-.light .text-slate-400 {
-  color: #64748B !important;
+/* Light Theme: High-contrast brand typography so cyan/teal never wash out on white cards */
+.light .text-brand-cyan,
+.light [class*="text-brand-cyan"] {
+  color: #0284C7 !important;
 }
-.light .text-slate-300 {
+.light .text-brand-teal,
+.light [class*="text-brand-teal"] {
+  color: #0F766E !important;
+}
+
+/* High contrast for muted texts in Light Mode */
+.light .text-slate-500,
+.light [class*="text-slate-500"] {
   color: #334155 !important;
 }
-.light .text-slate-200 {
+.light .text-slate-400,
+.light [class*="text-slate-400"] {
+  color: #475569 !important;
+}
+.light .text-slate-300,
+.light [class*="text-slate-300"] {
   color: #1E293B !important;
 }
-.light .text-slate-100 {
+.light .text-slate-200,
+.light [class*="text-slate-200"] {
   color: #0F172A !important;
 }
-.light label {
+.light .text-slate-100,
+.light [class*="text-slate-100"] {
+  color: #0F172A !important;
+}
+.light .text-neutral-400,
+.light [class*="text-neutral-400"],
+.light .text-gray-400,
+.light [class*="text-gray-400"] {
+  color: #475569 !important;
+}
+.light .text-neutral-500,
+.light [class*="text-neutral-500"],
+.light .text-gray-500,
+.light [class*="text-gray-500"] {
   color: #334155 !important;
+}
+.light label {
+  color: #1E293B !important;
   font-weight: 600;
 }
 
-/* Ensure colored buttons, badges, and gradient elements retain pure white text */
+/* Status & Badge Text Contrast in Light Mode */
+.light [class*="text-amber-300"],
+.light [class*="text-amber-400"],
+.light [class*="text-yellow-300"],
+.light [class*="text-yellow-400"] {
+  color: #92400E !important;
+  font-weight: 700;
+}
+.light [class*="text-teal-300"],
+.light [class*="text-teal-400"] {
+  color: #0F766E !important;
+  font-weight: 700;
+}
+.light [class*="text-emerald-300"],
+.light [class*="text-emerald-400"],
+.light [class*="text-green-300"],
+.light [class*="text-green-400"] {
+  color: #047857 !important;
+  font-weight: 700;
+}
+.light [class*="text-rose-300"],
+.light [class*="text-rose-400"],
+.light [class*="text-red-300"],
+.light [class*="text-red-400"] {
+  color: #9F1239 !important;
+  font-weight: 700;
+}
+.light [class*="text-cyan-300"],
+.light [class*="text-cyan-400"],
+.light [class*="text-sky-300"],
+.light [class*="text-sky-400"] {
+  color: #0369A1 !important;
+  font-weight: 700;
+}
+
+/* High-Contrast Light Mode Button & Text Styling */
+
+/* 1. PRIMARY BUTTONS (.btn-primary) in Light Mode:
+   Rich Royal Optical Blue Gradient with pure white text and crisp icon */
 .light .btn-primary,
+html.light .btn-primary {
+  background: linear-gradient(135deg, #0284C7 0%, #0369A1 100%) !important;
+  color: #FFFFFF !important;
+  font-weight: 800 !important;
+  border: 1px solid #0284C7 !important;
+  box-shadow: 0 4px 16px -2px rgba(2, 132, 199, 0.40) !important;
+}
 .light .btn-primary *,
-.light .btn-primary .text-white,
+html.light .btn-primary * {
+  color: #FFFFFF !important;
+}
+.light .btn-primary svg,
+html.light .btn-primary svg {
+  color: #FFFFFF !important;
+  stroke: #FFFFFF !important;
+}
+.light .btn-primary:hover,
+html.light .btn-primary:hover {
+  background: linear-gradient(135deg, #0369A1 0%, #075985 100%) !important;
+  box-shadow: 0 6px 22px -2px rgba(2, 132, 199, 0.55) !important;
+  transform: translateY(-2px);
+}
+
+/* 2. SOLID BRAND CYAN BUTTONS:
+   Deep Navy text (#021B35) on bright cyan for WCAG AAA 11:1 contrast */
 .light button.bg-brand-cyan,
 .light button[class*="bg-brand-cyan"],
-.light button[class*="bg-gradient"],
-.light button[class*="bg-blue-"],
-.light button[class*="bg-emerald-"],
-.light button[class*="bg-rose-"],
-.light button[class*="bg-red-"],
-.light button[class*="bg-amber-"],
-.light button[class*="bg-teal-"],
+.light a.bg-brand-cyan,
+.light a[class*="bg-brand-cyan"],
+.light .bg-brand-cyan:is(button, a),
+html.light .bg-brand-cyan:is(button, a) {
+  background-color: #00B4D8 !important;
+  color: #021B35 !important;
+  font-weight: 800 !important;
+  border: 1px solid rgba(0, 180, 216, 0.5) !important;
+  box-shadow: 0 2px 8px rgba(0, 180, 216, 0.25) !important;
+}
+.light button.bg-brand-cyan svg,
+.light button[class*="bg-brand-cyan"] svg,
+.light a.bg-brand-cyan svg,
+.light [class*="bg-brand-cyan"] svg {
+  color: #021B35 !important;
+  stroke: #021B35 !important;
+}
+.light button.bg-brand-cyan:hover,
+.light button[class*="bg-brand-cyan"]:hover,
+.light a.bg-brand-cyan:hover,
+.light a[class*="bg-brand-cyan"]:hover {
+  background-color: #0096C7 !important;
+  color: #FFFFFF !important;
+}
+.light button.bg-brand-cyan:hover svg,
+.light button[class*="bg-brand-cyan"]:hover svg,
+.light a.bg-brand-cyan:hover svg {
+  color: #FFFFFF !important;
+  stroke: #FFFFFF !important;
+}
+
+/* 3. SECONDARY & GHOST BUTTONS:
+   Clean card background, solid slate border, dark text */
+.light .btn-secondary {
+  background: #FFFFFF !important;
+  color: #1E293B !important;
+  border: 1.5px solid #CBD5E1 !important;
+  font-weight: 700 !important;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.05) !important;
+}
+.light .btn-secondary:hover {
+  background: #F1F5F9 !important;
+  border-color: #0284C7 !important;
+  color: #0284C7 !important;
+}
+.light .btn-secondary svg {
+  color: #334155 !important;
+  stroke: #334155 !important;
+}
+.light .btn-secondary:hover svg {
+  color: #0284C7 !important;
+  stroke: #0284C7 !important;
+}
+
+.light button.bg-white\/5,
+.light button[class*="bg-white/5"],
+.light button.bg-white\/10,
+.light button[class*="bg-white/10"],
+.light a.bg-white\/5,
+.light a[class*="bg-white/5"] {
+  background-color: #F8FAFC !important;
+  border: 1.5px solid #CBD5E1 !important;
+  color: #1E293B !important;
+  font-weight: 600 !important;
+}
+.light button.bg-white\/5:hover,
+.light button[class*="bg-white/5"]:hover,
+.light button.bg-white\/10:hover,
+.light button[class*="bg-white/10"]:hover {
+  background-color: #F1F5F9 !important;
+  border-color: #94A3B8 !important;
+  color: #0F172A !important;
+}
+.light button.bg-white\/5 svg,
+.light button[class*="bg-white/5"] svg,
+.light button.bg-white\/10 svg,
+.light button[class*="bg-white/10"] svg {
+  color: #334155 !important;
+  stroke: #334155 !important;
+}
+
+/* 4. TRANSLUCENT ACTION BUTTONS (Teal, Cyan, Rose, Amber, Purple) */
+.light [class*="bg-teal-500/1"],
+.light [class*="bg-teal-500/2"],
+.light button[class*="bg-teal-500/"],
+.light a[class*="bg-teal-500/"],
+html.light [class*="bg-teal-500/15"],
+html.light button[class*="bg-teal-500/15"] {
+  color: #0F766E !important;
+  background-color: #CCFBF1 !important;
+  border: 1.5px solid #5EEAD4 !important;
+  font-weight: 700 !important;
+}
+.light [class*="bg-teal-500/"] svg {
+  color: #0F766E !important;
+  stroke: #0F766E !important;
+}
+.light [class*="bg-teal-500/"]:hover,
+.light button[class*="bg-teal-500/"]:hover,
+.light a[class*="bg-teal-500/"]:hover {
+  background-color: #0F766E !important;
+  color: #FFFFFF !important;
+  border-color: #0F766E !important;
+}
+.light [class*="bg-teal-500/"]:hover svg,
+.light button[class*="bg-teal-500/"]:hover svg,
+.light a[class*="bg-teal-500/"]:hover svg {
+  color: #FFFFFF !important;
+  stroke: #FFFFFF !important;
+}
+
+.light [class*="bg-cyan-500/1"],
+.light [class*="bg-cyan-500/2"],
+.light [class*="bg-sky-500/1"],
+.light [class*="bg-sky-500/2"],
+.light button[class*="bg-cyan-500/"],
+.light a[class*="bg-cyan-500/"],
+html.light [class*="bg-cyan-500/15"] {
+  color: #0369A1 !important;
+  background-color: #E0F2FE !important;
+  border: 1.5px solid #7DD3FC !important;
+  font-weight: 700 !important;
+}
+.light [class*="bg-cyan-500/"] svg,
+.light [class*="bg-sky-500/"] svg {
+  color: #0369A1 !important;
+  stroke: #0369A1 !important;
+}
+.light [class*="bg-cyan-500/"]:hover,
+.light button[class*="bg-cyan-500/"]:hover,
+.light a[class*="bg-cyan-500/"]:hover {
+  background-color: #0284C7 !important;
+  color: #FFFFFF !important;
+  border-color: #0284C7 !important;
+}
+.light [class*="bg-cyan-500/"]:hover svg,
+.light button[class*="bg-cyan-500/"]:hover svg,
+.light a[class*="bg-cyan-500/"]:hover svg {
+  color: #FFFFFF !important;
+  stroke: #FFFFFF !important;
+}
+
+.light [class*="bg-rose-500/1"],
+.light [class*="bg-rose-500/2"],
+.light [class*="bg-red-500/1"],
+.light [class*="bg-red-500/2"],
+.light button[class*="bg-rose-500/"],
+.light a[class*="bg-rose-500/"],
+html.light [class*="bg-rose-500/15"],
+html.light button[class*="bg-rose-500/15"] {
+  color: #BE123C !important;
+  background-color: #FFE4E6 !important;
+  border: 1.5px solid #FDA4AF !important;
+  font-weight: 700 !important;
+}
+.light [class*="bg-rose-500/"] svg,
+.light [class*="bg-red-500/"] svg {
+  color: #BE123C !important;
+  stroke: #BE123C !important;
+}
+.light [class*="bg-rose-500/"]:hover,
+.light button[class*="bg-rose-500/"]:hover,
+.light a[class*="bg-rose-500/"]:hover {
+  background-color: #E11D48 !important;
+  color: #FFFFFF !important;
+  border-color: #E11D48 !important;
+}
+.light [class*="bg-rose-500/"]:hover svg,
+.light button[class*="bg-rose-500/"]:hover svg,
+.light a[class*="bg-rose-500/"]:hover svg {
+  color: #FFFFFF !important;
+  stroke: #FFFFFF !important;
+}
+
+.light [class*="bg-amber-500/1"],
+.light [class*="bg-amber-500/2"],
+.light [class*="bg-yellow-500/1"],
+.light [class*="bg-yellow-500/2"],
+.light button[class*="bg-amber-500/"],
+.light a[class*="bg-amber-500/"],
+html.light [class*="bg-amber-500/15"],
+html.light button[class*="bg-amber-500/15"] {
+  color: #B45309 !important;
+  background-color: #FEF3C7 !important;
+  border: 1.5px solid #FCD34D !important;
+  font-weight: 700 !important;
+}
+.light [class*="bg-amber-500/"] svg {
+  color: #B45309 !important;
+  stroke: #B45309 !important;
+}
+
+.light [class*="bg-purple-500/1"],
+.light [class*="bg-purple-500/2"],
+.light button[class*="bg-purple-500/"],
+.light a[class*="bg-purple-500/"] {
+  color: #7E22CE !important;
+  background-color: #F3E8FF !important;
+  border: 1.5px solid #D8B4FE !important;
+  font-weight: 700 !important;
+}
+.light [class*="bg-purple-500/"] svg {
+  color: #7E22CE !important;
+  stroke: #7E22CE !important;
+}
+
+.light [class*="bg-slate-500/1"],
+.light [class*="bg-slate-500/2"],
+.light [class*="bg-slate-100"] {
+  color: #1E293B !important;
+  border-color: #CBD5E1 !important;
+}
+
+/* Ensure solid dark and primary buttons retain pure white text */
+.light button.bg-slate-900,
 .light button[class*="bg-slate-900"],
+.light button.bg-slate-950,
 .light button[class*="bg-slate-950"],
-.light button[class*="bg-black"],
-.light a.btn-primary,
-.light a.btn-primary *,
+.light button.bg-black,
+.light button.bg-blue-600,
+.light button.bg-emerald-600,
+.light button.bg-rose-600,
 .light .nav-badge-pill,
 .light .hero-3d-icon-badge {
   color: #FFFFFF !important;
+}
+
+/* Retain dark text on explicit text-slate classes in light mode */
+.light .text-slate-950,
+.light [class*="text-slate-950"],
+.light .text-slate-900,
+.light [class*="text-slate-900"] {
+  color: #0F172A !important;
 }
 
 /* Form Controls & Select Inputs in Light Mode: ALWAYS 100% Crisp Dark Text */
@@ -872,6 +1189,31 @@ html.light [class*="selection"] textarea {
 .btn-primary:active {
   transform: translateY(0);
 }
+
+.light .btn-primary,
+html.light .btn-primary {
+  background: linear-gradient(135deg, #0284C7 0%, #0369A1 100%) !important;
+  color: #FFFFFF !important;
+  font-weight: 800 !important;
+  border: 1px solid #0284C7 !important;
+  box-shadow: 0 4px 16px -2px rgba(2, 132, 199, 0.40) !important;
+}
+.light .btn-primary *,
+html.light .btn-primary * {
+  color: #FFFFFF !important;
+}
+.light .btn-primary svg,
+html.light .btn-primary svg {
+  color: #FFFFFF !important;
+  stroke: #FFFFFF !important;
+}
+.light .btn-primary:hover,
+html.light .btn-primary:hover {
+  background: linear-gradient(135deg, #0369A1 0%, #075985 100%) !important;
+  box-shadow: 0 6px 22px -2px rgba(2, 132, 199, 0.55) !important;
+  transform: translateY(-2px);
+}
+
 
 .btn-secondary {
   background: rgba(255, 255, 255, 0.07);
@@ -2128,22 +2470,29 @@ html.light [class*="selection"] textarea {
 }
 
 /* =========================================================================
-   STRICT ISOLATED INVOICE PRINTING STYLES
-   Hides the web page layout (sidebar, header, buttons) and prints ONLY the invoice on Page 1
+   STRICT ISOLATED INVOICE PRINTING — A4 PERFECT 1-PAGE EDGE-ALIGNED
+   Guarantees exactly 1 page output (never 2 pages) with clean balanced margins
    ========================================================================= */
-@media print {
-  @page {
-    size: A4 portrait;
-    margin: 4mm 6mm;
-  }
+/* =========================================================================
+   STRICT 1-PAGE A4 INVOICE PRINTING (DESKTOP & ANDROID / MOBILE)
+   Ensures 100% visibility on mobile Chrome without blank pages,
+   and perfectly balanced top-to-bottom alignment across the A4 sheet.
+   ========================================================================= */
+@page {
+  size: A4 portrait;
+  margin: 5mm 7mm !important; /* Balanced 5mm top/bottom, 7mm left/right printer margin */
+}
 
+@media print {
+  /* Reset body and html to full unclipped printable document */
   html, body {
     margin: 0 !important;
     padding: 0 !important;
     width: 100% !important;
-    height: 100% !important;
-    max-height: 100% !important;
-    overflow: hidden !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
     background: #FFFFFF !important;
     color: #000000 !important;
     -webkit-print-color-adjust: exact !important;
@@ -2151,100 +2500,140 @@ html.light [class*="selection"] textarea {
     font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif !important;
   }
 
-  /* Hide background content */
+  /* Hide screen chrome, navbars, docks, and non-printable elements */
+  header,
+  nav,
+  aside,
+  footer,
+  button,
+  .mobile-glass-dock,
+  .navbar-glass-dark,
+  .print\:hidden,
+  #printable-invoice-container .print\:hidden,
+  #printable-invoice-container button {
+    display: none !important;
+    visibility: hidden !important;
+    height: 0 !important;
+    width: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Unhide printable modal container, invoice canvas and children */
   body * {
     visibility: hidden;
   }
 
-  /* Reset fixed modal overlay */
-  div.fixed {
-    position: static !important;
-    background: transparent !important;
-    padding: 0 !important;
-    margin: 0 !important;
-    overflow: visible !important;
-    display: block !important;
+  #printable-invoice-container,
+  #printable-invoice-container *,
+  #printable-invoice-canvas,
+  #printable-invoice-canvas *,
+  .nu-iframe-print-wrapper,
+  .nu-iframe-print-wrapper * {
+    visibility: visible !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 
-  /* Pin printable containers to top: 0, left: 0 so they strictly render on Page 1 */
-  #printable-invoice-container,
-  #printable-order-modal,
-  #printable-labels-container,
-  .print-canvas {
-    position: fixed !important;
-    left: 0 !important;
-    top: 0 !important;
-    width: 100% !important;
-    max-width: 100% !important;
+  /* CRITICAL FOR ANDROID MOBILE & DESKTOP:
+     Ancestors must be normal-flow static blocks without overflow: hidden or fixed clipping! */
+  #root,
+  #printable-modal-scroll-wrapper,
+  div.fixed,
+  div[class*="fixed inset-0"],
+  .fixed,
+  .overflow-y-auto,
+  .overflow-x-auto {
+    position: static !important;
+    display: block !important;
     margin: 0 !important;
     padding: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    max-height: none !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    background: #FFFFFF !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
     border: none !important;
     box-shadow: none !important;
-    background: #FFFFFF !important;
-    color: #000000 !important;
-    display: block !important;
     visibility: visible !important;
+  }
+
+  /* Printable container in normal document flow */
+  #printable-invoice-container {
+    position: static !important;
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+    background: #FFFFFF !important;
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    overflow: visible !important;
     page-break-before: avoid !important;
     page-break-after: avoid !important;
     page-break-inside: avoid !important;
     break-before: avoid !important;
     break-after: avoid !important;
     break-inside: avoid !important;
-    z-index: 99999999 !important;
   }
 
-  #printable-invoice-container *,
-  #printable-order-modal *,
-  #printable-labels-container *,
-  .print-canvas * {
-    visibility: visible !important;
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
-  }
-
-  #printable-invoice-container img,
-  #printable-order-modal img,
-  #printable-labels-container img {
-    visibility: visible !important;
-    display: inline-block !important;
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
-  }
-
-  .print\:hidden,
-  button,
-  nav,
-  aside,
-  header,
-  footer {
-    display: none !important;
-    visibility: hidden !important;
-  }
-
-  /* ---- INVOICE MOBILE SCALE RESET FOR PRINT ---- */
-  /* Remove the CSS transform used for mobile viewing so the invoice prints full-size */
+  /* Scale wrapper inside printable container: strip transforms & margins */
   .invoice-scale-wrapper {
-    width: 100% !important;
-    overflow: visible !important;
     display: block !important;
-    visibility: visible !important;
-  }
-  .invoice-canvas {
-    transform: none !important;
-    transform-origin: top left !important;
     width: 100% !important;
+    max-width: 100% !important;
     min-width: 0 !important;
     margin: 0 !important;
-    padding: 6mm 8mm !important;
-    visibility: visible !important;
-    display: block !important;
-    font-size: 9pt !important;
-    box-sizing: border-box !important;
+    padding: 0 !important;
+    transform: none !important;
+    -webkit-transform: none !important;
+    zoom: 1 !important;
+    overflow: visible !important;
   }
-  .invoice-canvas * {
+
+  /* Inner invoice canvas: occupies exactly the full A4 printable height (280mm),
+     distributing all sections evenly with flex space-between */
+  .invoice-canvas {
+    transform: none !important;
+    -webkit-transform: none !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    height: 280mm !important;
+    min-height: 275mm !important;
+    max-height: 283mm !important;
+    margin: 0 auto !important;
+    padding: 3mm 4mm !important;
+    border: none !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    background: #FFFFFF !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+    font-size: 9.5pt !important;
+    line-height: 1.35 !important;
+    box-sizing: border-box !important;
+    page-break-before: avoid !important;
+    page-break-after: avoid !important;
+    page-break-inside: avoid !important;
+    break-before: avoid !important;
+    break-after: avoid !important;
+    break-inside: avoid !important;
+    overflow: hidden !important;
+  }
+
+  /* Ensure images print sharply and in correct dimensions */
+  #printable-invoice-container img {
     visibility: visible !important;
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
+    display: inline-block !important;
+    max-width: 100% !important;
   }
 }
 /* Hero Banner Slide-in from right animation */

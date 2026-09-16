@@ -119,15 +119,15 @@ export const Navbar = () => {
       <header className={`sticky top-0 z-40 transition-all duration-300 ${
         isDark ? 'navbar-glass-dark' : 'navbar-glass-light'
       } ${scrolled ? 'scrolled py-1' : 'py-2'}`}>
-        <div className="w-full max-w-[1520px] mx-auto px-4 sm:px-8">
-          <div className="flex items-center justify-between h-16 md:h-18 gap-4">
+        <div className="w-full max-w-[1520px] mx-auto px-2 sm:px-4 lg:px-6">
+          <div className="flex items-center justify-between h-16 md:h-18 gap-2 xl:gap-3 min-w-0">
             
             {/* 1. Left: Brand Identity Logo */}
             <Link to="/" className="flex items-center gap-2 group shrink-0 focus:outline-none py-1">
               <img 
                 src={currentLogo}
                 alt="Netra Unnayan — Clarity You Can Trust" 
-                className="h-9 sm:h-11 md:h-12 w-auto object-contain transition-transform duration-300 group-hover:scale-102"
+                className="h-8 sm:h-10 md:h-11 w-auto object-contain transition-transform duration-300 group-hover:scale-102 shrink-0"
                 onError={(e) => {
                   e.target.onerror = null;
                   e.target.src = '/logo_symbol.png';
@@ -135,15 +135,15 @@ export const Navbar = () => {
               />
             </Link>
 
-            {/* 2. Middle: Desktop Navigation Links (Sophisticated luxury typographic nav) */}
-            <nav className="hidden lg:flex items-center gap-1 xl:gap-2">
+            {/* 2. Middle: Desktop Navigation Links (Responsive luxury typographic nav) */}
+            <nav className="hidden lg:flex items-center gap-0.5 xl:gap-1.5 min-w-0">
               
               {/* Eyewear Dropdown */}
-              <div className="relative">
+              <div className="relative shrink-0">
                 <button
                   onClick={() => setDropdownOpen(!dropdownOpen)}
                   onMouseEnter={() => setDropdownOpen(true)}
-                  className={`h-9 px-3 rounded-xl text-xs xl:text-sm font-bold tracking-wide transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
+                  className={`h-9 px-2 xl:px-2.5 2xl:px-3 rounded-xl text-xs xl:text-xs 2xl:text-sm font-bold tracking-wide transition-all flex items-center gap-1 xl:gap-1.5 whitespace-nowrap shrink-0 ${
                     location.pathname.startsWith('/catalog')
                       ? 'text-brand-cyan bg-brand-cyan/10'
                       : isDark
@@ -151,9 +151,9 @@ export const Navbar = () => {
                       : 'text-slate-700 hover:text-brand-cyan hover:bg-sky-50'
                   }`}
                 >
-                  <Glasses className="w-4 h-4 text-brand-cyan shrink-0" />
-                  <span>Eyewear Catalog</span>
-                  <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${dropdownOpen ? 'rotate-180' : ''}`} />
+                  <Glasses className="w-3.5 h-3.5 text-brand-cyan shrink-0" />
+                  <span>Eyewear</span>
+                  <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${dropdownOpen ? 'rotate-180' : ''}`} />
                 </button>
 
                 {/* Dropdown Menu */}
@@ -188,7 +188,7 @@ export const Navbar = () => {
               {/* Eye Doctors */}
               <Link 
                 to="/doctors" 
-                className={`h-9 px-3 rounded-xl text-xs xl:text-sm font-bold tracking-wide transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
+                className={`h-9 px-2 xl:px-2.5 2xl:px-3 rounded-xl text-xs xl:text-xs 2xl:text-sm font-bold tracking-wide transition-all flex items-center gap-1 xl:gap-1.5 whitespace-nowrap shrink-0 ${
                   location.pathname === '/doctors'
                     ? 'text-brand-cyan bg-brand-cyan/10'
                     : isDark
@@ -196,7 +196,7 @@ export const Navbar = () => {
                     : 'text-slate-700 hover:text-brand-cyan hover:bg-sky-50'
                 }`}
               >
-                <Stethoscope className="w-4 h-4 text-emerald-500 shrink-0" />
+                <Stethoscope className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
                 <span>Eye Doctors</span>
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
               </Link>
@@ -204,7 +204,7 @@ export const Navbar = () => {
               {/* Home Eye Checkup */}
               <Link 
                 to="/home-eye-checkup" 
-                className={`h-9 px-3 rounded-xl text-xs xl:text-sm font-bold tracking-wide transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
+                className={`h-9 px-2 xl:px-2.5 2xl:px-3 rounded-xl text-xs xl:text-xs 2xl:text-sm font-bold tracking-wide transition-all flex items-center gap-1 xl:gap-1.5 whitespace-nowrap shrink-0 ${
                   location.pathname === '/home-eye-checkup'
                     ? 'text-brand-cyan bg-brand-cyan/10'
                     : isDark
@@ -212,14 +212,14 @@ export const Navbar = () => {
                     : 'text-slate-700 hover:text-brand-cyan hover:bg-sky-50'
                 }`}
               >
-                <HomeIcon className="w-4 h-4 text-brand-teal shrink-0" />
+                <HomeIcon className="w-3.5 h-3.5 text-brand-teal shrink-0" />
                 <span>Home Eye Test</span>
               </Link>
 
               {/* Live Track */}
               <Link 
                 to="/track-order" 
-                className={`h-9 px-3 rounded-xl text-xs xl:text-sm font-bold tracking-wide transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
+                className={`h-9 px-2 xl:px-2.5 2xl:px-3 rounded-xl text-xs xl:text-xs 2xl:text-sm font-bold tracking-wide transition-all flex items-center gap-1 xl:gap-1.5 whitespace-nowrap shrink-0 ${
                   location.pathname === '/track-order'
                     ? 'text-brand-cyan bg-brand-cyan/10'
                     : isDark
@@ -227,30 +227,30 @@ export const Navbar = () => {
                     : 'text-slate-700 hover:text-brand-cyan hover:bg-sky-50'
                 }`}
               >
-                <Activity className="w-4 h-4 text-amber-500 shrink-0" />
+                <Activity className="w-3.5 h-3.5 text-amber-500 shrink-0" />
                 <span>Live Track</span>
               </Link>
             </nav>
 
             {/* 3. Right: Action Buttons (Search, Theme Toggle, Wishlist, Cart, STRICTLY ADMIN POS, Profile) */}
-            <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 pr-1 sm:pr-2">
+            <div className="flex items-center gap-1 sm:gap-1.5 xl:gap-2 shrink-0">
               
               {/* Search Toggle Icon */}
               <button 
                 onClick={() => setSearchOpen(!searchOpen)}
-                className={`w-9 h-9 rounded-full flex items-center justify-center transition-all shrink-0 ${
+                className={`w-8.5 h-8.5 xl:w-9 xl:h-9 rounded-full flex items-center justify-center transition-all shrink-0 ${
                   isDark ? 'glass-action-btn-dark' : 'glass-action-btn-light'
                 }`}
-                title="Search frames &amp; styles"
+                title="Search frames & styles"
                 aria-label="Search"
               >
-                <Search className="w-4 h-4 text-brand-cyan" />
+                <Search className="w-3.5 h-3.5 xl:w-4 xl:h-4 text-brand-cyan" />
               </button>
 
               {/* Theme Toggle Button */}
               <button
                 onClick={toggleTheme}
-                className={`w-9 h-9 rounded-full flex items-center justify-center transition-all shrink-0 ${
+                className={`w-8.5 h-8.5 xl:w-9 xl:h-9 rounded-full flex items-center justify-center transition-all shrink-0 ${
                   isDark
                     ? 'glass-action-btn-dark text-amber-400'
                     : 'glass-action-btn-light text-sky-600'
@@ -259,16 +259,16 @@ export const Navbar = () => {
                 aria-label="Toggle Theme"
               >
                 {isDark ? (
-                  <Sun className="w-4 h-4 transform transition-transform hover:rotate-90 duration-300" />
+                  <Sun className="w-3.5 h-3.5 xl:w-4 xl:h-4 transform transition-transform hover:rotate-90 duration-300" />
                 ) : (
-                  <Moon className="w-4 h-4 transform transition-transform hover:-rotate-45 duration-300" />
+                  <Moon className="w-3.5 h-3.5 xl:w-4 xl:h-4 transform transition-transform hover:-rotate-45 duration-300" />
                 )}
               </button>
 
               {/* Wishlist Button (Protected: Strictly requires login) */}
               <Link 
                 to={user ? "/wishlist" : "/login?redirect=/wishlist"}
-                className={`relative w-9 h-9 rounded-full flex items-center justify-center transition-all shrink-0 ${
+                className={`relative w-8.5 h-8.5 xl:w-9 xl:h-9 rounded-full flex items-center justify-center transition-all shrink-0 ${
                   wishlistCount > 0
                     ? 'bg-rose-500/15 border border-rose-500/40 text-rose-500 shadow-[0_0_16px_rgba(244,63,94,0.25)]'
                     : isDark
@@ -278,9 +278,9 @@ export const Navbar = () => {
                 title="View Wishlist"
                 aria-label="Wishlist"
               >
-                <Heart className={`w-4 h-4 ${wishlistCount > 0 ? 'fill-rose-500 text-rose-500' : 'text-slate-400'}`} />
+                <Heart className={`w-3.5 h-3.5 xl:w-4 xl:h-4 ${wishlistCount > 0 ? 'fill-rose-500 text-rose-500' : 'text-slate-400'}`} />
                 {wishlistCount > 0 && (
-                  <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-rose-500 text-white text-[9px] font-black flex items-center justify-center shadow-sm">
+                  <span className="absolute -top-1 -right-1 w-3.5 h-3.5 xl:w-4 xl:h-4 rounded-full bg-rose-500 text-white text-[8.5px] xl:text-[9px] font-black flex items-center justify-center shadow-sm">
                     {wishlistCount}
                   </span>
                 )}
@@ -289,7 +289,7 @@ export const Navbar = () => {
               {/* Shopping Cart Button (Protected: Strictly requires login) */}
               <Link 
                 to={user ? "/cart" : "/login?redirect=/cart"}
-                className={`h-9 px-2.5 sm:px-3 rounded-full flex items-center gap-1.5 transition-all shrink-0 ${
+                className={`h-8.5 xl:h-9 px-2 xl:px-2.5 rounded-full flex items-center gap-1 xl:gap-1.5 transition-all shrink-0 ${
                   itemCount > 0
                     ? 'bg-brand-cyan/15 border border-brand-cyan/40 text-brand-cyan shadow-[0_0_20px_rgba(0,180,216,0.25)]'
                     : isDark
@@ -298,12 +298,12 @@ export const Navbar = () => {
                 }`}
                 title="View Cart"
               >
-                <ShoppingBag className="w-4 h-4 text-brand-cyan" />
-                <span className="text-xs font-bold">
+                <ShoppingBag className="w-3.5 h-3.5 xl:w-4 xl:h-4 text-brand-cyan shrink-0" />
+                <span className="text-[11px] xl:text-xs font-bold">
                   {itemCount > 0 ? `₹${parseFloat(cartTotal || 0).toLocaleString('en-IN')}` : 'Cart'}
                 </span>
                 {itemCount > 0 && (
-                  <span className="w-4 h-4 rounded-full bg-brand-cyan text-slate-950 text-[10px] font-black flex items-center justify-center">
+                  <span className="w-3.5 h-3.5 xl:w-4 xl:h-4 rounded-full bg-brand-cyan text-slate-950 text-[9px] xl:text-[10px] font-black flex items-center justify-center shrink-0">
                     {itemCount}
                   </span>
                 )}
@@ -314,31 +314,31 @@ export const Navbar = () => {
                 <>
                   <Link
                     to="/admin"
-                    className="hidden lg:inline-flex h-9 px-3 rounded-full bg-brand-cyan/20 border border-brand-cyan/50 text-brand-cyan hover:bg-brand-cyan hover:text-slate-950 text-xs font-black uppercase tracking-wider shadow-cyan-glow items-center gap-1.5 whitespace-nowrap shrink-0 transition-all hover:scale-105"
+                    className="hidden lg:inline-flex h-8.5 xl:h-9 px-2 xl:px-2.5 rounded-full bg-brand-cyan/20 border border-brand-cyan/50 text-brand-cyan hover:bg-brand-cyan hover:text-slate-950 text-[11px] xl:text-xs font-black uppercase tracking-wider shadow-cyan-glow items-center gap-1 xl:gap-1.5 whitespace-nowrap shrink-0 transition-all hover:scale-102"
                     title="Open Admin Executive Dashboard"
                   >
-                    <Shield className="w-3.5 h-3.5" />
-                    <span>Admin Panel</span>
+                    <Shield className="w-3.5 h-3.5 shrink-0" />
+                    <span className="hidden xl:inline">Admin</span>
                   </Link>
 
                   <Link
                     to="/admin/pos"
-                    className="hidden xl:inline-flex h-9 px-3 rounded-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 text-xs font-black uppercase tracking-wider shadow-md shadow-amber-500/20 items-center gap-1.5 whitespace-nowrap shrink-0 transition-transform hover:-translate-y-0.5"
+                    className="hidden lg:inline-flex h-8.5 xl:h-9 px-2 xl:px-2.5 rounded-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 text-[11px] xl:text-xs font-black uppercase tracking-wider shadow-sm items-center gap-1 xl:gap-1.5 whitespace-nowrap shrink-0 transition-transform hover:-translate-y-0.5"
                     title="Open Optical POS Billing Counter"
                   >
-                    <ShoppingCart className="w-3.5 h-3.5" />
-                    <span>POS Counter</span>
-                    <span className="w-1.5 h-1.5 rounded-full bg-red-600 animate-pulse" />
+                    <ShoppingCart className="w-3.5 h-3.5 shrink-0" />
+                    <span className="hidden xl:inline">POS</span>
+                    <span className="w-1.5 h-1.5 rounded-full bg-red-600 animate-pulse shrink-0" />
                   </Link>
                 </>
               )}
 
-              {/* User Account / Profile Button (With generous right padding, never touches edge) */}
+              {/* User Account / Profile Button (With dedicated shrink-0, always 100% visible inside navbar) */}
               {user ? (
                 <div className="relative shrink-0">
                   <button 
                     onClick={() => setUserDropdownOpen(!userDropdownOpen)}
-                    className={`h-9 px-2.5 rounded-full text-xs font-bold transition-all border flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
+                    className={`h-8.5 xl:h-9 px-2 xl:px-2.5 rounded-full text-xs font-bold transition-all border flex items-center gap-1 xl:gap-1.5 whitespace-nowrap shrink-0 ${
                       isAdmin 
                         ? 'bg-amber-500/10 border-amber-500/40 text-amber-500 dark:text-amber-300'
                         : isDark
@@ -346,15 +346,26 @@ export const Navbar = () => {
                         : 'bg-white border-slate-200 text-slate-800 hover:bg-slate-50 shadow-sm'
                     }`}
                   >
-                    <div className={`w-6 h-6 rounded-full flex items-center justify-center font-extrabold text-[11px] shrink-0 ${
+                    {user.avatar_url ? (
+                      <img 
+                        src={user.avatar_url} 
+                        alt={user.full_name || 'Account'} 
+                        className="w-5.5 h-5.5 xl:w-6 xl:h-6 rounded-full object-cover border border-brand-cyan/40 shrink-0" 
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                          if (e.currentTarget.nextSibling) e.currentTarget.nextSibling.style.display = 'flex';
+                        }}
+                      />
+                    ) : null}
+                    <div className={`w-5.5 h-5.5 xl:w-6 xl:h-6 rounded-full flex items-center justify-center font-extrabold text-[10px] xl:text-[11px] shrink-0 ${user.avatar_url ? 'hidden' : ''} ${
                       isAdmin ? 'bg-amber-500 text-slate-950' : 'bg-brand-cyan/20 text-brand-cyan'
                     }`}>
                       {user.full_name?.charAt(0) || 'U'}
                     </div>
-                    <span className="hidden md:inline font-bold max-w-[80px] truncate">
+                    <span className="hidden 2xl:inline font-bold max-w-[70px] truncate">
                       {user.full_name?.split(' ')[0] || 'Account'}
                     </span>
-                    <ChevronDown className="w-3 h-3 text-slate-400" />
+                    <ChevronDown className="w-3 h-3 text-slate-400 shrink-0" />
                   </button>
 
                   {/* Profile Dropdown */}
@@ -910,7 +921,20 @@ export const Navbar = () => {
                 : isDark ? 'text-slate-300 hover:text-white' : 'text-slate-600 hover:text-slate-900'
             }`}
           >
-            {isAdmin ? <Shield className="w-5 h-5 text-amber-400" /> : <User className="w-5 h-5" />}
+            {user?.avatar_url ? (
+              <img 
+                src={user.avatar_url} 
+                alt={user.full_name || 'Account'} 
+                className="w-5 h-5 rounded-full object-cover border border-cyan-400/50 shadow-xs" 
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                  if (e.currentTarget.nextSibling) e.currentTarget.nextSibling.style.display = 'inline-block';
+                }}
+              />
+            ) : null}
+            <span className={user?.avatar_url ? 'hidden' : 'inline-block'}>
+              {isAdmin ? <Shield className="w-5 h-5 text-amber-400" /> : <User className="w-5 h-5" />}
+            </span>
             <span>{user ? (isAdmin ? 'Admin' : 'Account') : 'Login'}</span>
           </Link>
         </nav>

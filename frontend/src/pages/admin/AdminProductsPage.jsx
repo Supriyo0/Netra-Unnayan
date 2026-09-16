@@ -226,12 +226,12 @@ export const AdminProductsPage = () => {
 
                       {/* Name & Category */}
                       <td className="p-3.5">
-                        <div className="font-bold text-white text-sm line-clamp-1">{p.name}</div>
-                        <div className="text-[11px] text-slate-400 mt-0.5">
+                        <div className="font-bold text-slate-900 dark:text-white text-sm line-clamp-1">{p.name}</div>
+                        <div className="text-[11px] text-slate-600 dark:text-slate-400 mt-0.5 font-medium">
                           {p.category_name || 'Eyeglasses'} &bull; <span className="capitalize">{p.frame_shape}</span>
                         </div>
                         {p.is_featured === 1 && (
-                          <span className="inline-block mt-1 text-[9px] uppercase font-extrabold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300">
+                          <span className="inline-block mt-1 text-[9px] uppercase font-black px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-500/20 text-amber-900 dark:text-amber-300 border border-amber-300 dark:border-amber-500/30">
                             Featured
                           </span>
                         )}
@@ -239,31 +239,31 @@ export const AdminProductsPage = () => {
 
                       {/* SKU & Barcode */}
                       <td className="p-3.5">
-                        <div className="font-mono text-brand-cyan font-bold text-[11px]">{p.sku}</div>
+                        <div className="font-mono text-sky-700 dark:text-brand-cyan font-extrabold text-[11px]">{p.sku}</div>
                         <button
                           type="button"
                           onClick={() => setSelectedBarcodeProduct(p)}
-                          className="font-mono text-slate-300 hover:text-brand-cyan text-[10px] flex items-center gap-1 mt-1 px-1.5 py-0.5 rounded bg-white/5 hover:bg-white/10 border border-white/10 transition-colors cursor-pointer"
+                          className="font-mono text-slate-700 dark:text-slate-300 hover:text-sky-700 dark:hover:text-brand-cyan text-[10px] font-semibold flex items-center gap-1 mt-1 px-1.5 py-0.5 rounded bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 border border-slate-300 dark:border-white/10 transition-colors cursor-pointer"
                           title="Click to view full barcode sticker & mobile scanner QR"
                         >
-                          <Barcode className="w-3.5 h-3.5 text-brand-cyan" />
+                          <Barcode className="w-3.5 h-3.5 text-sky-600 dark:text-brand-cyan" />
                           <span>{p.barcode || p.sku}</span>
                         </button>
                       </td>
 
                       {/* Dimensions */}
-                      <td className="p-3.5 font-mono text-[11px] text-slate-300">
+                      <td className="p-3.5 font-mono text-[11px] text-slate-700 dark:text-slate-300 font-medium">
                         {p.dimensions_label || `${p.lens_width || 52}-${p.bridge_width || 18}-${p.temple_length || 140}`}
-                        <div className="text-[10px] text-slate-500 capitalize">{p.frame_size} Fit</div>
+                        <div className="text-[10px] text-slate-600 dark:text-slate-500 capitalize">{p.frame_size} Fit</div>
                       </td>
 
                       {/* Price */}
                       <td className="p-3.5">
-                        <div className="font-extrabold text-white font-mono text-sm">
+                        <div className="font-extrabold text-slate-900 dark:text-white font-mono text-sm">
                           ₹{p.price}
                         </div>
                         {p.discount_price && (
-                          <div className="text-[10px] text-slate-500 line-through font-mono">
+                          <div className="text-[10px] text-slate-500 dark:text-slate-400 line-through font-mono font-medium">
                             MRP ₹{p.discount_price}
                           </div>
                         )}
@@ -343,28 +343,28 @@ export const AdminProductsPage = () => {
 
       {/* Delete Confirmation Dialog */}
       {deleteConfirmId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-          <div className="bg-[#0A192F] border border-rose-500/40 rounded-2xl p-6 max-w-sm w-full space-y-4 shadow-2xl">
-            <div className="w-12 h-12 rounded-full bg-rose-500/20 text-rose-400 flex items-center justify-center mx-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm">
+          <div className="bg-white dark:bg-[#0A192F] border border-slate-200 dark:border-rose-500/40 rounded-3xl p-6 max-w-sm w-full space-y-4 shadow-2xl text-slate-900 dark:text-white">
+            <div className="w-12 h-12 rounded-full bg-rose-50 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400 flex items-center justify-center mx-auto border border-rose-200 dark:border-rose-500/30">
               <Trash2 className="w-6 h-6" />
             </div>
             <div className="text-center space-y-1">
-              <h3 className="text-lg font-bold text-white">Archive Eyewear Frame?</h3>
-              <p className="text-xs text-slate-400">
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white">Archive Eyewear Frame?</h3>
+              <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed font-medium">
                 This will deactivate the product from the public storefront while retaining historical sales and prescription audit records.
               </p>
             </div>
             <div className="grid grid-cols-2 gap-3 pt-2">
               <button
                 onClick={() => setDeleteConfirmId(null)}
-                className="btn-secondary text-xs py-2"
+                className="btn-secondary text-xs py-2.5 rounded-xl font-bold"
               >
                 Cancel
               </button>
               <button
                 onClick={() => handleDeleteProduct(deleteConfirmId)}
                 disabled={deleteLoading}
-                className="bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold py-2 rounded-xl"
+                className="bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold py-2.5 rounded-xl shadow-sm transition-all"
               >
                 {deleteLoading ? 'Archiving...' : 'Yes, Archive'}
               </button>
