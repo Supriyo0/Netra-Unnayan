@@ -56,13 +56,38 @@ try {
             $orderId = (int)($inv['order_id'] ?? 0);
             $inv['items'] = [];
             if ($orderId > 0) {
-                $itemStmt = $pdo->prepare("
-                    SELECT id, product_id, product_name, product_sku, unit_price, quantity, lens_type, lens_price, total_price 
-                    FROM order_items 
-                    WHERE order_id = ?
-                ");
+                $itemStmt = $pdo->prepare('
+                    SELECT oi.*, 
+                           p.name as product_name_master, p.sku as product_sku_code,
+                           p.frame_size as p_frame_size, p.frame_color as p_frame_color, p.frame_material,
+                           COALESCE(
+                               (SELECT image_url FROM product_images WHERE product_id = oi.product_id ORDER BY is_primary DESC, id ASC LIMIT 1),
+                               "/logo_symbol.png"
+                           ) as image_url
+                    FROM order_items oi
+                    LEFT JOIN products p ON oi.product_id = p.id
+                    WHERE oi.order_id = ?
+                ');
                 $itemStmt->execute([$orderId]);
-                $inv['items'] = $itemStmt->fetchAll(PDO::FETCH_ASSOC);
+                $fetchedItems = $itemStmt->fetchAll(PDO::FETCH_ASSOC);
+                foreach ($fetchedItems as &$it) {
+                    if (empty($it['product_name']) && !empty($it['product_name_master'])) {
+                        $it['product_name'] = $it['product_name_master'];
+                    }
+                    if (empty($it['product_sku']) && !empty($it['product_sku_code'])) {
+                        $it['product_sku'] = $it['product_sku_code'];
+                    }
+                    if (empty($it['frame_size']) && !empty($it['p_frame_size'])) {
+                        $it['frame_size'] = $it['p_frame_size'];
+                    }
+                    if (empty($it['frame_color']) && !empty($it['p_frame_color'])) {
+                        $it['frame_color'] = $it['p_frame_color'];
+                    }
+                    if (empty($it['material']) && !empty($it['frame_material'])) {
+                        $it['material'] = $it['frame_material'];
+                    }
+                }
+                $inv['items'] = $fetchedItems;
             }
         }
 

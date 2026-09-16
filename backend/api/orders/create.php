@@ -14,11 +14,25 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 $input = json_decode(file_get_contents('php://input'), true) ?? [];
 $auth = getOptionalAuth();
-$customerId = ($auth && ($auth['type'] ?? '') === 'customer') ? (int)$auth['id'] : null;
+$pdo = Database::getConnection();
+
+$customerId = null;
+if ($auth) {
+    if (($auth['type'] ?? '') === 'customer') {
+        $customerId = (int)$auth['id'];
+    } elseif (($auth['type'] ?? '') === 'admin') {
+        $aStmt = $pdo->prepare('SELECT id FROM customers WHERE email = ? OR (phone = ? AND phone != "") LIMIT 1');
+        $aStmt->execute([$auth['email'] ?? '', $auth['phone'] ?? '']);
+        $cId = $aStmt->fetchColumn();
+        if ($cId) $customerId = (int)$cId;
+    }
+}
 
 // Customer & Shipping Info
 $customerName = trim($input['customer_name'] ?? '');
 $customerPhone = trim($input['customer_phone'] ?? '');
+$cleanPhone = preg_replace('/[^0-9]/', '', $customerPhone);
+$last10 = substr($cleanPhone, -10);
 $customerEmail = trim($input['customer_email'] ?? '');
 $addressLine1 = trim($input['address_line1'] ?? '');
 $addressLine2 = trim($input['address_line2'] ?? '');
@@ -44,13 +58,11 @@ if (!in_array($paymentMode, ['COD', 'UPI'])) {
     Response::error('Invalid payment method selected.', 422);
 }
 
-$pdo = Database::getConnection();
-
 // If customerId is not found from token, look it up by phone or email in customers table
 if (empty($customerId)) {
-    if (!empty($customerPhone)) {
-        $cStmt = $pdo->prepare('SELECT id FROM customers WHERE phone = ? LIMIT 1');
-        $cStmt->execute([$customerPhone]);
+    if (!empty($last10)) {
+        $cStmt = $pdo->prepare('SELECT id FROM customers WHERE phone LIKE ? OR phone = ? LIMIT 1');
+        $cStmt->execute(['%' . $last10, $customerPhone]);
         $cId = $cStmt->fetchColumn();
         if ($cId) $customerId = (int)$cId;
     }
@@ -62,8 +74,8 @@ if (empty($customerId)) {
     }
     if (empty($customerId) && !empty($customerName) && !empty($customerPhone)) {
         try {
-            $regPass = password_hash('Pass@' . substr($customerPhone, -4), PASSWORD_DEFAULT);
-            $regEmail = $customerEmail ?: ($customerPhone . '@netraunnayan.com');
+            $regPass = password_hash('Pass@' . (substr($last10, -4) ?: '1234'), PASSWORD_DEFAULT);
+            $regEmail = $customerEmail ?: ($last10 . '@netraunnayan.com');
             $regStmt = $pdo->prepare('INSERT INTO customers (full_name, phone, email, password_hash, is_active) VALUES (?, ?, ?, ?, 1)');
             $regStmt->execute([$customerName, $customerPhone, $regEmail, $regPass]);
             $customerId = (int)$pdo->lastInsertId();
@@ -197,7 +209,7 @@ try {
 
     // Statuses based on payment mode & prescription
     if ($paymentMode === 'COD') {
-        $orderStatus = 'Order Confirmed';
+        $orderStatus = 'Pending';
         $paymentStatus = 'Pending';
     } else {
         if (!empty($upiUtr) || !empty($paymentProofUrl)) {

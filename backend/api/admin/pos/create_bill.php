@@ -48,22 +48,38 @@ try {
     // Lock and verify stock for all items
     foreach ($items as $item) {
         $productId = (int)($item['product_id'] ?? 0);
+        $sku = trim($item['product_sku'] ?? $item['sku'] ?? '');
         $qty = max(1, (int)($item['quantity'] ?? 1));
         $customPrice = isset($item['unit_price']) ? (float)$item['unit_price'] : null;
 
-        $stmt = $pdo->prepare('
-            SELECT p.id, p.name, p.sku, p.barcode, p.price, p.discount_price, p.stock_quantity,
-                   COALESCE((SELECT image_url FROM product_images WHERE product_id = p.id ORDER BY is_primary DESC, id ASC LIMIT 1), "") as primary_image
-            FROM products p
-            WHERE p.id = ? AND p.is_active = 1
-            FOR UPDATE
-        ');
-        $stmt->execute([$productId]);
-        $prod = $stmt->fetch();
+        if ($productId > 0) {
+            $stmt = $pdo->prepare('
+                SELECT p.id, p.name, p.sku, p.barcode, p.price, p.discount_price, p.stock_quantity,
+                       COALESCE((SELECT image_url FROM product_images WHERE product_id = p.id ORDER BY is_primary DESC, id ASC LIMIT 1), "") as primary_image
+                FROM products p
+                WHERE p.id = ? AND p.is_active = 1
+                FOR UPDATE
+            ');
+            $stmt->execute([$productId]);
+            $prod = $stmt->fetch();
+        } else if (!empty($sku)) {
+            $stmt = $pdo->prepare('
+                SELECT p.id, p.name, p.sku, p.barcode, p.price, p.discount_price, p.stock_quantity,
+                       COALESCE((SELECT image_url FROM product_images WHERE product_id = p.id ORDER BY is_primary DESC, id ASC LIMIT 1), "") as primary_image
+                FROM products p
+                WHERE (p.sku = ? OR p.barcode = ?) AND p.is_active = 1
+                FOR UPDATE
+            ');
+            $stmt->execute([$sku, $sku]);
+            $prod = $stmt->fetch();
+        } else {
+            $prod = null;
+        }
 
         if (!$prod) {
             $pdo->rollBack();
-            Response::error("Item ID {$productId} not found in catalog.", 400);
+            $label = !empty($item['product_name']) ? $item['product_name'] : ($sku ?: "ID {$productId}");
+            Response::error("Item '{$label}' not found in catalog.", 400);
         }
 
         if ((int)$prod['stock_quantity'] < $qty) {

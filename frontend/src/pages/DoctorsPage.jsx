@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { 
   Calendar, Clock, ShieldCheck, MapPin, Award, 
-  CheckCircle2, AlertCircle, X, ChevronRight, Sparkles 
+  CheckCircle2, AlertCircle, X, ChevronRight, Sparkles, FileText
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import api from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import { InvoiceModal } from '../components/common/InvoiceModal';
 
 export const DoctorsPage = () => {
   const { user } = useAuth();
@@ -28,6 +29,7 @@ export const DoctorsPage = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [bookingResult, setBookingResult] = useState(null);
   const [bookingError, setBookingError] = useState('');
+  const [showSlipModal, setShowSlipModal] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -265,13 +267,23 @@ export const DoctorsPage = () => {
                   Please arrive 10 minutes prior to your slot at Netra Unnayan, Digha Bypass Rd, Jatimati, Digha.
                 </p>
 
-                <button
-                  type="button"
-                  onClick={() => setSelectedDoctor(null)}
-                  className="btn-primary text-xs py-2.5 px-6 rounded-xl font-bold"
-                >
-                  Done
-                </button>
+                <div className="flex flex-wrap items-center justify-center gap-2.5 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowSlipModal(true)}
+                    className="py-2.5 px-4 rounded-xl font-bold text-xs bg-emerald-600 hover:bg-emerald-500 text-white flex items-center gap-1.5 shadow-md transition-all cursor-pointer"
+                  >
+                    <FileText className="w-3.5 h-3.5" />
+                    <span>View / Print Consultation Slip</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setSelectedDoctor(null); setBookingResult(null); }}
+                    className="btn-secondary text-xs py-2.5 px-5 rounded-xl font-bold"
+                  >
+                    Done
+                  </button>
+                </div>
               </div>
             ) : (
               <form onSubmit={handleBookSubmit} className="space-y-4">
@@ -423,6 +435,34 @@ export const DoctorsPage = () => {
 
           </div>
         </div>
+      )}
+
+      {/* Consultation Slip Invoice Modal */}
+      {showSlipModal && bookingResult && (
+        <InvoiceModal
+          isOpen={showSlipModal}
+          onClose={() => setShowSlipModal(false)}
+          invoiceData={{
+            invoiceNumber: `NU-DOC-${bookingResult.appointment_number?.replace(/[^0-9]/g, '') || '001'}`,
+            orderNumber: bookingResult.appointment_number,
+            invoiceDate: bookingResult.date || new Date().toISOString().split('T')[0],
+            type: 'DOCTOR',
+            status: 'Confirmed',
+            paymentMode: 'CLINIC_DESK',
+            paymentStatus: 'Pending (Pay at Clinic Desk)',
+            customerName: patientName || user?.full_name || 'Patient',
+            customerPhone: patientPhone || user?.phone || '',
+            customerEmail: patientEmail || user?.email || '',
+            customerAddress: 'Netra Unnayan Main Clinic, Digha Bypass Rd, Jatimati, Digha - 721428',
+            doctorName: bookingResult.doctor_name || selectedDoctor?.name,
+            specialty: selectedDoctor?.specialization || 'Cataract & Comprehensive Eye Care',
+            appointmentDate: bookingResult.date,
+            appointmentTime: bookingResult.time,
+            totalAmount: bookingResult.fee || selectedDoctor?.consultation_fee || 500,
+            subtotal: bookingResult.fee || selectedDoctor?.consultation_fee || 500,
+            warrantyNote: 'Official Consultation Slip & Optical Prescription Token'
+          }}
+        />
       )}
 
     </div>

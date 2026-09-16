@@ -23,7 +23,7 @@ if (empty($orderNumber)) {
 
 $auth = getOptionalAuth();
 if (!$auth) {
-    Response::unauthorized('Authentication required to cancel an order.');
+    Response::unauthorized('Authentication required to cancel an order. Please log in to your account.');
 }
 
 $pdo = Database::getConnection();
@@ -44,10 +44,45 @@ try {
         Response::notFound('Order not found.');
     }
 
-    // Customer can only cancel their own order; admin can cancel any
-    if ($auth['type'] === 'customer' && (int)$order['customer_id'] !== (int)$auth['id']) {
+    // In-store POS offline bills cannot be cancelled online
+    if ($order['order_type'] === 'POS_OFFLINE' || !empty($order['is_offline_bill'])) {
         $pdo->rollBack();
-        Response::forbidden('You are not authorized to cancel this order.');
+        Response::error('In-store counter purchases cannot be cancelled online. Please visit our Digha store/clinic for counter assistance.', 400);
+    }
+
+    // Authorization validation:
+    $isAuthorized = false;
+    if ($auth['type'] === 'admin') {
+        $isAuthorized = true;
+    } elseif ($auth['type'] === 'customer') {
+        $custId = (int)$auth['id'];
+        if (!empty($order['customer_id']) && (int)$order['customer_id'] === $custId) {
+            $isAuthorized = true;
+        } else {
+            // Check customer record phone/email
+            $cStmt = $pdo->prepare('SELECT phone, email FROM customers WHERE id = ?');
+            $cStmt->execute([$custId]);
+            $custRow = $cStmt->fetch();
+            if ($custRow) {
+                $userPhoneClean = preg_replace('/[^0-9]/', '', $custRow['phone'] ?? '');
+                $orderPhoneClean = preg_replace('/[^0-9]/', '', $order['customer_phone'] ?? '');
+                $userLast10 = substr($userPhoneClean, -10);
+                $orderLast10 = substr($orderPhoneClean, -10);
+
+                if (!empty($userLast10) && !empty($orderLast10) && $userLast10 === $orderLast10) {
+                    $isAuthorized = true;
+                    $pdo->prepare('UPDATE orders SET customer_id = ? WHERE id = ?')->execute([$custId, $order['id']]);
+                } elseif (!empty($custRow['email']) && !empty($order['customer_email']) && strtolower(trim($custRow['email'])) === strtolower(trim($order['customer_email']))) {
+                    $isAuthorized = true;
+                    $pdo->prepare('UPDATE orders SET customer_id = ? WHERE id = ?')->execute([$custId, $order['id']]);
+                }
+            }
+        }
+    }
+
+    if (!$isAuthorized) {
+        $pdo->rollBack();
+        Response::forbidden('You do not have permission to cancel this order.');
     }
 
     // Check if already cancelled or delivered
@@ -88,23 +123,28 @@ try {
 
     $invStmt = $pdo->prepare('
         INSERT INTO inventory_transactions (product_id, transaction_type, quantity, previous_quantity, new_quantity, reference_type, reference_id, notes)
-        VALUES (?, "RETURN", ?, ?, ?, "CANCELLED_ORDER", ?, ?)
+        VALUES (?, "RETURN", ?, ?, ?, "ORDER", ?, ?)
     ');
 
     foreach ($items as $item) {
+        $productId = (int)($item['product_id'] ?? 0);
+        if ($productId <= 0) continue;
+
         $lockProd = $pdo->prepare('SELECT stock_quantity FROM products WHERE id = ? FOR UPDATE');
-        $lockProd->execute([$item['product_id']]);
+        $lockProd->execute([$productId]);
         $currentStock = (int)$lockProd->fetchColumn();
         $restoredStock = $currentStock + (int)$item['quantity'];
 
         // Update product stock
-        $pdo->prepare('UPDATE products SET stock_quantity = ? WHERE id = ?')->execute([$restoredStock, $item['product_id']]);
+        $pdo->prepare('UPDATE products SET stock_quantity = ? WHERE id = ?')->execute([$restoredStock, $productId]);
 
         // Audit inventory restoration
-        $invStmt->execute([
-            $item['product_id'], (int)$item['quantity'], $currentStock, $restoredStock,
-            $orderNumber, "Stock restored due to cancellation of Order #{$orderNumber}"
-        ]);
+        try {
+            $invStmt->execute([
+                $productId, (int)$item['quantity'], $currentStock, $restoredStock,
+                $orderNumber, "Stock restored due to cancellation of Order #{$orderNumber}"
+            ]);
+        } catch (Exception $e) {}
     }
 
     // Update order status
@@ -128,24 +168,28 @@ try {
     // If paid, create refund record
     if ($order['payment_status'] === 'Paid') {
         $refundNumber = 'NU-REF-' . strtoupper(bin2hex(random_bytes(4)));
-        $pdo->prepare('
-            INSERT INTO refunds (order_id, refund_number, amount, reason, status)
-            VALUES (?, ?, ?, ?, "Pending")
-        ')->execute([$order['id'], $refundNumber, $order['total_amount'], "Cancellation refund: " . $cancelReason]);
+        try {
+            $pdo->prepare('
+                INSERT INTO refunds (order_id, refund_number, amount, reason, status)
+                VALUES (?, ?, ?, ?, "Pending")
+            ')->execute([$order['id'], $refundNumber, $order['total_amount'], "Cancellation refund: " . $cancelReason]);
+        } catch (Exception $e) {}
     }
 
     $pdo->commit();
 
     // Send cancellation notification
     if (!empty($order['customer_email'])) {
-        $emailBody = <<<HTML
-            <div class="badge" style="background:#FEE2E2; color:#B91C1C;">Order Cancelled</div>
-            <h2>Order {$orderNumber} Cancelled</h2>
-            <p>Your order has been cancelled as requested.</p>
-            <p><strong>Reason:</strong> {$cancelReason}</p>
-            <p>If you made an online payment, a full refund of ₹{$order['total_amount']} has been initiated and will credit to your account within 5–7 business days.</p>
+        try {
+            $emailBody = <<<HTML
+                <div class="badge" style="background:#FEE2E2; color:#B91C1C;">Order Cancelled</div>
+                <h2>Order {$orderNumber} Cancelled</h2>
+                <p>Your order has been cancelled as requested.</p>
+                <p><strong>Reason:</strong> {$cancelReason}</p>
+                <p>If you made an online payment, a full refund of ₹{$order['total_amount']} has been initiated and will credit to your account within 5–7 business days.</p>
 HTML;
-        Mailer::send($order['customer_email'], $order['customer_name'], "Order Cancelled - {$orderNumber} | Netra Unnayan", $emailBody);
+            Mailer::send($order['customer_email'], $order['customer_name'], "Order Cancelled - {$orderNumber} | Netra Unnayan", $emailBody);
+        } catch (Exception $e) {}
     }
 
     Response::success([

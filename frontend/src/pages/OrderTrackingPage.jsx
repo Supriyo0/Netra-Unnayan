@@ -108,6 +108,22 @@ export const OrderTrackingPage = () => {
     return idx > -1 ? idx : 0;
   };
 
+  const isOrderOwner = Boolean(
+    user && order && (
+      user.role === 'admin' ||
+      user.id === order.customer_id ||
+      (user.phone && order.customer_phone && user.phone.replace(/\D/g, '').slice(-10) === order.customer_phone.replace(/\D/g, '').slice(-10)) ||
+      (user.email && order.customer_email && user.email.toLowerCase() === order.customer_email.toLowerCase())
+    )
+  );
+
+  const canCancelOrder = Boolean(
+    isOrderOwner &&
+    order?.can_cancel &&
+    order?.order_type !== 'POS_OFFLINE' &&
+    !order?.is_offline_bill
+  );
+
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       
@@ -208,10 +224,10 @@ export const OrderTrackingPage = () => {
                 <span>Invoice</span>
               </button>
 
-              {order.can_cancel && (
+              {canCancelOrder && (
                 <button 
                   onClick={() => setCancelModalOpen(true)}
-                  className="px-3 py-1 rounded-full bg-rose-500/10 text-rose-400 border border-rose-500/20 hover:bg-rose-500/20 text-xs font-semibold"
+                  className="px-3 py-1 rounded-full bg-rose-500/10 text-rose-400 border border-rose-500/20 hover:bg-rose-500/20 text-xs font-semibold cursor-pointer"
                 >
                   Cancel Order
                 </button>

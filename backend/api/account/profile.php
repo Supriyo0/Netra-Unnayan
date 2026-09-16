@@ -101,6 +101,13 @@ if ($method === 'POST') {
         $stmt->execute([$fullName, $phone, $email, $avatarUrl, $customer['id']]);
     }
 
+    // Also sync avatar to admin account if exists
+    try {
+        $pdo->exec("ALTER TABLE admins ADD COLUMN IF NOT EXISTS avatar_url TEXT NULL");
+        $aStmt = $pdo->prepare('UPDATE admins SET avatar_url = ? WHERE email = ? OR (phone = ? AND phone != "")');
+        $aStmt->execute([$avatarUrl, $email, $phone]);
+    } catch (Exception $e) {}
+
     $updated = [
         'id' => $customer['id'],
         'full_name' => $fullName,

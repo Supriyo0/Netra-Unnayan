@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { 
   ShoppingBag, User, Search, Phone, MessageCircle, 
   Menu, X, Calendar, Home as HomeIcon, Eye, ShieldCheck,
@@ -12,6 +13,7 @@ import { useCart } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useWishlist } from '../../context/WishlistContext';
+import { BrandLogo } from '../common/BrandLogo';
 
 export const Navbar = () => {
   const navigate = useNavigate();
@@ -119,20 +121,14 @@ export const Navbar = () => {
       <header className={`sticky top-0 z-40 transition-all duration-300 ${
         isDark ? 'navbar-glass-dark' : 'navbar-glass-light'
       } ${scrolled ? 'scrolled py-1' : 'py-2'}`}>
-        <div className="w-full max-w-[1520px] mx-auto px-2 sm:px-4 lg:px-6">
-          <div className="flex items-center justify-between h-16 md:h-18 gap-2 xl:gap-3 min-w-0">
+        <div className="w-full max-w-[1520px] mx-auto px-3 sm:px-4 lg:px-6">
+          <div className="flex items-center justify-between h-15 sm:h-16 md:h-18 gap-2 xl:gap-3 min-w-0">
             
-            {/* 1. Left: Brand Identity Logo */}
-            <Link to="/" className="flex items-center gap-2 group shrink-0 focus:outline-none py-1">
-              <img 
-                src={currentLogo}
-                alt="Netra Unnayan — Clarity You Can Trust" 
-                className="h-8 sm:h-10 md:h-11 w-auto object-contain transition-transform duration-300 group-hover:scale-102 shrink-0"
-                onError={(e) => {
-                  e.target.onerror = null;
-                  e.target.src = '/logo_symbol.png';
-                }}
-              />
+            {/* 1. Left: Brand Identity Logo (Bigger & Animated with Natural Eye Blinking) */}
+            <Link to="/" className="flex items-center group shrink min-w-0 focus:outline-none py-0.5">
+              <div className="nav-logo-animated-wrapper">
+                <BrandLogo isDark={isDark} size="default" />
+              </div>
             </Link>
 
             {/* 2. Middle: Desktop Navigation Links (Responsive luxury typographic nav) */}
@@ -232,140 +228,122 @@ export const Navbar = () => {
               </Link>
             </nav>
 
-            {/* 3. Right: Action Buttons (Search, Theme Toggle, Wishlist, Cart, STRICTLY ADMIN POS, Profile) */}
-            <div className="flex items-center gap-1 sm:gap-1.5 xl:gap-2 shrink-0">
+            {/* 3. Right: Action Buttons (Only Search, Profile, Hamburger on Mobile) */}
+            <div className="flex items-center gap-2 sm:gap-2.5 shrink-0 py-1">
               
-              {/* Search Toggle Icon */}
+              {/* 1. Search 3D Button */}
               <button 
                 onClick={() => setSearchOpen(!searchOpen)}
-                className={`w-8.5 h-8.5 xl:w-9 xl:h-9 rounded-full flex items-center justify-center transition-all shrink-0 ${
-                  isDark ? 'glass-action-btn-dark' : 'glass-action-btn-light'
-                }`}
-                title="Search frames & styles"
+                className="nav-3d-btn group"
+                title="Search frames, lenses & styles"
                 aria-label="Search"
               >
-                <Search className="w-3.5 h-3.5 xl:w-4 xl:h-4 text-brand-cyan" />
+                <div className="nav-3d-tile nav-3d-tile-blue">
+                  <Search className="w-4 h-4 text-white stroke-[2.5]" />
+                </div>
               </button>
 
-              {/* Theme Toggle Button */}
-              <button
-                onClick={toggleTheme}
-                className={`w-8.5 h-8.5 xl:w-9 xl:h-9 rounded-full flex items-center justify-center transition-all shrink-0 ${
-                  isDark
-                    ? 'glass-action-btn-dark text-amber-400'
-                    : 'glass-action-btn-light text-sky-600'
-                }`}
-                title={isDark ? 'Switch to Crisp Optical Light Theme' : 'Switch to Midnight Dark Theme'}
-                aria-label="Toggle Theme"
-              >
-                {isDark ? (
-                  <Sun className="w-3.5 h-3.5 xl:w-4 xl:h-4 transform transition-transform hover:rotate-90 duration-300" />
-                ) : (
-                  <Moon className="w-3.5 h-3.5 xl:w-4 xl:h-4 transform transition-transform hover:-rotate-45 duration-300" />
-                )}
-              </button>
-
-              {/* Wishlist Button (Protected: Strictly requires login) */}
+              {/* 2. Wishlist 3D Button (Tablet/Desktop only) */}
               <Link 
                 to={user ? "/wishlist" : "/login?redirect=/wishlist"}
-                className={`relative w-8.5 h-8.5 xl:w-9 xl:h-9 rounded-full flex items-center justify-center transition-all shrink-0 ${
-                  wishlistCount > 0
-                    ? 'bg-rose-500/15 border border-rose-500/40 text-rose-500 shadow-[0_0_16px_rgba(244,63,94,0.25)]'
-                    : isDark
-                    ? 'glass-action-btn-dark text-slate-300'
-                    : 'glass-action-btn-light text-slate-600'
-                }`}
-                title="View Wishlist"
+                className="hidden md:inline-flex nav-3d-btn group"
+                title="Saved Wishlist"
                 aria-label="Wishlist"
               >
-                <Heart className={`w-3.5 h-3.5 xl:w-4 xl:h-4 ${wishlistCount > 0 ? 'fill-rose-500 text-rose-500' : 'text-slate-400'}`} />
+                <div className="nav-3d-tile nav-3d-tile-red">
+                  <Heart className={`w-4 h-4 text-white stroke-[2.4] ${wishlistCount > 0 ? 'fill-white' : ''}`} />
+                </div>
                 {wishlistCount > 0 && (
-                  <span className="absolute -top-1 -right-1 w-3.5 h-3.5 xl:w-4 xl:h-4 rounded-full bg-rose-500 text-white text-[8.5px] xl:text-[9px] font-black flex items-center justify-center shadow-sm">
+                  <span className="nav-3d-badge bg-rose-600">
                     {wishlistCount}
                   </span>
                 )}
               </Link>
 
-              {/* Shopping Cart Button (Protected: Strictly requires login) */}
+              {/* 3. Shopping Cart 3D Button (Tablet/Desktop only) */}
               <Link 
                 to={user ? "/cart" : "/login?redirect=/cart"}
-                className={`h-8.5 xl:h-9 px-2 xl:px-2.5 rounded-full flex items-center gap-1 xl:gap-1.5 transition-all shrink-0 ${
-                  itemCount > 0
-                    ? 'bg-brand-cyan/15 border border-brand-cyan/40 text-brand-cyan shadow-[0_0_20px_rgba(0,180,216,0.25)]'
-                    : isDark
-                    ? 'glass-action-btn-dark text-slate-300'
-                    : 'glass-action-btn-light text-slate-600'
-                }`}
-                title="View Cart"
+                className="hidden md:inline-flex nav-3d-btn group"
+                title="View Shopping Cart"
+                aria-label="Cart"
               >
-                <ShoppingBag className="w-3.5 h-3.5 xl:w-4 xl:h-4 text-brand-cyan shrink-0" />
-                <span className="text-[11px] xl:text-xs font-bold">
-                  {itemCount > 0 ? `₹${parseFloat(cartTotal || 0).toLocaleString('en-IN')}` : 'Cart'}
-                </span>
+                <div className="nav-3d-tile nav-3d-tile-green">
+                  <ShoppingBag className="w-4 h-4 text-white stroke-[2.4]" />
+                </div>
                 {itemCount > 0 && (
-                  <span className="w-3.5 h-3.5 xl:w-4 xl:h-4 rounded-full bg-brand-cyan text-slate-950 text-[9px] xl:text-[10px] font-black flex items-center justify-center shrink-0">
+                  <span className="nav-3d-badge bg-emerald-600">
                     {itemCount}
                   </span>
                 )}
               </Link>
 
-              {/* STRICTLY ONLY WHEN ADMIN IS LOGGED IN: ADMIN PANEL & POS BILLING SECTION BUTTONS */}
+              {/* 4. Theme Toggle 3D Button (Tablet/Desktop only) */}
+              <button
+                onClick={toggleTheme}
+                className="hidden sm:inline-flex nav-3d-btn group"
+                title={isDark ? 'Switch to Crisp Optical Light Theme' : 'Switch to Midnight Dark Theme'}
+                aria-label="Toggle Theme"
+              >
+                <div className="nav-3d-tile nav-3d-tile-charcoal">
+                  {isDark ? (
+                    <Sun className="w-4 h-4 text-amber-300 stroke-[2.4]" />
+                  ) : (
+                    <Moon className="w-4 h-4 text-cyan-200 stroke-[2.4]" />
+                  )}
+                </div>
+              </button>
+
+              {/* STRICTLY ONLY WHEN ADMIN IS LOGGED IN ON DESKTOP: ADMIN PANEL & POS BILLING BUTTONS */}
               {user && isAdmin && (
                 <>
                   <Link
                     to="/admin"
-                    className="hidden lg:inline-flex h-8.5 xl:h-9 px-2 xl:px-2.5 rounded-full bg-brand-cyan/20 border border-brand-cyan/50 text-brand-cyan hover:bg-brand-cyan hover:text-slate-950 text-[11px] xl:text-xs font-black uppercase tracking-wider shadow-cyan-glow items-center gap-1 xl:gap-1.5 whitespace-nowrap shrink-0 transition-all hover:scale-102"
+                    className="hidden lg:inline-flex nav-3d-btn group"
                     title="Open Admin Executive Dashboard"
                   >
-                    <Shield className="w-3.5 h-3.5 shrink-0" />
-                    <span className="hidden xl:inline">Admin</span>
+                    <div className="nav-3d-tile nav-3d-tile-blue">
+                      <Shield className="w-4 h-4 text-white stroke-[2.4]" />
+                    </div>
                   </Link>
 
                   <Link
                     to="/admin/pos"
-                    className="hidden lg:inline-flex h-8.5 xl:h-9 px-2 xl:px-2.5 rounded-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 text-[11px] xl:text-xs font-black uppercase tracking-wider shadow-sm items-center gap-1 xl:gap-1.5 whitespace-nowrap shrink-0 transition-transform hover:-translate-y-0.5"
+                    className="hidden lg:inline-flex nav-3d-btn group"
                     title="Open Optical POS Billing Counter"
                   >
-                    <ShoppingCart className="w-3.5 h-3.5 shrink-0" />
-                    <span className="hidden xl:inline">POS</span>
-                    <span className="w-1.5 h-1.5 rounded-full bg-red-600 animate-pulse shrink-0" />
+                    <div className="nav-3d-tile nav-3d-tile-amber">
+                      <ShoppingCart className="w-4 h-4 text-white stroke-[2.4]" />
+                    </div>
                   </Link>
                 </>
               )}
 
-              {/* User Account / Profile Button (With dedicated shrink-0, always 100% visible inside navbar) */}
+              {/* 5. User Account / Profile 3D Button */}
               {user ? (
                 <div className="relative shrink-0">
                   <button 
                     onClick={() => setUserDropdownOpen(!userDropdownOpen)}
-                    className={`h-8.5 xl:h-9 px-2 xl:px-2.5 rounded-full text-xs font-bold transition-all border flex items-center gap-1 xl:gap-1.5 whitespace-nowrap shrink-0 ${
-                      isAdmin 
-                        ? 'bg-amber-500/10 border-amber-500/40 text-amber-500 dark:text-amber-300'
-                        : isDark
-                        ? 'bg-white/5 border-white/15 text-slate-200 hover:bg-white/10'
-                        : 'bg-white border-slate-200 text-slate-800 hover:bg-slate-50 shadow-sm'
-                    }`}
+                    className="nav-3d-btn group"
+                    title="My Profile & Account"
+                    aria-label="Account"
                   >
-                    {user.avatar_url ? (
-                      <img 
-                        src={user.avatar_url} 
-                        alt={user.full_name || 'Account'} 
-                        className="w-5.5 h-5.5 xl:w-6 xl:h-6 rounded-full object-cover border border-brand-cyan/40 shrink-0" 
-                        onError={(e) => {
-                          e.currentTarget.style.display = 'none';
-                          if (e.currentTarget.nextSibling) e.currentTarget.nextSibling.style.display = 'flex';
-                        }}
-                      />
-                    ) : null}
-                    <div className={`w-5.5 h-5.5 xl:w-6 xl:h-6 rounded-full flex items-center justify-center font-extrabold text-[10px] xl:text-[11px] shrink-0 ${user.avatar_url ? 'hidden' : ''} ${
-                      isAdmin ? 'bg-amber-500 text-slate-950' : 'bg-brand-cyan/20 text-brand-cyan'
-                    }`}>
-                      {user.full_name?.charAt(0) || 'U'}
+                    <div className="nav-3d-tile nav-3d-tile-purple overflow-hidden relative">
+                      {user.avatar_url ? (
+                        <img 
+                          src={user.avatar_url} 
+                          alt={user.full_name || 'Account'} 
+                          className="w-full h-full object-cover rounded-[8px]" 
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                            const fallback = e.currentTarget.parentElement?.querySelector('.avatar-fallback-text');
+                            if (fallback) fallback.style.display = 'flex';
+                          }}
+                        />
+                      ) : null}
+                      <span className={`avatar-fallback-text text-xs font-black text-white ${user.avatar_url ? 'hidden' : 'flex'} items-center justify-center w-full h-full`}>
+                        {user.full_name?.charAt(0) || 'U'}
+                      </span>
                     </div>
-                    <span className="hidden 2xl:inline font-bold max-w-[70px] truncate">
-                      {user.full_name?.split(' ')[0] || 'Account'}
-                    </span>
-                    <ChevronDown className="w-3 h-3 text-slate-400 shrink-0" />
                   </button>
 
                   {/* Profile Dropdown */}
@@ -470,23 +448,30 @@ export const Navbar = () => {
               ) : (
                 <Link 
                   to="/login" 
-                  className="h-9 px-3.5 rounded-xl text-xs font-bold bg-brand-cyan text-slate-950 hover:bg-brand-teal transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 shadow-sm"
-                  title="Sign In"
+                  className="nav-3d-btn group"
+                  title="Sign In / Register"
+                  aria-label="Sign In"
                 >
-                  <User className="w-3.5 h-3.5" />
-                  <span>Sign In</span>
+                  <div className="nav-3d-tile nav-3d-tile-purple">
+                    <User className="w-4 h-4 text-white stroke-[2.4]" />
+                  </div>
                 </Link>
               )}
 
-              {/* Mobile Hamburger Toggle */}
+              {/* 6. Mobile Hamburger Toggle 3D Button */}
               <button 
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className={`lg:hidden w-9 h-9 rounded-xl border flex items-center justify-center transition-colors shrink-0 ${
-                  isDark ? 'border-white/10 text-slate-200 hover:bg-white/5' : 'border-slate-200 text-slate-700 bg-white'
-                }`}
-                aria-label="Open mobile menu"
+                className="lg:hidden nav-3d-btn group"
+                aria-label="Toggle mobile menu"
+                title="Menu"
               >
-                {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+                <div className="nav-3d-tile nav-3d-tile-amber">
+                  {mobileMenuOpen ? (
+                    <X className="w-4 h-4 text-white stroke-[2.8]" />
+                  ) : (
+                    <Menu className="w-4 h-4 text-white stroke-[2.8]" />
+                  )}
+                </div>
               </button>
 
             </div>
@@ -696,8 +681,41 @@ export const Navbar = () => {
 
         {/* Mobile Flyout Menu */}
         {mobileMenuOpen && (
-          <div className="lg:hidden border-t px-5 py-5 space-y-4 max-h-[85vh] overflow-y-auto shadow-2xl transition-all bg-white dark:bg-[#060D17] border-slate-200 dark:border-white/10">
+          <div className="lg:hidden border-t px-4 sm:px-5 py-4 sm:py-5 space-y-3.5 max-h-[85vh] overflow-y-auto shadow-2xl transition-all bg-white dark:bg-[#060D17] border-slate-200 dark:border-white/10">
             
+            {/* Quick Actions Bar in Mobile Drawer */}
+            <div className="grid grid-cols-2 gap-2 pb-1">
+              {/* Theme Toggle Button */}
+              <button
+                type="button"
+                onClick={toggleTheme}
+                className={`p-2.5 rounded-xl border flex items-center justify-center gap-2 text-xs font-bold transition-all ${
+                  isDark
+                    ? 'bg-white/5 border-white/10 text-amber-300 hover:bg-white/10'
+                    : 'bg-slate-50 border-slate-200 text-sky-700 hover:bg-sky-50'
+                }`}
+              >
+                {isDark ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-sky-600" />}
+                <span>{isDark ? 'Light Mode' : 'Dark Mode'}</span>
+              </button>
+
+              {/* Wishlist Link */}
+              <Link
+                to={user ? "/wishlist" : "/login?redirect=/wishlist"}
+                onClick={() => setMobileMenuOpen(false)}
+                className={`p-2.5 rounded-xl border flex items-center justify-center gap-2 text-xs font-bold transition-all ${
+                  wishlistCount > 0
+                    ? 'bg-rose-500/10 border-rose-500/30 text-rose-500'
+                    : isDark
+                    ? 'bg-white/5 border-white/10 text-slate-300'
+                    : 'bg-slate-50 border-slate-200 text-slate-700'
+                }`}
+              >
+                <Heart className={`w-4 h-4 ${wishlistCount > 0 ? 'fill-rose-500 text-rose-500' : 'text-slate-400'}`} />
+                <span>Wishlist {wishlistCount > 0 ? `(${wishlistCount})` : ''}</span>
+              </Link>
+            </div>
+
             {/* ONLY WHEN ADMIN LOGIN: POS Billing banner in mobile drawer */}
             {user && isAdmin && (
               <Link
@@ -836,107 +854,127 @@ export const Navbar = () => {
         <nav className={`pointer-events-auto rounded-[26px] py-2 px-2 flex items-center justify-around transition-all duration-300 mobile-glass-dock ${
           isDark ? 'mobile-glass-dock-dark' : 'mobile-glass-dock-light'
         }`}>
-          <Link 
-            to="/" 
-            className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-2xl text-[10px] font-extrabold transition-all duration-200 ${
-              location.pathname === '/' 
-                ? 'text-brand-cyan bg-brand-cyan/20 shadow-[0_0_15px_rgba(0,180,216,0.35)] scale-105' 
-                : isDark ? 'text-slate-300 hover:text-white' : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            <HomeIcon className="w-5 h-5" />
-            <span>Home</span>
-          </Link>
-
-          <Link 
-            to="/catalog" 
-            className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-2xl text-[10px] font-extrabold transition-all duration-200 ${
-              location.pathname.startsWith('/catalog') || location.pathname.startsWith('/shop')
-                ? 'text-brand-cyan bg-brand-cyan/20 shadow-[0_0_15px_rgba(0,180,216,0.35)] scale-105' 
-                : isDark ? 'text-slate-300 hover:text-white' : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            <Glasses className="w-5 h-5" />
-            <span>Frames</span>
-          </Link>
-
-          {/* If Admin: POS Billing counter button */}
-          {user && isAdmin ? (
-            <Link 
-              to="/admin/pos" 
-              className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-2xl text-[10px] font-black transition-all duration-200 ${
-                location.pathname === '/admin/pos' 
-                  ? 'text-amber-300 bg-amber-500/25 shadow-[0_0_15px_rgba(245,158,11,0.4)] scale-105' 
-                  : 'text-amber-400 hover:text-amber-300'
-              }`}
-            >
-              <ShoppingCart className="w-5 h-5" />
-              <span>POS Bill</span>
-            </Link>
-          ) : (
-            <Link 
-              to={user ? "/wishlist" : "/login?redirect=/wishlist"} 
-              className={`relative flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-2xl text-[10px] font-extrabold transition-all duration-200 ${
-                location.pathname === '/wishlist' 
-                  ? 'text-rose-400 bg-rose-500/20 shadow-[0_0_15px_rgba(244,63,94,0.35)] scale-105' 
-                  : isDark ? 'text-slate-300 hover:text-white' : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <div className="relative">
-                <Heart className={`w-5 h-5 ${wishlistCount > 0 ? 'fill-rose-500 text-rose-500' : ''}`} />
-                {wishlistCount > 0 && (
-                  <span className="absolute -top-1 -right-2 w-3.5 h-3.5 rounded-full bg-rose-500 text-white text-[8.5px] font-black flex items-center justify-center shadow-xs">
-                    {wishlistCount}
-                  </span>
+          {[
+            {
+              id: 'home',
+              label: 'Home',
+              path: '/',
+              icon: HomeIcon,
+              isActive: location.pathname === '/'
+            },
+            {
+              id: 'frames',
+              label: 'Frames',
+              path: '/catalog',
+              icon: Glasses,
+              isActive: location.pathname.startsWith('/catalog') || location.pathname.startsWith('/shop')
+            },
+            ...(user && isAdmin ? [
+              {
+                id: 'pos',
+                label: 'POS Bill',
+                path: '/admin/pos',
+                icon: ShoppingCart,
+                isActive: location.pathname === '/admin/pos',
+                accent: 'amber'
+              }
+            ] : [
+              {
+                id: 'wishlist',
+                label: 'Wishlist',
+                path: user ? '/wishlist' : '/login?redirect=/wishlist',
+                icon: Heart,
+                isActive: location.pathname === '/wishlist',
+                badge: wishlistCount,
+                accent: 'rose'
+              }
+            ]),
+            {
+              id: 'cart',
+              label: 'Cart',
+              path: user ? '/cart' : '/login?redirect=/cart',
+              icon: ShoppingBag,
+              isActive: location.pathname === '/cart',
+              badge: itemCount,
+              accent: 'cyan'
+            },
+            {
+              id: 'account',
+              label: user ? (isAdmin ? 'Admin' : 'Account') : 'Login',
+              path: user ? (isAdmin ? '/admin' : '/account') : '/login',
+              icon: isAdmin ? Shield : User,
+              isActive: location.pathname.startsWith('/account') || location.pathname.startsWith('/admin') || location.pathname === '/login',
+              avatar: user?.avatar_url,
+              accent: 'cyan'
+            }
+          ].map((item) => {
+            const Icon = item.icon;
+            return (
+              <Link
+                key={item.id}
+                to={item.path}
+                className={`relative flex flex-col items-center justify-center gap-0.5 px-3 py-1.5 rounded-2xl text-[10px] font-black transition-all duration-200 select-none ${
+                  item.isActive
+                    ? item.accent === 'rose'
+                      ? 'text-rose-400'
+                      : item.accent === 'amber'
+                      ? 'text-amber-300'
+                      : 'text-brand-cyan'
+                    : isDark
+                    ? 'text-slate-300 hover:text-white'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                {item.isActive && (
+                  <motion.div
+                    layoutId="dock-liquid-drop"
+                    className={`absolute inset-0 rounded-[20px] pointer-events-none -z-10 ${
+                      item.accent === 'rose'
+                        ? 'bg-rose-500/20 border border-rose-500/40 shadow-[0_0_16px_rgba(244,63,94,0.40)]'
+                        : item.accent === 'amber'
+                        ? 'bg-amber-500/20 border border-amber-500/40 shadow-[0_0_16px_rgba(245,158,11,0.45)]'
+                        : 'bg-brand-cyan/20 border border-brand-cyan/40 shadow-[0_0_16px_rgba(0,180,216,0.45)]'
+                    }`}
+                    transition={{
+                      type: 'spring',
+                      stiffness: 420,
+                      damping: 28,
+                      mass: 0.7
+                    }}
+                  >
+                    {/* Liquid Caustic Drop Top Specular */}
+                    <div className="absolute top-1 left-2 right-2 h-[2px] rounded-full bg-white/45 blur-[0.5px]" />
+                  </motion.div>
                 )}
-              </div>
-              <span>Wishlist</span>
-            </Link>
-          )}
 
-          <Link 
-            to={user ? "/cart" : "/login?redirect=/cart"} 
-            className={`relative flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-2xl text-[10px] font-extrabold transition-all duration-200 ${
-              location.pathname === '/cart' 
-                ? 'text-brand-cyan bg-brand-cyan/20 shadow-[0_0_15px_rgba(0,180,216,0.35)] scale-105' 
-                : isDark ? 'text-slate-300 hover:text-white' : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            <div className="relative">
-              <ShoppingBag className="w-5 h-5" />
-              {itemCount > 0 && (
-                <span className="absolute -top-1 -right-2 w-3.5 h-3.5 rounded-full bg-brand-cyan text-slate-950 text-[8.5px] font-black flex items-center justify-center shadow-xs">
-                  {itemCount}
-                </span>
-              )}
-            </div>
-            <span>Cart</span>
-          </Link>
-
-          <Link 
-            to={user ? (isAdmin ? '/admin' : '/account') : '/login'} 
-            className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-2xl text-[10px] font-extrabold transition-all duration-200 ${
-              location.pathname.startsWith('/account') || location.pathname.startsWith('/admin') || location.pathname === '/login' 
-                ? 'text-brand-cyan bg-brand-cyan/20 shadow-[0_0_15px_rgba(0,180,216,0.35)] scale-105' 
-                : isDark ? 'text-slate-300 hover:text-white' : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            {user?.avatar_url ? (
-              <img 
-                src={user.avatar_url} 
-                alt={user.full_name || 'Account'} 
-                className="w-5 h-5 rounded-full object-cover border border-cyan-400/50 shadow-xs" 
-                onError={(e) => {
-                  e.currentTarget.style.display = 'none';
-                  if (e.currentTarget.nextSibling) e.currentTarget.nextSibling.style.display = 'inline-block';
-                }}
-              />
-            ) : null}
-            <span className={user?.avatar_url ? 'hidden' : 'inline-block'}>
-              {isAdmin ? <Shield className="w-5 h-5 text-amber-400" /> : <User className="w-5 h-5" />}
-            </span>
-            <span>{user ? (isAdmin ? 'Admin' : 'Account') : 'Login'}</span>
-          </Link>
+                <div className="relative flex items-center justify-center">
+                  {item.avatar ? (
+                    <img
+                      src={item.avatar}
+                      alt={user?.full_name || 'Avatar'}
+                      className="w-5 h-5 rounded-full object-cover border border-cyan-400/60 shadow-xs"
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                        const fallback = e.currentTarget.parentElement?.querySelector('.dock-fallback-icon');
+                        if (fallback) fallback.style.display = 'inline-block';
+                      }}
+                    />
+                  ) : null}
+                  <span className={`dock-fallback-icon ${item.avatar ? 'hidden' : 'inline-block'}`}>
+                    <Icon className={`w-5 h-5 ${item.id === 'wishlist' && item.badge > 0 ? 'fill-rose-500 text-rose-500' : ''}`} />
+                  </span>
+                  {item.badge > 0 && (
+                    <span className={`absolute -top-1 -right-2 w-3.5 h-3.5 rounded-full text-white text-[8.5px] font-black flex items-center justify-center shadow-xs ${
+                      item.accent === 'rose' ? 'bg-rose-500' : 'bg-brand-cyan text-slate-950'
+                    }`}>
+                      {item.badge}
+                    </span>
+                  )}
+                </div>
+                <span>{item.label}</span>
+              </Link>
+            );
+          })}
         </nav>
       </div>
     </>

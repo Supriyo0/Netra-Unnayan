@@ -370,12 +370,14 @@ export const AccountPage = () => {
   // Set Address as Default
   const handleSetDefault = async (addrId) => {
     try {
-      const res = await api.put(`/account/addresses.php?id=${addrId}`, { is_default: true });
+      setAddresses(prev => prev.map(a => ({ ...a, is_default: a.id === addrId ? 1 : 0 })));
+      const res = await api.post('/account/addresses.php', { action: 'set_default', id: addrId });
       if (res.success) {
         await refreshAddresses();
       }
     } catch (err) {
       console.error(err);
+      await refreshAddresses();
     }
   };
 
@@ -383,12 +385,16 @@ export const AccountPage = () => {
   const handleDeleteAddress = async (addrId) => {
     if (!window.confirm('Are you sure you want to remove this delivery address?')) return;
     try {
-      const res = await api.delete(`/account/addresses.php?id=${addrId}`);
-      if (res.success) {
-        await refreshAddresses();
+      setAddresses(prev => prev.filter(a => a.id !== addrId));
+      const res = await api.post('/account/addresses.php', { action: 'delete', id: addrId });
+      if (!res.success) {
+        // Fallback to delete method
+        await api.delete(`/account/addresses.php?id=${addrId}`);
       }
+      await refreshAddresses();
     } catch (err) {
-      console.error(err);
+      console.error('Failed to delete address:', err);
+      await refreshAddresses();
     }
   };
 
@@ -633,14 +639,22 @@ export const AccountPage = () => {
                       </div>
 
                       <div className="flex flex-wrap items-center gap-2.5">
-                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                        <span className={`px-3 py-1 rounded-full text-xs font-bold inline-flex items-center gap-1.5 ${
                           ord.order_status === 'Delivered' ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-500/30' :
                           ord.order_status === 'Shipped' ? 'bg-blue-100 dark:bg-blue-500/20 text-blue-800 dark:text-blue-300 border border-blue-300 dark:border-blue-500/30' :
                           ord.order_status === 'Cancelled' ? 'bg-rose-100 dark:bg-rose-500/20 text-rose-800 dark:text-rose-300 border border-rose-300 dark:border-rose-500/30' :
                           ord.order_status === 'Processing' ? 'bg-purple-100 dark:bg-purple-500/20 text-purple-800 dark:text-purple-300 border border-purple-300 dark:border-purple-500/30' :
-                          'bg-amber-100 dark:bg-amber-500/20 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-500/30'
+                          ord.order_status === 'Pending' ? 'bg-amber-100 dark:bg-amber-500/20 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-500/30' :
+                          'bg-cyan-100 dark:bg-cyan-500/20 text-cyan-800 dark:text-cyan-300 border border-cyan-300 dark:border-cyan-500/30'
                         }`}>
-                          {ord.order_status}
+                          <span className={`w-1.5 h-1.5 rounded-full ${
+                            ord.order_status === 'Delivered' ? 'bg-emerald-500' :
+                            ord.order_status === 'Shipped' ? 'bg-blue-500' :
+                            ord.order_status === 'Cancelled' ? 'bg-rose-500' :
+                            ord.order_status === 'Pending' ? 'bg-amber-500 animate-pulse' :
+                            'bg-cyan-500'
+                          }`} />
+                          {ord.order_status === 'Pending' ? 'Pending Confirmation' : ord.order_status}
                         </span>
 
                         <Link 

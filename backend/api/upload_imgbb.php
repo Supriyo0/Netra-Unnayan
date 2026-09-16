@@ -4,8 +4,7 @@ require_once __DIR__ . '/../middleware/cors.php';
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../helpers/response.php';
 
-$db = Database::getInstance();
-$pdo = $db->getConnection();
+$pdo = Database::getConnection();
 
 // 1. Get ImgBB API Key from request, database settings, or fallback default
 $apiKey = trim($_POST['api_key'] ?? '');
@@ -26,15 +25,15 @@ if (empty($apiKey)) {
 
 // 2. Prepare payload for ImgBB
 $postFields = [];
+$rawBinary = null;
+$ext = 'jpg';
 
 if (isset($_FILES['file']) && $_FILES['file']['error'] === UPLOAD_ERR_OK) {
     $filePath = $_FILES['file']['tmp_name'];
     $fileName = $_FILES['file']['name'];
-    $mimeType = mime_content_type($filePath) ?: 'image/jpeg';
-    
-    // Convert to base64 to ensure seamless ImgBB API compatibility
-    $fileData = file_get_contents($filePath);
-    $postFields['image'] = base64_encode($fileData);
+    $ext = strtolower(pathinfo($fileName, PATHINFO_EXTENSION)) ?: 'jpg';
+    $rawBinary = file_get_contents($filePath);
+    $postFields['image'] = base64_encode($rawBinary);
     $postFields['name']  = pathinfo($fileName, PATHINFO_FILENAME);
 } elseif (!empty($_POST['image_data'])) {
     $rawBase64 = $_POST['image_data'];
@@ -42,6 +41,7 @@ if (isset($_FILES['file']) && $_FILES['file']['error'] === UPLOAD_ERR_OK) {
         $rawBase64 = substr($rawBase64, strpos($rawBase64, ',') + 1);
     }
     $postFields['image'] = $rawBase64;
+    $rawBinary = base64_decode($rawBase64);
 } else {
     // Try reading raw JSON
     $json = json_decode(file_get_contents('php://input'), true);
@@ -51,33 +51,42 @@ if (isset($_FILES['file']) && $_FILES['file']['error'] === UPLOAD_ERR_OK) {
             $rawBase64 = substr($rawBase64, strpos($rawBase64, ',') + 1);
         }
         $postFields['image'] = $rawBase64;
+        $rawBinary = base64_decode($rawBase64);
     }
 }
 
 if (empty($postFields['image'])) {
-    Response::error('No image payload received for ImgBB upload.', 400);
+    Response::error('No image payload received for upload.', 400);
 }
 
-// 3. Stream upload directly to ImgBB
-$ch = curl_init('https://api.imgbb.com/1/upload?key=' . urlencode($apiKey));
-curl_setopt($ch, CURLOPT_POST, true);
-curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($postFields));
-curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+// 3. Attempt Stream upload directly to ImgBB
+$uploadedToImgbb = false;
+$resJson = null;
 
-$resRaw = curl_exec($ch);
-$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-$curlErr = curl_error($ch);
-curl_close($ch);
+try {
+    $ch = curl_init('https://api.imgbb.com/1/upload?key=' . urlencode($apiKey));
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($postFields));
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 15);
 
-if ($resRaw === false || !empty($curlErr)) {
-    Response::error('ImgBB connection error: ' . $curlErr, 502);
+    $resRaw = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $curlErr = curl_error($ch);
+    curl_close($ch);
+
+    if ($resRaw !== false && empty($curlErr)) {
+        $resJson = json_decode($resRaw, true);
+        if ($httpCode === 200 && !empty($resJson['success']) && !empty($resJson['data']['url'])) {
+            $uploadedToImgbb = true;
+        }
+    }
+} catch (Exception $e) {
+    // Graceful local fallback below
 }
 
-$resJson = json_decode($resRaw, true);
-
-if ($httpCode === 200 && !empty($resJson['success']) && !empty($resJson['data']['url'])) {
+if ($uploadedToImgbb && !empty($resJson['data']['url'])) {
     Response::success([
         'url'         => $resJson['data']['url'],
         'display_url' => $resJson['data']['display_url'] ?? $resJson['data']['url'],
@@ -85,8 +94,31 @@ if ($httpCode === 200 && !empty($resJson['success']) && !empty($resJson['data'][
         'delete_url'  => $resJson['data']['delete_url'] ?? null,
         'size'        => $resJson['data']['size'] ?? null,
         'provider'    => 'imgbb'
-    ], 'Image streamed to ImgBB successfully with zero local disk usage');
-} else {
-    $msg = $resJson['error']['message'] ?? 'ImgBB upload failed with status ' . $httpCode;
-    Response::error($msg, 422);
+    ], 'Image uploaded successfully to cloud CDN');
 }
+
+// 4. Graceful Local Storage Fallback (Guarantees upload success always)
+if ($rawBinary !== null) {
+    $targetDir = realpath(__DIR__ . '/../../public_assets/uploads');
+    if (!$targetDir) {
+        $targetDir = __DIR__ . '/../../public_assets/uploads';
+        if (!file_exists($targetDir)) {
+            mkdir($targetDir, 0777, true);
+        }
+    }
+
+    $filename = 'avatar_' . date('Ymd_His') . '_' . bin2hex(random_bytes(4)) . '.' . $ext;
+    $destPath = $targetDir . DIRECTORY_SEPARATOR . $filename;
+
+    if (file_put_contents($destPath, $rawBinary) !== false) {
+        Response::success([
+            'url'         => '/public_assets/uploads/' . $filename,
+            'display_url' => '/public_assets/uploads/' . $filename,
+            'thumb_url'   => '/public_assets/uploads/' . $filename,
+            'size'        => strlen($rawBinary),
+            'provider'    => 'local'
+        ], 'Image saved successfully to server storage');
+    }
+}
+
+Response::error('Image upload failed. Please try another image file.', 422);

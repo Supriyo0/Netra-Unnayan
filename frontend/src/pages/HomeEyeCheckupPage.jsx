@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { 
   Eye, CheckCircle2, ShieldCheck, MapPin, Clock, 
-  AlertCircle, Sparkles, Home, Phone 
+  AlertCircle, Sparkles, Home, Phone, FileText
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import api from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import { InvoiceModal } from '../components/common/InvoiceModal';
 
 export const HomeEyeCheckupPage = () => {
   const { user } = useAuth();
@@ -34,6 +35,7 @@ export const HomeEyeCheckupPage = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [bookingResult, setBookingResult] = useState(null);
   const [errorMessage, setErrorMessage] = useState('');
+  const [showSlipModal, setShowSlipModal] = useState(false);
 
   React.useEffect(() => {
     const fetchSettings = async () => {
@@ -155,12 +157,23 @@ export const HomeEyeCheckupPage = () => {
             Free cancellation or reschedule is permitted up to 2 hours prior to your scheduled slot.
           </div>
 
-          <button
-            onClick={() => setBookingResult(null)}
-            className="btn-primary text-xs py-2.5 px-6 rounded-xl font-bold"
-          >
-            Book Another Visit
-          </button>
+          <div className="flex flex-wrap items-center justify-center gap-2.5 pt-2">
+            <button
+              type="button"
+              onClick={() => setShowSlipModal(true)}
+              className="py-2.5 px-4 rounded-xl font-bold text-xs bg-cyan-600 hover:bg-cyan-500 text-white flex items-center gap-1.5 shadow-md transition-all cursor-pointer"
+            >
+              <FileText className="w-3.5 h-3.5" />
+              <span>View / Print Booking Slip</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setBookingResult(null)}
+              className="btn-secondary text-xs py-2.5 px-5 rounded-xl font-bold"
+            >
+              Book Another Visit
+            </button>
+          </div>
         </div>
       ) : (
         <form onSubmit={handleBook} className="glass-card rounded-3xl p-6 sm:p-8 space-y-6">
@@ -362,6 +375,32 @@ export const HomeEyeCheckupPage = () => {
           </div>
 
         </form>
+      )}
+
+      {/* Home Eye Checkup Booking Slip Modal */}
+      {showSlipModal && bookingResult && (
+        <InvoiceModal
+          isOpen={showSlipModal}
+          onClose={() => setShowSlipModal(false)}
+          invoiceData={{
+            invoiceNumber: `NU-HET-${bookingResult.booking_number?.replace(/[^0-9]/g, '') || '001'}`,
+            orderNumber: bookingResult.booking_number,
+            invoiceDate: bookingResult.service_date || new Date().toISOString().split('T')[0],
+            type: 'HOME_EYE',
+            status: 'Confirmed',
+            paymentMode: 'DOORSTEP_COD',
+            paymentStatus: 'Pending (Pay at Visit)',
+            customerName: customerName || user?.full_name || 'Patient',
+            customerPhone: customerPhone || user?.phone || '',
+            customerEmail: customerEmail || user?.email || '',
+            customerAddress: `${addressLine1}${addressLine2 ? `, ${addressLine2}` : ''}${landmark ? ` (Landmark: ${landmark})` : ''} - ${pincode}`,
+            appointmentDate: bookingResult.service_date,
+            appointmentTime: bookingResult.service_slot,
+            totalAmount: bookingResult.fee || 299,
+            subtotal: bookingResult.fee || 299,
+            warrantyNote: 'Doorstep Optometry Eye Exam & 100+ Designer Frame Trial'
+          }}
+        />
       )}
 
     </div>

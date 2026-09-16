@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { 
   Calendar, CheckCircle2, XCircle, Clock, MapPin, 
   User, Phone, Mail, Stethoscope, Home as HomeIcon, 
-  Search, RefreshCw, AlertCircle, Shield, Award 
+  Search, RefreshCw, AlertCircle, Shield, Award, FileText 
 } from 'lucide-react';
 import api from '../../api/client';
+import { InvoiceModal } from '../../components/common/InvoiceModal';
 
 export const AdminAppointmentsPage = () => {
   const [bookings, setBookings] = useState([]);
@@ -36,6 +37,7 @@ export const AdminAppointmentsPage = () => {
     note: '',
     isSubmitting: false
   });
+  const [invoiceModalData, setInvoiceModalData] = useState(null);
 
   const fetchBookings = async () => {
     setLoading(true);
@@ -471,6 +473,33 @@ export const AdminAppointmentsPage = () => {
                           </button>
                         )}
 
+                        <button
+                          onClick={() => setInvoiceModalData({
+                            invoiceNumber: b.booking_type === 'doctor' ? `NU-DOC-${b.id}` : `NU-HET-${b.id}`,
+                            orderNumber: b.booking_type === 'doctor' ? (b.booking_number || `DOC-${b.id}`) : (b.booking_number || `HET-${b.id}`),
+                            invoiceDate: b.scheduled_date || new Date().toISOString().split('T')[0],
+                            type: b.booking_type === 'doctor' ? 'DOCTOR' : 'HOME_EYE',
+                            status: b.status,
+                            paymentMode: b.booking_type === 'doctor' ? 'CLINIC_DESK' : 'DOORSTEP_COD',
+                            paymentStatus: b.payment_status || 'Pending',
+                            customerName: b.customer_name,
+                            customerPhone: b.customer_phone,
+                            customerEmail: b.customer_email,
+                            customerAddress: b.booking_type === 'doctor' ? 'Netra Unnayan Main Clinic, Digha' : `${b.address_line1 || ''} - ${b.pincode || ''}`,
+                            doctorName: b.doctor_name,
+                            specialty: b.specialization,
+                            appointmentDate: b.scheduled_date,
+                            appointmentTime: b.scheduled_slot,
+                            assigned_optometrist: b.assigned_optometrist,
+                            totalAmount: b.fee,
+                            subtotal: b.fee
+                          })}
+                          className="p-1.5 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-800 dark:text-emerald-300 border border-emerald-500/40 text-xs inline-flex items-center shadow-sm"
+                          title="View / Print Official Slip"
+                        >
+                          <FileText className="w-3.5 h-3.5" />
+                        </button>
+
                         {isConfirmed && (
                           <span className="text-[11px] text-emerald-700 dark:text-emerald-400 font-bold inline-flex items-center ml-2 gap-1">
                             <CheckCircle2 className="w-3.5 h-3.5" /> Confirmed
@@ -659,6 +688,15 @@ export const AdminAppointmentsPage = () => {
             </form>
           </div>
         </div>
+      )}
+
+      {/* Dedicated Clinical / Doorstep Slip Modal */}
+      {invoiceModalData && (
+        <InvoiceModal
+          isOpen={!!invoiceModalData}
+          onClose={() => setInvoiceModalData(null)}
+          invoiceData={invoiceModalData}
+        />
       )}
 
     </div>

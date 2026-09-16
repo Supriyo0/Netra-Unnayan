@@ -30,13 +30,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 
         try {
             $iStmt = $pdo->prepare('
-                SELECT oi.*, p.primary_image, p.sku as product_sku_code, p.lens_width, p.bridge_width, p.temple_length 
+                SELECT oi.*, 
+                       p.name as product_name_master, p.sku as product_sku_code, p.lens_width, p.bridge_width, p.temple_length,
+                       p.frame_size as p_frame_size, p.frame_color as p_frame_color, p.frame_material as p_frame_material, p.frame_shape as p_frame_shape,
+                       COALESCE(
+                           (SELECT image_url FROM product_images WHERE product_id = oi.product_id ORDER BY is_primary DESC, id ASC LIMIT 1),
+                           "/logo_symbol.png"
+                       ) as primary_image,
+                       COALESCE(
+                           (SELECT image_url FROM product_images WHERE product_id = oi.product_id ORDER BY is_primary DESC, id ASC LIMIT 1),
+                           "/logo_symbol.png"
+                       ) as image_url
                 FROM order_items oi 
                 LEFT JOIN products p ON oi.product_id = p.id 
                 WHERE oi.order_id = ?
             ');
             $iStmt->execute([$orderId]);
-            $ord['items'] = $iStmt->fetchAll(PDO::FETCH_ASSOC);
+            $fetchedItems = $iStmt->fetchAll(PDO::FETCH_ASSOC);
+            foreach ($fetchedItems as &$it) {
+                if (empty($it['product_name']) && !empty($it['product_name_master'])) {
+                    $it['product_name'] = $it['product_name_master'];
+                }
+                if (empty($it['product_sku']) && !empty($it['product_sku_code'])) {
+                    $it['product_sku'] = $it['product_sku_code'];
+                }
+                if (empty($it['frame_size']) && !empty($it['p_frame_size'])) {
+                    $it['frame_size'] = $it['p_frame_size'];
+                }
+                if (empty($it['frame_color']) && !empty($it['p_frame_color'])) {
+                    $it['frame_color'] = $it['p_frame_color'];
+                }
+                if (empty($it['material']) && !empty($it['p_frame_material'])) {
+                    $it['material'] = $it['p_frame_material'];
+                }
+            }
+            $ord['items'] = $fetchedItems;
         } catch (Exception $e) {
             $ord['items'] = [];
         }
@@ -116,9 +144,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 
     foreach ($orders as &$ord) {
         try {
-            $iStmt = $pdo->prepare('SELECT oi.*, p.primary_image FROM order_items oi LEFT JOIN products p ON oi.product_id = p.id WHERE oi.order_id = ?');
+            $iStmt = $pdo->prepare('
+                SELECT oi.*, 
+                       p.name as product_name_master, p.sku as product_sku_code, p.lens_width, p.bridge_width, p.temple_length,
+                       p.frame_size as p_frame_size, p.frame_color as p_frame_color, p.frame_material as p_frame_material, p.frame_shape as p_frame_shape,
+                       COALESCE(
+                           (SELECT image_url FROM product_images WHERE product_id = oi.product_id ORDER BY is_primary DESC, id ASC LIMIT 1),
+                           "/logo_symbol.png"
+                       ) as primary_image,
+                       COALESCE(
+                           (SELECT image_url FROM product_images WHERE product_id = oi.product_id ORDER BY is_primary DESC, id ASC LIMIT 1),
+                           "/logo_symbol.png"
+                       ) as image_url
+                FROM order_items oi 
+                LEFT JOIN products p ON oi.product_id = p.id 
+                WHERE oi.order_id = ?
+            ');
             $iStmt->execute([$ord['id']]);
-            $ord['items'] = $iStmt->fetchAll(PDO::FETCH_ASSOC);
+            $fetchedItems = $iStmt->fetchAll(PDO::FETCH_ASSOC);
+            foreach ($fetchedItems as &$it) {
+                if (empty($it['product_name']) && !empty($it['product_name_master'])) {
+                    $it['product_name'] = $it['product_name_master'];
+                }
+                if (empty($it['product_sku']) && !empty($it['product_sku_code'])) {
+                    $it['product_sku'] = $it['product_sku_code'];
+                }
+                if (empty($it['frame_size']) && !empty($it['p_frame_size'])) {
+                    $it['frame_size'] = $it['p_frame_size'];
+                }
+                if (empty($it['frame_color']) && !empty($it['p_frame_color'])) {
+                    $it['frame_color'] = $it['p_frame_color'];
+                }
+                if (empty($it['material']) && !empty($it['p_frame_material'])) {
+                    $it['material'] = $it['p_frame_material'];
+                }
+            }
+            $ord['items'] = $fetchedItems;
         } catch (Exception $e) {
             $ord['items'] = [];
         }
@@ -139,6 +200,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             $ord['payment'] = $payStmt->fetch(PDO::FETCH_ASSOC);
         } catch (Exception $e) {
             $ord['payment'] = null;
+        }
+
+        try {
+            $histStmt = $pdo->prepare('
+                SELECT h.*, a.full_name as staff_name 
+                FROM order_status_history h 
+                LEFT JOIN admins a ON h.updated_by_admin_id = a.id 
+                WHERE h.order_id = ? 
+                ORDER BY h.id DESC
+            ');
+            $histStmt->execute([$ord['id']]);
+            $ord['status_history'] = $histStmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (Exception $e) {
+            $ord['status_history'] = [];
         }
     }
 
@@ -162,6 +237,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $order = $stmt->fetch();
 
     if (!$order) Response::notFound('Order not found.');
+    $oldStatus = $order['order_status'] ?? 'Pending';
 
     $action = trim($input['action'] ?? '');
     $rejectionReason = trim($input['rejection_reason'] ?? $input['note'] ?? '');

@@ -1,258 +1,304 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTheme } from '../../context/ThemeContext';
+import { NetraSymbolSVG } from './BrandLogo';
 
+/**
+ * Netra Unnayan — Premium Cinematic Loading Screen
+ *
+ * Uses the pure SVG logo symbol (transparent background — ZERO white-circle patches).
+ *
+ * Eye-opening sequence:
+ *  Stage 0  (0ms)    → Eye fully closed (scaleY ≈ 0.03) — thin glowing slit
+ *  Stage 1  (500ms)  → Attempt 1: eyelid flutters to 30%, falls back shut
+ *  Stage 2  (920ms)  → Fully closed again (rest beat)
+ *  Stage 3  (1200ms) → Attempt 2: eyelid pushes to 62%, falls back shut
+ *  Stage 4  (1700ms) → Fully closed again
+ *  Stage 5  (2000ms) → FULL AWAKENING: opens completely, iris spins, flare sweeps,
+ *                       brand text slides in
+ *  Stage 6  (3300ms) → Fade out → reveal storefront
+ */
 export const LoadingScreen = ({ onComplete }) => {
+  const { isDark } = useTheme();
   const [stage, setStage] = useState(0);
-
-  const statusMessages = [
-    'ALIGNING OPTICAL APERTURE...',
-    'CALIBRATING SPHERE & CYLINDER MATRICES...',
-    'SYNCHRONIZING CLINICAL LENS VAULT...',
-    'INITIALIZING ULTRA-HD 3D ENGINE...',
-    'CLARITY UNLOCKED • READY'
-  ];
+  const [visible, setVisible] = useState(true);
 
   useEffect(() => {
-    const t1 = setTimeout(() => setStage(1), 60);
-    const t2 = setTimeout(() => setStage(2), 380);
-    const t3 = setTimeout(() => setStage(3), 720);
-    const t4 = setTimeout(() => setStage(4), 1050);
-    const t5 = setTimeout(() => {
-      setStage(5);
-      if (onComplete) onComplete();
-    }, 1450);
-
-    return () => {
-      clearTimeout(t1);
-      clearTimeout(t2);
-      clearTimeout(t3);
-      clearTimeout(t4);
-      clearTimeout(t5);
-    };
+    const timers = [
+      setTimeout(() => setStage(1), 500),
+      setTimeout(() => setStage(2), 920),
+      setTimeout(() => setStage(3), 1200),
+      setTimeout(() => setStage(4), 1680),
+      setTimeout(() => setStage(5), 2000),
+      setTimeout(() => {
+        setStage(6);
+        setVisible(false);
+        setTimeout(() => { if (onComplete) onComplete(); }, 580);
+      }, 3300),
+    ];
+    return () => timers.forEach(clearTimeout);
   }, [onComplete]);
+
+  // scaleY for the eye SVG at each stage (simulates eyelid)
+  const scaleY = { 0: 0.03, 1: 0.30, 2: 0.03, 3: 0.62, 4: 0.03, 5: 1.0, 6: 1.0 }[stage] ?? 0.03;
+  const isOpen = stage >= 5;
+  const isClosed = scaleY < 0.12;
+
+  // Transition timing
+  const eyeTransition = {
+    duration: isClosed ? 0.17 : isOpen ? 0.55 : 0.36,
+    ease: isClosed ? [0.4, 0, 0.6, 1] : isOpen ? [0.16, 1, 0.3, 1] : [0.16, 1, 0.3, 1],
+  };
+
+  // Status text per stage
+  const statusText = [
+    'Initialising optical systems…',
+    'Opening visual cortex…',
+    'Stabilising corneal axis…',
+    'Refining focal depth…',
+    'Calibrating iris aperture…',
+    '✦  Clarity Unlocked · 20 / 20 Ready  ✦',
+    '',
+  ][stage] ?? '';
 
   return (
     <AnimatePresence>
-      {stage < 5 && (
+      {visible && (
         <motion.div
+          key="nu-splash"
           initial={{ opacity: 1 }}
-          exit={{ opacity: 0, scale: 1.03, filter: 'blur(8px)', transition: { duration: 0.45, ease: [0.16, 1, 0.3, 1] } }}
-          className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#050B14] text-white transition-colors overflow-hidden select-none"
+          exit={{
+            opacity: 0,
+            scale: 1.05,
+            filter: 'blur(12px)',
+            transition: { duration: 0.55, ease: [0.16, 1, 0.3, 1] },
+          }}
+          className="fixed inset-0 w-screen h-screen z-[999999] flex flex-col items-center justify-center overflow-hidden select-none"
+          style={{
+            background: isDark
+              ? 'radial-gradient(ellipse at 50% 38%, #071828 0%, #030c18 55%, #020810 100%)'
+              : 'radial-gradient(ellipse at 50% 38%, #E8F5FD 0%, #D4EDFB 45%, #C6E7F8 100%)',
+          }}
         >
-          {/* Ambient Sapphire & Cyan Diffused Lens Auroras */}
-          <div className="absolute w-[600px] h-[600px] bg-gradient-to-tr from-[#0077B6]/20 via-[#00B4D8]/15 to-[#00F5D4]/10 rounded-full blur-[140px] pointer-events-none animate-pulse" />
-          <div className="absolute w-[350px] h-[350px] bg-sky-500/10 rounded-full blur-[90px] pointer-events-none" />
 
-          {/* Precision Grid Background Lines */}
-          <div 
-            className="absolute inset-0 opacity-[0.03] pointer-events-none"
+          {/* ── AMBIENT GLOW ──────────────────────────────────── */}
+          <div
+            className="absolute pointer-events-none"
             style={{
-              backgroundImage: 'linear-gradient(rgba(0,180,216,0.8) 1px, transparent 1px), linear-gradient(90deg, rgba(0,180,216,0.8) 1px, transparent 1px)',
-              backgroundSize: '40px 40px'
+              width: 560, height: 560, borderRadius: '50%',
+              background: isDark
+                ? 'radial-gradient(circle, rgba(0,110,200,0.20) 0%, transparent 70%)'
+                : 'radial-gradient(circle, rgba(0,170,220,0.22) 0%, transparent 70%)',
+              filter: 'blur(50px)',
+              animation: 'pulseGlow 3s ease-in-out infinite',
             }}
           />
 
-          <div className="relative flex flex-col items-center max-w-md px-6 z-10">
-            
-            {/* =========================================================================
-                HIGH-END OPTICAL APERTURE & LENS CALIBRATION RETICLE
-               ========================================================================= */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.82 }}
-              animate={stage >= 1 ? { opacity: 1, scale: 1 } : {}}
-              transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-              className="relative w-44 h-44 flex items-center justify-center mb-7"
-            >
-              {/* Outer Glowing Precision Gauge Ring */}
-              <svg className="w-full h-full" viewBox="0 0 160 160">
-                <defs>
-                  <linearGradient id="neonCyanArc" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stopColor="#00F5D4" stopOpacity="1" />
-                    <stop offset="50%" stopColor="#00B4D8" stopOpacity="0.9" />
-                    <stop offset="100%" stopColor="#0077B6" stopOpacity="0.1" />
-                  </linearGradient>
+          {/* Optical grid */}
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              backgroundImage: isDark
+                ? 'linear-gradient(rgba(0,180,216,0.055) 1px,transparent 1px),linear-gradient(90deg,rgba(0,180,216,0.055) 1px,transparent 1px)'
+                : 'linear-gradient(rgba(2,130,198,0.065) 1px,transparent 1px),linear-gradient(90deg,rgba(2,130,198,0.065) 1px,transparent 1px)',
+              backgroundSize: '44px 44px',
+            }}
+          />
 
-                  <linearGradient id="sapphireRing" x1="100%" y1="0%" x2="0%" y2="100%">
-                    <stop offset="0%" stopColor="#38BDF8" stopOpacity="0.8" />
-                    <stop offset="60%" stopColor="#0284C7" stopOpacity="0.4" />
-                    <stop offset="100%" stopColor="#00F5D4" stopOpacity="0.1" />
-                  </linearGradient>
+          {/* ── MAIN CONTENT ─────────────────────────────────── */}
+          <div className="relative z-10 flex flex-col items-center gap-7 px-6 w-full max-w-sm">
 
-                  <filter id="lensGlow" x="-30%" y="-30%" width="160%" height="160%">
-                    <feGaussianBlur stdDeviation="3.5" result="blur" />
-                    <feComposite in="SourceGraphic" in2="blur" operator="over" />
-                  </filter>
-                </defs>
+            {/* EYE LOGO — scaleY animation (SVG is transparent: no circle patch!) */}
+            <div className="relative flex items-center justify-center" style={{ width: 'min(300px, 78vw)' }}>
 
-                {/* Outer Base Calibration Track */}
-                <circle
-                  cx="80"
-                  cy="80"
-                  r="72"
-                  fill="none"
-                  stroke="rgba(255, 255, 255, 0.07)"
-                  strokeWidth="1.5"
-                />
-
-                {/* Primary Outer Rotating Luminous Arc */}
-                <motion.circle
-                  cx="80"
-                  cy="80"
-                  r="72"
-                  fill="none"
-                  stroke="url(#neonCyanArc)"
-                  strokeWidth="3.5"
-                  strokeLinecap="round"
-                  strokeDasharray="180 270"
-                  filter="url(#lensGlow)"
-                  animate={{ rotate: 360 }}
-                  transition={{ repeat: Infinity, duration: 2, ease: 'linear' }}
-                  style={{ transformOrigin: '80px 80px' }}
-                />
-
-                {/* Dial Degree Tick Marks (12 Precision Notches) */}
-                {[0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330].map((deg) => (
-                  <line
-                    key={deg}
-                    x1="80"
-                    y1="12"
-                    x2="80"
-                    y2={deg % 90 === 0 ? "18" : "15"}
-                    stroke={deg % 90 === 0 ? "#00F5D4" : "rgba(255, 255, 255, 0.25)"}
-                    strokeWidth={deg % 90 === 0 ? "2" : "1"}
-                    strokeLinecap="round"
-                    transform={`rotate(${deg} 80 80)`}
-                  />
-                ))}
-
-                {/* Middle Counter-Rotating Dashed Reticle */}
-                <motion.circle
-                  cx="80"
-                  cy="80"
-                  r="58"
-                  fill="none"
-                  stroke="#00B4D8"
-                  strokeWidth="1.5"
-                  strokeDasharray="4 8"
-                  strokeOpacity="0.6"
-                  animate={{ rotate: -360 }}
-                  transition={{ repeat: Infinity, duration: 3.5, ease: 'linear' }}
-                  style={{ transformOrigin: '80px 80px' }}
-                />
-
-                {/* Inner Optical Lens Core */}
-                <motion.circle
-                  cx="80"
-                  cy="80"
-                  r="45"
-                  fill="rgba(0, 180, 216, 0.05)"
-                  stroke="url(#sapphireRing)"
-                  strokeWidth="2"
-                  strokeDasharray="120 160"
-                  strokeLinecap="round"
-                  animate={{ rotate: 360 }}
-                  transition={{ repeat: Infinity, duration: 2.6, ease: 'linear' }}
-                  style={{ transformOrigin: '80px 80px' }}
-                />
-
-                {/* Laser Alignment Crosshairs */}
-                <line x1="80" y1="30" x2="80" y2="40" stroke="#00F5D4" strokeWidth="1.5" strokeLinecap="round" opacity="0.8" />
-                <line x1="80" y1="120" x2="80" y2="130" stroke="#00F5D4" strokeWidth="1.5" strokeLinecap="round" opacity="0.8" />
-                <line x1="30" y1="80" x2="40" y2="80" stroke="#00F5D4" strokeWidth="1.5" strokeLinecap="round" opacity="0.8" />
-                <line x1="120" y1="80" x2="130" y2="80" stroke="#00F5D4" strokeWidth="1.5" strokeLinecap="round" opacity="0.8" />
-              </svg>
-
-              {/* Central Eye Pupil & Breathing Brand Symbol */}
-              <div className="absolute inset-0 flex items-center justify-center p-10">
-                <motion.img
-                  src="/logo_symbol.png"
-                  alt="Netra Eye Core"
-                  className="w-full h-full object-contain filter drop-shadow-[0_0_20px_rgba(0,180,216,0.9)]"
-                  animate={{
-                    scale: [1, 1.08, 1],
-                    filter: [
-                      'drop-shadow(0 0 16px rgba(0,180,216,0.7))',
-                      'drop-shadow(0 0 28px rgba(0,245,212,0.95))',
-                      'drop-shadow(0 0 16px rgba(0,180,216,0.7))'
-                    ]
-                  }}
-                  transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
-                />
-              </div>
-
-              {/* Pulsing Outer Ultrasonic Resonance Ring */}
+              {/* Outer glow ring — activates when fully open */}
               <motion.div
-                className="absolute inset-0 rounded-full border border-brand-cyan/40 pointer-events-none"
-                animate={{ scale: [1, 1.35], opacity: [0.7, 0] }}
-                transition={{ duration: 1.8, repeat: Infinity, ease: 'easeOut' }}
+                className="absolute inset-0 pointer-events-none rounded-full"
+                animate={{
+                  boxShadow: isOpen
+                    ? '0 0 0 1px rgba(0,180,216,0.25), 0 0 50px 18px rgba(0,180,216,0.18), 0 0 100px 35px rgba(0,100,200,0.10)'
+                    : '0 0 0 0 transparent',
+                }}
+                transition={{ duration: 0.7 }}
               />
-            </motion.div>
 
-            {/* Typography & High-End Optical Branding */}
-            <motion.div
-              initial={{ opacity: 0, y: 12 }}
-              animate={stage >= 1 ? { opacity: 1, y: 0 } : {}}
-              transition={{ delay: 0.1, duration: 0.4 }}
-              className="text-center space-y-1.5"
-            >
-              <h1 className="text-2xl sm:text-3xl font-black tracking-[0.25em] text-white font-heading uppercase">
-                NETRA <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-cyan to-teal-400">UNNAYAN</span>
-              </h1>
-              
-              <div className="flex items-center justify-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-brand-cyan animate-ping" />
-                <p className="text-[11px] font-bold tracking-[0.28em] text-slate-300 uppercase">
-                  Clarity You Can Trust
-                </p>
-                <span className="w-1.5 h-1.5 rounded-full bg-brand-teal" />
-              </div>
-            </motion.div>
-
-            {/* Optical HUD Progress Gauge & Telemetry */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={stage >= 1 ? { opacity: 1 } : {}}
-              className="mt-6 w-64 text-center space-y-2.5"
-            >
-              <div className="relative w-full bg-white/10 h-2 rounded-full overflow-hidden p-0.5 border border-white/10 shadow-inner">
-                <motion.div
-                  initial={{ width: '5%' }}
-                  animate={{ 
-                    width: stage >= 4 ? '100%' : stage >= 3 ? '78%' : stage >= 2 ? '50%' : '24%' 
+              {/* THE EYE — scaleY eyelid animation on transparent SVG */}
+              <motion.div
+                animate={{ scaleY }}
+                transition={eyeTransition}
+                style={{
+                  transformOrigin: 'center center',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <NetraSymbolSVG
+                  size={280}
+                  spin={true}
+                  style={{
+                    width: 'min(280px, 78vw)',
+                    height: 'auto',
+                    filter: isOpen
+                      ? 'drop-shadow(0 0 22px rgba(0,180,216,0.55)) brightness(1.08)'
+                      : 'brightness(0.82)',
+                    transition: 'filter 0.5s ease',
                   }}
-                  transition={{ duration: 0.4, ease: 'easeInOut' }}
-                  className="relative h-full rounded-full bg-gradient-to-r from-brand-cyan via-teal-400 to-sky-300 shadow-[0_0_14px_rgba(0,180,216,0.8)]"
-                >
-                  {/* Leading Laser Spark */}
-                  <div className="absolute right-0 top-0 bottom-0 w-2 rounded-full bg-white shadow-[0_0_8px_#FFFFFF]" />
-                </motion.div>
-              </div>
+                />
+              </motion.div>
 
-              {/* Dynamic Status Text */}
-              <div className="flex items-center justify-between text-[10px] font-mono tracking-wider text-slate-400 font-semibold px-1">
-                <span className="text-brand-cyan truncate max-w-[200px]">
-                  {statusMessages[Math.min(stage, statusMessages.length - 1)]}
-                </span>
-                <span className="text-white font-bold">
-                  {stage >= 4 ? '100%' : stage >= 3 ? '78%' : stage >= 2 ? '50%' : '24%'}
-                </span>
-              </div>
-            </motion.div>
+              {/* Eyelid crease line — shows when eye is shut */}
+              <AnimatePresence>
+                {isClosed && (
+                  <motion.div
+                    key="crease"
+                    initial={{ opacity: 0, scaleX: 0 }}
+                    animate={{ opacity: 1, scaleX: 1 }}
+                    exit={{ opacity: 0, scaleX: 0 }}
+                    transition={{ duration: 0.15 }}
+                    style={{
+                      position: 'absolute',
+                      left: '8%', right: '8%',
+                      top: '50%', height: 3,
+                      borderRadius: 9999,
+                      background: 'linear-gradient(90deg, transparent, #00B4D8 25%, #00F5D4 50%, #00B4D8 75%, transparent)',
+                      boxShadow: '0 0 12px #00B4D8, 0 0 28px rgba(0,180,216,0.45)',
+                    }}
+                  />
+                )}
+              </AnimatePresence>
 
-            {/* Subtle Clinical Coordinates Pill */}
+              {/* Lens flare sweep on full awakening */}
+              <AnimatePresence>
+                {isOpen && stage < 6 && (
+                  <motion.div
+                    key="flare"
+                    initial={{ x: '-130%', opacity: 0 }}
+                    animate={{ x: '160%', opacity: [0, 0.85, 0] }}
+                    transition={{ duration: 0.9, ease: 'easeInOut', delay: 0.08 }}
+                    style={{
+                      position: 'absolute',
+                      inset: 0,
+                      width: '30%',
+                      background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.72), transparent)',
+                      transform: 'skewX(-18deg)',
+                      pointerEvents: 'none',
+                    }}
+                  />
+                )}
+              </AnimatePresence>
+            </div>
+
+            {/* BRAND NAME + TAGLINE */}
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={stage >= 2 ? { opacity: 1 } : {}}
-              className="mt-5 text-[9px] font-mono text-slate-500 uppercase tracking-widest flex items-center gap-1.5"
+              className="flex flex-col items-center text-center gap-1.5"
+              animate={{
+                opacity: isOpen ? 1 : 0.18,
+                y: isOpen ? 0 : 10,
+              }}
+              transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1], delay: isOpen ? 0.12 : 0 }}
             >
-              <span>Digha Flagship Optical Lab</span>
-              <span>&bull;</span>
-              <span>ISO 9001:2015 Spec Ready</span>
+              {/* NETRA UNNAYAN */}
+              <div
+                style={{
+                  fontFamily: "'Outfit', sans-serif",
+                  fontSize: 'clamp(1.75rem, 6.5vw, 2.6rem)',
+                  fontWeight: 900,
+                  letterSpacing: '-0.01em',
+                  lineHeight: 1,
+                }}
+              >
+                <span style={{ color: isDark ? '#FFFFFF' : '#061730' }}>NETRA </span>
+                <span style={{
+                  background: 'linear-gradient(120deg, #0077B6 0%, #00B4D8 50%, #00D4F4 100%)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  backgroundClip: 'text',
+                }}>UNNAYAN</span>
+              </div>
+
+              {/* Divider + tagline */}
+              <motion.div
+                className="flex items-center gap-2.5"
+                animate={{ opacity: isOpen ? 1 : 0 }}
+                transition={{ delay: isOpen ? 0.3 : 0, duration: 0.45 }}
+              >
+                <div style={{ height: 1, width: 28, background: 'linear-gradient(90deg, transparent, #00B4D8)' }} />
+                <span style={{
+                  fontFamily: "'Plus Jakarta Sans', sans-serif",
+                  fontSize: 'clamp(0.62rem, 2.2vw, 0.78rem)',
+                  fontWeight: 700,
+                  letterSpacing: '0.22em',
+                  textTransform: 'uppercase',
+                  color: isDark ? '#94A3B8' : '#475569',
+                }}>
+                  Clarity You Can Trust
+                </span>
+                <div style={{ height: 1, width: 28, background: 'linear-gradient(90deg, #00B4D8, transparent)' }} />
+              </motion.div>
             </motion.div>
 
+            {/* Status line */}
+            <motion.p
+              animate={{ opacity: isOpen ? 0.85 : 0.45 }}
+              transition={{ duration: 0.4 }}
+              style={{
+                fontFamily: 'monospace',
+                fontSize: '0.63rem',
+                letterSpacing: '0.18em',
+                textTransform: 'uppercase',
+                color: '#00B4D8',
+                marginTop: -10,
+              }}
+            >
+              {statusText}
+            </motion.p>
+
+            {/* Progress dots */}
+            <motion.div
+              className="flex gap-2"
+              animate={{ opacity: isOpen ? 1 : 0.35 }}
+              transition={{ delay: 0.5, duration: 0.4 }}
+            >
+              {[0, 1, 2].map((i) => (
+                <motion.div
+                  key={i}
+                  style={{
+                    height: 6,
+                    width: i === 1 ? 20 : 6,
+                    borderRadius: 9999,
+                    background: isOpen
+                      ? 'linear-gradient(90deg, #00B4D8, #00F5D4)'
+                      : (isDark ? '#1B3A5C' : '#9EC8E0'),
+                    boxShadow: isOpen ? '0 0 8px rgba(0,180,216,0.6)' : 'none',
+                    transition: 'all 0.45s ease',
+                  }}
+                  animate={{ scale: isOpen ? [1, 1.18, 1] : 1 }}
+                  transition={{ repeat: isOpen ? Infinity : 0, duration: 1.5, delay: i * 0.18 }}
+                />
+              ))}
+            </motion.div>
           </div>
+
+          {/* Corner optical reticle */}
+          <div
+            className="absolute bottom-5 right-5 pointer-events-none"
+            style={{ opacity: 0.22 }}
+          >
+            <svg width="38" height="38" viewBox="0 0 40 40" fill="none">
+              <circle cx="20" cy="20" r="17" stroke="#00B4D8" strokeWidth="1" strokeDasharray="4 3" />
+              <circle cx="20" cy="20" r="5"  stroke="#00B4D8" strokeWidth="1" />
+              <line x1="20" y1="3"  x2="20" y2="11" stroke="#00B4D8" strokeWidth="1" />
+              <line x1="20" y1="29" x2="20" y2="37" stroke="#00B4D8" strokeWidth="1" />
+              <line x1="3"  y1="20" x2="11" y2="20" stroke="#00B4D8" strokeWidth="1" />
+              <line x1="29" y1="20" x2="37" y2="20" stroke="#00B4D8" strokeWidth="1" />
+            </svg>
+          </div>
+
         </motion.div>
       )}
     </AnimatePresence>
   );
 };
+
+export default LoadingScreen;

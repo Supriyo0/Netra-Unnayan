@@ -269,6 +269,104 @@ body.dark {
 }
 
 /* ============================================================
+   PREMIUM 3D CAPSULE BUTTONS (Matching Reference Image)
+   ============================================================ */
+.nav-3d-capsule {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: linear-gradient(180deg, #32353d 0%, #1c1e24 100%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.16) !important;
+  border-radius: 9999px !important;
+  padding: 3px !important;
+  box-shadow: 
+    0 3px 8px -1px rgba(0, 0, 0, 0.5),
+    0 1px 2px rgba(0, 0, 0, 0.35),
+    inset 0 1px 1px rgba(255, 255, 255, 0.22),
+    inset 0 -1px 1px rgba(0, 0, 0, 0.4) !important;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  cursor: pointer;
+  user-select: none;
+  text-decoration: none;
+  height: 35px;
+}
+
+.nav-3d-capsule.has-label {
+  padding-right: 8px !important;
+}
+
+.nav-3d-capsule:hover {
+  border-color: rgba(255, 255, 255, 0.32) !important;
+  box-shadow: 
+    0 5px 14px -1px rgba(0, 0, 0, 0.6),
+    inset 0 1px 1.5px rgba(255, 255, 255, 0.35),
+    inset 0 -1px 1px rgba(0, 0, 0, 0.5) !important;
+  transform: translateY(-1px);
+}
+
+.nav-3d-capsule:active {
+  transform: translateY(1px) scale(0.96);
+  box-shadow: 
+    0 1px 3px rgba(0, 0, 0, 0.6),
+    inset 0 1.5px 2px rgba(0, 0, 0, 0.6) !important;
+}
+
+/* 3D Tile Inner Badge */
+.nav-3d-tile {
+  width: 27px;
+  height: 27px;
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 
+    inset 0 1px 1px rgba(255, 255, 255, 0.45),
+    inset 0 -1px 1px rgba(0, 0, 0, 0.3),
+    0 2px 4px rgba(0, 0, 0, 0.25);
+  transition: transform 0.2s ease;
+}
+
+.nav-3d-capsule:hover .nav-3d-tile {
+  transform: scale(1.04);
+}
+
+/* Colors matching reference image */
+.nav-3d-tile-blue {
+  background: linear-gradient(180deg, #0284c7 0%, #0369a1 100%) !important;
+}
+
+.nav-3d-tile-red {
+  background: linear-gradient(180deg, #b91c1c 0%, #881318 100%) !important;
+}
+
+.nav-3d-tile-green {
+  background: linear-gradient(180deg, #059669 0%, #047857 100%) !important;
+}
+
+.nav-3d-tile-purple {
+  background: linear-gradient(180deg, #6366f1 0%, #4338ca 100%) !important;
+}
+
+.nav-3d-tile-amber {
+  background: linear-gradient(180deg, #f59e0b 0%, #d97706 100%) !important;
+}
+
+.nav-3d-tile-charcoal {
+  background: linear-gradient(180deg, #475569 0%, #1e293b 100%) !important;
+}
+
+.nav-3d-label {
+  font-size: 11px;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  line-height: 1;
+}
+
+/* ============================================================
    LIQUID GLASS ACTION BUTTONS (search, theme, wishlist, cart)
    ============================================================ */
 .glass-action-btn-dark {
@@ -373,6 +471,377 @@ body.dark {
     inset 0 -1px 0 rgba(0,180,216,0.08);
   color: #00B4D8;
   transform: translateY(-1.5px);
+}
+
+/* ============================================================
+   REFINED LUXURY 3D TACTILE BUTTONS (Apple / Fintech Grade)
+   Enhanced 3D Glassmorphism with Glossy Specular Dome & Bevels
+   ============================================================ */
+.nav-3d-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 40px;
+  width: 40px;
+  padding: 3.5px;
+  border-radius: 13px;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+/* Glossy top-half glass specular reflection arc */
+.nav-3d-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 50%;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.42) 0%, rgba(255, 255, 255, 0.04) 100%);
+  border-radius: 13px 13px 40% 40%;
+  pointer-events: none;
+  z-index: 5;
+}
+
+/* Light Theme: Luminous frosted porcelain glass with 3D bevel */
+.light .nav-3d-btn,
+html.light .nav-3d-btn {
+  background: linear-gradient(180deg, #ffffff 0%, #e8edf3 100%);
+  border: 1px solid #c8d3e0;
+  box-shadow:
+    0 4px 10px -1px rgba(15, 23, 42, 0.14),
+    0 1px 3px 0 rgba(15, 23, 42, 0.08),
+    inset 0 1.5px 0 #ffffff,
+    inset 0 -2px 0 rgba(15, 23, 42, 0.10);
+}
+
+.light .nav-3d-btn:hover,
+html.light .nav-3d-btn:hover {
+  background: linear-gradient(180deg, #ffffff 0%, #dbe3ed 100%);
+  border-color: #94a3b8;
+  box-shadow:
+    0 7px 18px -2px rgba(15, 23, 42, 0.20),
+    0 2px 5px 0 rgba(15, 23, 42, 0.08),
+    inset 0 1.5px 0 #ffffff;
+  transform: translateY(-2px);
+}
+
+.light .nav-3d-btn:active,
+html.light .nav-3d-btn:active {
+  transform: translateY(1.5px) scale(0.93);
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.15),
+    inset 0 2px 4px rgba(15, 23, 42, 0.18);
+}
+
+/* Dark Theme: Midnight obsidian 3D glass with neon perimeter rim */
+.dark .nav-3d-btn,
+html.dark .nav-3d-btn,
+.nav-3d-btn {
+  background: linear-gradient(180deg, #283142 0%, #121622 100%);
+  border: 1px solid rgba(255, 255, 255, 0.20);
+  box-shadow:
+    0 5px 16px -2px rgba(0, 0, 0, 0.65),
+    0 1px 4px 0 rgba(0, 0, 0, 0.45),
+    inset 0 1.5px 0 rgba(255, 255, 255, 0.32),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.65);
+}
+
+.dark .nav-3d-btn:hover,
+html.dark .nav-3d-btn:hover {
+  background: linear-gradient(180deg, #333d52 0%, #171d2b 100%);
+  border-color: rgba(0, 212, 255, 0.50);
+  box-shadow:
+    0 8px 24px -3px rgba(0, 180, 216, 0.35),
+    0 2px 6px 0 rgba(0, 0, 0, 0.50),
+    inset 0 1.5px 0 rgba(255, 255, 255, 0.45);
+  transform: translateY(-2px);
+}
+
+.dark .nav-3d-btn:active,
+html.dark .nav-3d-btn:active {
+  transform: translateY(1.5px) scale(0.93);
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.70),
+    inset 0 2px 4px rgba(0, 0, 0, 0.85);
+}
+
+/* Continuous smooth camera aperture shutter rotation */
+@keyframes nu-aperture-continuous-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.nu-aperture-continuous-spin {
+  animation: nu-aperture-continuous-spin 7.5s linear infinite;
+}
+
+/* Loading screen ambient orb pulse */
+@keyframes pulseGlow {
+  0%, 100% { opacity: 0.75; transform: scale(1); }
+  50%       { opacity: 1;    transform: scale(1.08); }
+}
+
+/* Pupil pulsing for iris overlay */
+.nu-pupil-pulsing {
+  animation: nu-pupil-dilate 3.2s ease-in-out infinite;
+}
+
+/* 3D Squircle Icon Tile inside Button */
+.nav-3d-tile {
+  width: 100%;
+  height: 100%;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow:
+    inset 0 1.5px 1px rgba(255, 255, 255, 0.60),
+    inset 0 -1.5px 1px rgba(0, 0, 0, 0.25),
+    0 2px 5px rgba(0, 0, 0, 0.20);
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), filter 0.25s ease, box-shadow 0.25s ease;
+}
+
+.nav-3d-btn:hover .nav-3d-tile {
+  filter: brightness(1.15) saturate(1.1);
+  transform: scale(1.06);
+}
+
+/* Color Variants with Ambient Glows */
+.nav-3d-tile-blue {
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+  box-shadow:
+    inset 0 1.5px 1px rgba(255, 255, 255, 0.65),
+    inset 0 -1.5px 1px rgba(0, 0, 0, 0.25),
+    0 2px 6px rgba(2, 132, 199, 0.35);
+}
+
+.nav-3d-tile-purple {
+  background: linear-gradient(135deg, #6366f1 0%, #4338ca 100%);
+  box-shadow:
+    inset 0 1.5px 1px rgba(255, 255, 255, 0.65),
+    inset 0 -1.5px 1px rgba(0, 0, 0, 0.25),
+    0 2px 6px rgba(99, 102, 241, 0.35);
+}
+
+.nav-3d-tile-amber {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  box-shadow:
+    inset 0 1.5px 1px rgba(255, 255, 255, 0.65),
+    inset 0 -1.5px 1px rgba(0, 0, 0, 0.25),
+    0 2px 6px rgba(245, 158, 11, 0.35);
+}
+
+.nav-3d-tile-red {
+  background: linear-gradient(135deg, #e11d48 0%, #be123c 100%);
+  box-shadow:
+    inset 0 1.5px 1px rgba(255, 255, 255, 0.65),
+    inset 0 -1.5px 1px rgba(0, 0, 0, 0.25),
+    0 2px 6px rgba(225, 29, 72, 0.35);
+}
+
+.nav-3d-tile-green {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  box-shadow:
+    inset 0 1.5px 1px rgba(255, 255, 255, 0.65),
+    inset 0 -1.5px 1px rgba(0, 0, 0, 0.25),
+    0 2px 6px rgba(5, 150, 105, 0.35);
+}
+
+.nav-3d-tile-charcoal {
+  background: linear-gradient(135deg, #475569 0%, #1e293b 100%);
+}
+
+/* Micro Notification Badge for Counts */
+.nav-3d-badge {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 4px;
+  border-radius: 9999px;
+  font-size: 9.5px;
+  font-weight: 900;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.30);
+  border: 1.5px solid #ffffff;
+  z-index: 10;
+}
+
+.dark .nav-3d-badge,
+html.dark .nav-3d-badge {
+  border-color: #0b192c;
+}
+
+/* Strict visibility control to keep secondary buttons off mobile */
+.nav-3d-btn.hidden {
+  display: none !important;
+}
+@media (max-width: 639px) {
+  .nav-3d-btn.sm\:inline-flex {
+    display: none !important;
+  }
+}
+@media (max-width: 1023px) {
+  .nav-3d-btn.lg\:inline-flex {
+    display: none !important;
+  }
+}
+
+/* ============================================================
+   ANIMATED LUXURY OPTICAL LOGO (Top Left)
+   Features realistic eye blinking, aperture iris dilation, and arrow glow
+   ============================================================ */
+.nav-logo-animated-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  border-radius: 14px;
+  padding: 2px 4px;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), filter 0.3s ease;
+}
+
+.nav-logo-animated-wrapper:hover {
+  transform: translateY(-1.5px) scale(1.02);
+  filter: drop-shadow(0 6px 18px rgba(0, 180, 216, 0.45));
+}
+
+/* Natural Eyelid Blink Engine: Realistic periodic shut & double-flutter */
+@keyframes nu-natural-blink {
+  0%, 86%, 93%, 97%, 100% {
+    transform: scaleY(1);
+  }
+  89% {
+    transform: scaleY(0.06); /* Upper & lower eyelids close fully */
+  }
+  91% {
+    transform: scaleY(1); /* Opens */
+  }
+  95% {
+    transform: scaleY(0.20); /* Natural human micro-flutter */
+  }
+}
+
+.nu-eye-blink-engine {
+  transform-origin: 72px 55px;
+  animation: nu-natural-blink 3.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+/* Camera Lens Aperture Blades Breathing & Rotation */
+@keyframes nu-aperture-turn {
+  0%, 100% {
+    transform: rotate(0deg);
+  }
+  35% {
+    transform: rotate(18deg);
+  }
+  70% {
+    transform: rotate(-8deg);
+  }
+}
+
+.nu-aperture-blades {
+  transform-origin: 72px 55px;
+  animation: nu-aperture-turn 8s ease-in-out infinite;
+}
+
+/* Optical Pupil Dilating & Caustic Light Pulse */
+@keyframes nu-pupil-dilate {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.95;
+  }
+  45% {
+    transform: scale(1.16);
+    opacity: 1;
+    filter: drop-shadow(0 0 6px rgba(0, 229, 255, 0.85));
+  }
+  75% {
+    transform: scale(0.92);
+    opacity: 0.90;
+  }
+}
+
+.nu-pupil-pulsing {
+  transform-origin: 72px 55px;
+  animation: nu-pupil-dilate 4.2s ease-in-out infinite;
+}
+
+/* Growth Arrow Dynamic Pulse (Unnayan) */
+@keyframes nu-arrow-pulse {
+  0%, 100% {
+    transform: translate(0, 0);
+    filter: drop-shadow(0 0 3px rgba(0, 229, 255, 0.4));
+  }
+  50% {
+    transform: translate(1.5px, -1.5px);
+    filter: drop-shadow(0 0 10px rgba(0, 240, 255, 0.9));
+  }
+}
+
+.nu-arrow-glow-engine {
+  animation: nu-arrow-pulse 2.8s ease-in-out infinite;
+}
+
+/* Sweep shine reflection moving across the logo */
+.nav-logo-animated-wrapper::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -120%;
+  width: 70%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.55) 50%,
+    transparent 100%
+  );
+  transform: skewX(-24deg);
+  animation: logo-sweep-shine 5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  pointer-events: none;
+}
+
+.dark .nav-logo-animated-wrapper::after {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(0, 212, 255, 0.35) 50%,
+    transparent 100%
+  );
+}
+
+@keyframes logo-sweep-shine {
+  0%, 40% {
+    left: -120%;
+  }
+  60%, 100% {
+    left: 180%;
+  }
+}
+
+.nav-logo-img {
+  filter: drop-shadow(0 2px 6px rgba(0, 180, 216, 0.18));
+  transition: all 0.3s ease;
+}
+.light .nav-logo-img {
+  filter: drop-shadow(0 2px 4px rgba(15, 23, 42, 0.08));
 }
 
 /* ============================================================

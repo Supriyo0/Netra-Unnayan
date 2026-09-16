@@ -11,9 +11,14 @@ if (!$auth) {
 
 $pdo = Database::getConnection();
 
+try {
+    $pdo->exec("ALTER TABLE admins ADD COLUMN IF NOT EXISTS avatar_url TEXT NULL");
+    $pdo->exec("ALTER TABLE customers ADD COLUMN IF NOT EXISTS avatar_url TEXT NULL");
+} catch (Exception $e) {}
+
 if (($auth['type'] ?? '') === 'admin') {
     $stmt = $pdo->prepare('
-        SELECT a.id, a.username, a.email, a.full_name, a.phone, a.is_active,
+        SELECT a.id, a.username, a.email, a.full_name, a.phone, a.is_active, COALESCE(a.avatar_url, "") as avatar_url,
                r.slug as role_slug, r.name as role_name, r.permissions
         FROM admins a
         JOIN admin_roles r ON a.role_id = r.id
@@ -22,6 +27,20 @@ if (($auth['type'] ?? '') === 'admin') {
     $stmt->execute([$auth['id']]);
     $admin = $stmt->fetch();
     if (!$admin) Response::unauthorized('Admin session expired.');
+
+    // If admin avatar is empty, check if their linked customer account has an avatar
+    if (empty($admin['avatar_url'])) {
+        $cStmt = $pdo->prepare('SELECT avatar_url FROM customers WHERE (email = ? AND email != "") OR (phone = ? AND phone != "") LIMIT 1');
+        $cStmt->execute([$admin['email'], $admin['phone']]);
+        $cAvatar = $cStmt->fetchColumn();
+        if (!empty($cAvatar)) {
+            $admin['avatar_url'] = $cAvatar;
+            try {
+                $sync = $pdo->prepare('UPDATE admins SET avatar_url = ? WHERE id = ?');
+                $sync->execute([$cAvatar, $admin['id']]);
+            } catch (Exception $e) {}
+        }
+    }
 
     $admin['type'] = 'admin';
     $admin['permissions'] = json_decode($admin['permissions'] ?? '[]', true);

@@ -174,7 +174,9 @@ $order['totalAmount']    = (float)($order['total_amount'] ?? 0.00);
 $order['cashier']        = 'Sagar Shaoo';
 
 // Cancellation eligibility flag
-$order['can_cancel'] = ($order['can_cancel_until'] !== null) 
+$isOffline = ($order['order_type'] === 'POS_OFFLINE' || !empty($order['is_offline_bill']));
+$order['can_cancel'] = !$isOffline
+    && ($order['can_cancel_until'] !== null) 
     && (strtotime($order['can_cancel_until']) > time()) 
     && !in_array($order['order_status'], ['Lens Cutting', 'Fitting', 'Quality Check', 'Packed', 'Shipped', 'Out for Delivery', 'Delivered', 'Cancelled']);
 
