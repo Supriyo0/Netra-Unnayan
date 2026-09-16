@@ -187,86 +187,33 @@ export const NetraSymbolSVG = ({ size = 60, spin = true, className = '' }) => {
 };
 
 /**
- * BrandLogo — Adaptive navbar logo
+ * BrandLogo — Official Netra Unnayan Logo (Mobile & Desktop)
  *
- * MOBILE  (< md):  Shows only the SVG eye icon — compact, no text truncation, transparent bg
- * DESKTOP (≥ md):  Shows the full horizontal PNG logo with a spinning aperture overlay
+ * Displays our actual logo from root image.png with brand name "NETRA UNNAYAN"
+ * and tag line "CLARITY YOU CAN TRUST".
  */
 export const BrandLogo = ({ isDark = false, className = '', size = 'default' }) => {
-  const logoSrc = isDark ? '/logo_horizontal_white.png' : '/logo_horizontal.png';
-
-  const hDesktop =
-    size === 'sm' ? 'h-11 md:h-12'
-    : size === 'lg' ? 'h-15 md:h-17'
-    : 'h-12 md:h-14 xl:h-15';
+  const hSize =
+    size === 'sm' ? 'h-8 sm:h-9 md:h-11'
+    : size === 'lg' ? 'h-12 sm:h-14 md:h-17'
+    : 'h-10 sm:h-11 md:h-13 lg:h-14';
 
   return (
     <div className={`relative inline-flex items-center select-none group py-0.5 ${className}`}>
-
-      {/* ── MOBILE: SVG icon only ─────────────────────────────── */}
-      <div className="flex md:hidden items-center">
-        <NetraSymbolSVG
-          size={46}
-          spin={true}
-          className="transition-transform duration-300 group-hover:scale-[1.04]"
-          style={{ filter: 'drop-shadow(0 2px 8px rgba(0,180,216,0.3))' }}
-        />
-      </div>
-
-      {/* ── DESKTOP: Full horizontal PNG ─────────────────────── */}
-      <div className={`hidden md:flex relative ${hDesktop} items-center shrink-0`}>
-        <img
-          src={logoSrc}
-          alt="Netra Unnayan — Clarity You Can Trust"
-          className="h-full w-auto object-contain shrink-0 transition-all duration-300 group-hover:scale-[1.02]"
-          style={{ filter: 'drop-shadow(0 2px 12px rgba(0,180,216,0.22))' }}
-          onError={(e) => {
-            e.currentTarget.onerror = null;
-            e.currentTarget.src = '/logo_official.png';
-          }}
-        />
-        {/* Spinning aperture overlay — sits precisely at the iris center in logo_horizontal.png
-            The eye icon is the leftmost ~24% of the horizontal image.
-            The iris center is at ~13.5% from left, 50% top. */}
-        <div
-          className="absolute pointer-events-none"
-          style={{
-            left: '13.5%',
-            top: '50%',
-            transform: 'translate(-50%, -50%)',
-            width: '9%',
-            aspectRatio: '1/1',
-          }}
-        >
-          <svg
-            viewBox="0 0 100 100"
-            className="w-full h-full nu-aperture-continuous-spin"
-            style={{ filter: 'drop-shadow(0 0 4px rgba(0,229,255,0.75))' }}
-          >
-            <defs>
-              <linearGradient id="nuOverlayBlade" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%"   stopColor="#021833" />
-                <stop offset="55%"  stopColor="#0066BB" />
-                <stop offset="100%" stopColor="#00C8E0" />
-              </linearGradient>
-            </defs>
-            <circle cx="50" cy="50" r="47" fill="#041021" stroke="#00B4D8" strokeWidth="1.5" />
-            {[0,36,72,108,144,180,216,252,288,324].map((deg) => (
-              <path
-                key={deg}
-                d="M 50 10 L 68 24 L 60 40 Z"
-                fill="url(#nuOverlayBlade)"
-                stroke="#00E5FF"
-                strokeWidth="0.6"
-                strokeOpacity="0.7"
-                transform={`rotate(${deg} 50 50)`}
-              />
-            ))}
-            <circle cx="50" cy="50" r="18" fill="#010915" />
-            <circle cx="44" cy="44" r="3.5" fill="white" opacity="0.9" />
-          </svg>
-        </div>
-      </div>
+      <img
+        src="/image.png"
+        alt="Netra Unnayan — Clarity You Can Trust"
+        className={`${hSize} w-auto max-w-[210px] sm:max-w-xs md:max-w-none object-contain shrink-0 transition-transform duration-300 group-hover:scale-[1.02]`}
+        style={{ 
+          filter: isDark 
+            ? 'drop-shadow(0 2px 10px rgba(0, 180, 216, 0.35)) brightness(1.05)' 
+            : 'drop-shadow(0 1px 4px rgba(0, 0, 0, 0.08))' 
+        }}
+        onError={(e) => {
+          e.currentTarget.onerror = null;
+          e.currentTarget.src = '/logo_official.png';
+        }}
+      />
     </div>
   );
 };

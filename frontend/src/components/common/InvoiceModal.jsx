@@ -79,43 +79,13 @@ export const InvoiceModal = ({ isOpen, onClose, invoiceData }) => {
     const docSpec = activeData.specialty || activeData.doctor_specialty || activeData.specialization || 'Cataract & Comprehensive Ophthalmology';
     activeItems = [
       {
-        product_name: `Clinical Eye Doctor Consultation (${docName})`,
-        details: `Specialization: ${docSpec}\nScheduled Slot: ${invoiceDate} at ${invoiceTime}\nVenue: Netra Unnayan Eye Clinic, Digha`,
-        product_sku: orderNumber || 'DOC-SLOT-01',
+        product_name: `Doctor Consultation - ${docName}`,
+        details: `Specialization: ${docSpec}\nScheduled Slot: ${invoiceDate} at ${invoiceTime}\nVenue: Netra Unnayan Eye Care Clinic, Digha`,
+        product_sku: activeData.ticket_no || activeData.ticketNo || orderNumber || 'DOC-SLOT-01',
         quantity: 1,
         unit_price: docFee,
         discount: 0,
         total_price: docFee,
-        image_url: '/logo_symbol.png'
-      },
-      {
-        product_name: 'Slit-Lamp Bio-Microscopy & Anterior Chamber Examination',
-        details: 'Corneal clarity, anterior chamber depth, crystalline lens assessment',
-        product_sku: 'CLINIC-SLIT-01',
-        quantity: 1,
-        unit_price: 0,
-        discount: 0,
-        total_price: 0,
-        image_url: '/logo_symbol.png'
-      },
-      {
-        product_name: 'Computerized Autorefractometry & Visual Acuity Test',
-        details: 'Digital objective refraction & subjective optical cross-cylinder check',
-        product_sku: 'CLINIC-REF-01',
-        quantity: 1,
-        unit_price: 0,
-        discount: 0,
-        total_price: 0,
-        image_url: '/logo_symbol.png'
-      },
-      {
-        product_name: 'Intraocular Pressure (IOP) & Fundus Screening',
-        details: 'Tonometry & optic disc / retinal vasculature health assessment',
-        product_sku: 'CLINIC-TONO-01',
-        quantity: 1,
-        unit_price: 0,
-        discount: 0,
-        total_price: 0,
         image_url: '/logo_symbol.png'
       }
     ];
@@ -123,43 +93,13 @@ export const InvoiceModal = ({ isOpen, onClose, invoiceData }) => {
     const homeFee = Number(activeData.totalAmount || activeData.service_fee || activeData.fee || 299);
     activeItems = [
       {
-        product_name: 'Certified Optometrist Doorstep Refraction Visit',
-        details: `Time Window: ${invoiceTime}\nScheduled Date: ${invoiceDate}\nDestination: ${customerAddress}`,
-        product_sku: orderNumber || 'HET-SRV-01',
+        product_name: 'Doorstep Home Eye Checkup Service',
+        details: `Time Window: ${invoiceTime}\nScheduled Date: ${invoiceDate}${customerAddress ? `\nDestination: ${customerAddress}` : ''}`,
+        product_sku: activeData.ticket_no || activeData.ticketNo || orderNumber || 'HET-SRV-01',
         quantity: 1,
         unit_price: homeFee,
         discount: 0,
         total_price: homeFee,
-        image_url: '/logo_symbol.png'
-      },
-      {
-        product_name: '100+ Designer Optical Frames Live Trial Showcase',
-        details: 'Acetate, TR90, Titanium, Rimless & Cat-Eye frames brought for home fitting',
-        product_sku: 'HET-TRIAL-100',
-        quantity: 1,
-        unit_price: 0,
-        discount: 0,
-        total_price: 0,
-        image_url: '/logo_symbol.png'
-      },
-      {
-        product_name: 'Computerized Mobile Eye Refraction & Acuity Assessment',
-        details: 'Portable autorefractor inspection, distance & near visual acuity testing',
-        product_sku: 'HET-DIAG-01',
-        quantity: 1,
-        unit_price: 0,
-        discount: 0,
-        total_price: 0,
-        image_url: '/logo_symbol.png'
-      },
-      {
-        product_name: 'Digital Optical Prescription & Lens Consultation',
-        details: 'Instant prescription delivered digitally + lens index & coating guidance',
-        product_sku: 'HET-RX-01',
-        quantity: 1,
-        unit_price: 0,
-        discount: 0,
-        total_price: 0,
         image_url: '/logo_symbol.png'
       }
     ];
@@ -752,7 +692,7 @@ export const InvoiceModal = ({ isOpen, onClose, invoiceData }) => {
             {/* Meta Table */}
             <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 text-[9.5px] border-l border-white/20 pl-3">
               <div className="text-slate-300">{isDoctor ? 'Token / Pass No' : isHomeEye ? 'Booking Ref No' : 'Invoice / Slip No'}</div>
-              <div className="font-mono font-bold text-cyan-200">: {invoiceNumber}</div>
+              <div className="font-mono font-bold text-cyan-200">: {activeData.ticket_no || activeData.ticketNo || invoiceNumber}</div>
               <div className="text-slate-300">Date</div>
               <div>: {invoiceDate}</div>
               <div className="text-slate-300">{isDoctor ? 'Doctor / Slot' : isHomeEye ? 'Time Window' : 'Service Type'}</div>
@@ -1047,13 +987,15 @@ export const InvoiceModal = ({ isOpen, onClose, invoiceData }) => {
                 <span>{isDoctor ? 'Consultation Fee' : isHomeEye ? 'Visit & Checkup Fee' : 'Subtotal'}</span>
                 <span className="font-mono font-bold">₹ {calculatedSubtotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
               </div>
-              <div className="flex justify-between text-slate-700">
-                <span>{isDoctor || isHomeEye ? 'Diagnostic Protocol Fee' : 'Total Discount'}</span>
-                <span className="font-mono text-slate-900 font-bold">
-                  {isDoctor || isHomeEye ? '₹ 0.00 (Included)' : `- ₹ ${calculatedDiscount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`}
-                </span>
-              </div>
-              {!isDoctor && !isHomeEye && (
+              {calculatedDiscount > 0 && (
+                <div className="flex justify-between text-slate-700">
+                  <span>Total Discount</span>
+                  <span className="font-mono text-emerald-700 font-bold">
+                    - ₹ {calculatedDiscount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
+              )}
+              {!isDoctor && !isHomeEye && calculatedShipping > 0 && (
                 <div className="flex justify-between text-slate-700">
                   <span>Shipping Charges</span>
                   <span className="font-mono font-bold">₹ {calculatedShipping.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
@@ -1093,7 +1035,7 @@ export const InvoiceModal = ({ isOpen, onClose, invoiceData }) => {
                 </div>
                 <div className="flex flex-col">
                   <span className="text-[8px] text-slate-500 uppercase tracking-wider font-semibold">{isDoctor ? 'Token Pass No' : isHomeEye ? 'Booking Ref No' : 'Invoice No'}</span>
-                  <span className="text-[10px] font-bold text-[#002D5B] font-mono">{invoiceNumber}</span>
+                  <span className="text-[10px] font-bold text-[#002D5B] font-mono">{activeData.ticket_no || activeData.ticketNo || invoiceNumber}</span>
                 </div>
                 <div className="flex flex-col">
                   <span className="text-[8px] text-slate-500 uppercase tracking-wider font-semibold">Payment Mode</span>
@@ -1115,14 +1057,14 @@ export const InvoiceModal = ({ isOpen, onClose, invoiceData }) => {
                     }}
                     className="select-none tracking-wide"
                   >
-                    {isDoctor ? (activeData.doctorName || 'Dr. Subrata Pal') : isHomeEye ? 'Optometry Dispatch' : 'Sagar Shaoo'}
+                    Sagar Shaoo
                   </div>
                 <div className="w-32 h-[1px] bg-slate-400 mt-1 mb-1" />
                 <div className="text-[9px] font-extrabold text-slate-900 uppercase tracking-wider">
-                  {isDoctor ? 'Consultant In-Charge' : isHomeEye ? 'Authorized Clinical Dispatch' : 'Authorized Signatory'}
+                  Authorized Signatory
                 </div>
                 <div className="text-[8px] text-slate-600 font-medium">
-                  {isDoctor ? 'Netra Unnayan Eye Clinic' : isHomeEye ? 'Netra Unnayan Mobile Care' : 'For Netra Unnayan'}
+                  For Netra Unnayan
                 </div>
               </div>
 

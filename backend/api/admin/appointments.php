@@ -9,6 +9,14 @@ require_once __DIR__ . '/../../helpers/mailer.php';
 $admin = requireAdminAuth();
 $pdo = Database::getConnection();
 
+// Gracefully ensure ticket_no column exists in both tables
+try {
+    $pdo->exec("ALTER TABLE appointments ADD COLUMN ticket_no VARCHAR(100) NULL AFTER status");
+} catch (Exception $e) {}
+try {
+    $pdo->exec("ALTER TABLE home_eye_appointments ADD COLUMN ticket_no VARCHAR(100) NULL AFTER status");
+} catch (Exception $e) {}
+
 $method = $_SERVER['REQUEST_METHOD'];
 
 if ($method === 'GET') {
@@ -22,7 +30,7 @@ if ($method === 'GET') {
             a.customer_id, a.patient_name as customer_name, a.patient_phone as customer_phone,
             a.patient_email as customer_email, a.appointment_date as scheduled_date,
             a.appointment_time as scheduled_slot, a.consultation_fee as fee,
-            a.payment_status, a.status, a.notes, a.created_at,
+            a.payment_status, a.status, a.ticket_no, a.notes, a.created_at,
             d.name as doctor_name, d.specialization, d.qualification, d.photo_url as doctor_photo,
             NULL as address_line1, NULL as pincode, NULL as assigned_optometrist
         FROM appointments a
@@ -42,7 +50,7 @@ if ($method === 'GET') {
             h.customer_id, h.customer_name, h.customer_phone,
             h.customer_email, h.service_date as scheduled_date,
             h.service_slot as scheduled_slot, h.service_fee as fee,
-            h.payment_status, h.status, h.notes, h.created_at,
+            h.payment_status, h.status, h.ticket_no, h.notes, h.created_at,
             NULL as doctor_name, "Doorstep Optometrist Refraction" as specialization, NULL as qualification, NULL as doctor_photo,
             h.address_line1, h.pincode, h.assigned_optometrist
         FROM home_eye_appointments h
@@ -100,6 +108,9 @@ if ($method === 'POST') {
     }
 
     if ($action === 'approve') {
+        $ticketNo = trim($input['ticket_no'] ?? '');
+        $adminNote = trim($input['admin_note'] ?? $input['note'] ?? '');
+
         if ($bookingType === 'doctor') {
             $stmt = $pdo->prepare('
                 SELECT a.*, d.name as doctor_name, d.qualification 
@@ -111,26 +122,49 @@ if ($method === 'POST') {
             $apt = $stmt->fetch();
             if (!$apt) Response::error('Appointment not found.', 404);
 
-            $pdo->prepare("UPDATE appointments SET status = 'Confirmed', updated_at = NOW() WHERE id = ?")->execute([$id]);
+            $noteAppend = '';
+            if ($ticketNo !== '') {
+                $noteAppend .= " [Ticket/Token: {$ticketNo}]";
+            }
+            if ($adminNote !== '') {
+                $noteAppend .= " [Desk Note: {$adminNote}]";
+            }
+
+            try {
+                $pdo->prepare("UPDATE appointments SET status = 'Confirmed', ticket_no = ?, notes = CONCAT(IFNULL(notes, ''), ?), updated_at = NOW() WHERE id = ?")
+                    ->execute([$ticketNo ?: null, $noteAppend, $id]);
+            } catch (Exception $e) {
+                $pdo->prepare("UPDATE appointments SET status = 'Confirmed', notes = CONCAT(IFNULL(notes, ''), ?), updated_at = NOW() WHERE id = ?")
+                    ->execute([$noteAppend, $id]);
+            }
 
             // Dispatch Confirmation Email to Patient
             if (!empty($apt['patient_email'])) {
+                $ticketSnippet = $ticketNo !== '' ? "<p><strong>Ticket / Token No:</strong> <span style='color:#0284C7; font-size:15px; font-weight:800;'>{$ticketNo}</span></p>" : "";
+                $noteSnippet = $adminNote !== '' ? "<div style='background:#F0FDF4; border:1px solid #BBF7D0; border-radius:8px; padding:10px; margin:12px 0; font-size:13px; color:#166534;'><strong>Clinic Note:</strong> {$adminNote}</div>" : "";
+
                 $emailHtml = <<<HTML
                     <div style="background:#DCFCE7; color:#15803D; padding:6px 12px; border-radius:9999px; font-weight:800; font-size:12px; display:inline-block;">&#10003; Appointment Approved & Confirmed</div>
                     <h2 style="color:#0F172A; margin-top:12px;">Your Eye Doctor Consultation is Confirmed!</h2>
                     <p>Dear {$apt['patient_name']}, your clinical eye appointment has been formally approved by our medical reception desk.</p>
                     <hr style="border:0; border-top:1px solid #E2E8F0; margin:16px 0;">
                     <p><strong>Appointment ID:</strong> {$apt['appointment_number']}</p>
+                    {$ticketSnippet}
                     <p><strong>Specialist:</strong> {$apt['doctor_name']} ({$apt['qualification']})</p>
                     <p><strong>Confirmed Date & Slot:</strong> {$apt['appointment_date']} at {$apt['appointment_time']}</p>
                     <p><strong>Clinic Venue:</strong> Netra Unnayan Eye Care Clinic, Digha Bypass Rd, Jatimati, Digha, West Bengal 721428</p>
                     <p><strong>Consultation Fee:</strong> ₹{$apt['consultation_fee']} (Payable at clinic desk)</p>
-                    <p style="color:#64748B; font-size:12px; margin-top:15px;">Please arrive 10 minutes before your consultation. Digital autorefractometry and visual acuity screening will be conducted prior to doctor review.</p>
+                    {$noteSnippet}
+                    <p style="color:#64748B; font-size:12px; margin-top:15px;">Please arrive 10 minutes before your consultation. Visual acuity screening will be conducted prior to doctor review.</p>
 HTML;
-                Mailer::send($apt['patient_email'], $apt['patient_name'], "CONFIRMED: Doctor Appointment #{$apt['appointment_number']} - Netra Unnayan", $emailHtml);
+                $subjectTag = $ticketNo !== '' ? "[Token #{$ticketNo}]" : "";
+                Mailer::send($apt['patient_email'], $apt['patient_name'], "CONFIRMED: Doctor Appointment #{$apt['appointment_number']} {$subjectTag} - Netra Unnayan", $emailHtml);
             }
 
-            Response::success(null, "Doctor Appointment #{$apt['appointment_number']} successfully confirmed and customer notified!");
+            Response::success([
+                'ticket_no' => $ticketNo,
+                'status' => 'Confirmed'
+            ], "Doctor Appointment #{$apt['appointment_number']} approved and confirmed!" . ($ticketNo ? " (Ticket #{$ticketNo})" : ""));
         } else {
             // Home Eye Checkup
             $optometrist = trim($input['assigned_optometrist'] ?? 'Certified Senior Optometrist (Mobile Lab)');
@@ -139,26 +173,50 @@ HTML;
             $home = $stmt->fetch();
             if (!$home) Response::error('Home eye booking not found.', 404);
 
-            $pdo->prepare("UPDATE home_eye_appointments SET status = 'Confirmed', assigned_optometrist = ?, updated_at = NOW() WHERE id = ?")->execute([$optometrist, $id]);
+            $noteAppend = '';
+            if ($ticketNo !== '') {
+                $noteAppend .= " [Ticket/Token: {$ticketNo}]";
+            }
+            if ($adminNote !== '') {
+                $noteAppend .= " [Desk Note: {$adminNote}]";
+            }
+
+            try {
+                $pdo->prepare("UPDATE home_eye_appointments SET status = 'Confirmed', ticket_no = ?, assigned_optometrist = ?, notes = CONCAT(IFNULL(notes, ''), ?), updated_at = NOW() WHERE id = ?")
+                    ->execute([$ticketNo ?: null, $optometrist, $noteAppend, $id]);
+            } catch (Exception $e) {
+                $pdo->prepare("UPDATE home_eye_appointments SET status = 'Confirmed', assigned_optometrist = ?, notes = CONCAT(IFNULL(notes, ''), ?), updated_at = NOW() WHERE id = ?")
+                    ->execute([$optometrist, $noteAppend, $id]);
+            }
 
             // Dispatch Confirmation Email
             if (!empty($home['customer_email'])) {
+                $ticketSnippet = $ticketNo !== '' ? "<p><strong>Ticket / Token No:</strong> <span style='color:#0284C7; font-size:15px; font-weight:800;'>{$ticketNo}</span></p>" : "";
+                $noteSnippet = $adminNote !== '' ? "<div style='background:#F0FDF4; border:1px solid #BBF7D0; border-radius:8px; padding:10px; margin:12px 0; font-size:13px; color:#166534;'><strong>Desk Note:</strong> {$adminNote}</div>" : "";
+
                 $emailHtml = <<<HTML
                     <div style="background:#DCFCE7; color:#15803D; padding:6px 12px; border-radius:9999px; font-weight:800; font-size:12px; display:inline-block;">&#10003; Doorstep Visit Confirmed</div>
                     <h2 style="color:#0F172A; margin-top:12px;">Home Eye Test Allocated & Confirmed!</h2>
                     <p>Dear {$home['customer_name']}, your doorstep eye examination has been approved and assigned.</p>
                     <hr style="border:0; border-top:1px solid #E2E8F0; margin:16px 0;">
                     <p><strong>Booking ID:</strong> {$home['booking_number']}</p>
+                    {$ticketSnippet}
                     <p><strong>Confirmed Date & Slot:</strong> {$home['service_date']} ({$home['service_slot']})</p>
                     <p><strong>Assigned Optometrist:</strong> {$optometrist}</p>
                     <p><strong>Destination:</strong> {$home['address_line1']}, {$home['landmark']}, PIN: {$home['pincode']}</p>
                     <p><strong>Visit Fee:</strong> ₹{$home['service_fee']} (Payable on visit)</p>
+                    {$noteSnippet}
                     <p style="color:#64748B; font-size:12px; margin-top:15px;">Our optometrist will arrive equipped with computerized autorefractor, trial lens set, and 100+ designer frames for doorstep try-on.</p>
 HTML;
-                Mailer::send($home['customer_email'], $home['customer_name'], "CONFIRMED: Home Eye Test Visit #{$home['booking_number']} - Netra Unnayan", $emailHtml);
+                $subjectTag = $ticketNo !== '' ? "[Token #{$ticketNo}]" : "";
+                Mailer::send($home['customer_email'], $home['customer_name'], "CONFIRMED: Home Eye Test Visit #{$home['booking_number']} {$subjectTag} - Netra Unnayan", $emailHtml);
             }
 
-            Response::success(null, "Home Eye Test #{$home['booking_number']} confirmed and assigned to {$optometrist}!");
+            Response::success([
+                'ticket_no' => $ticketNo,
+                'status' => 'Confirmed',
+                'assigned_optometrist' => $optometrist
+            ], "Home Eye Test #{$home['booking_number']} confirmed and assigned to {$optometrist}!" . ($ticketNo ? " (Ticket #{$ticketNo})" : ""));
         }
     }
 
