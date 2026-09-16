@@ -21,11 +21,28 @@ if ($auth) {
     if (($auth['type'] ?? '') === 'customer') {
         $customerId = (int)$auth['id'];
     } elseif (($auth['type'] ?? '') === 'admin') {
-        $aStmt = $pdo->prepare('SELECT id FROM customers WHERE email = ? OR (phone = ? AND phone != "") LIMIT 1');
-        $aStmt->execute([$auth['email'] ?? '', $auth['phone'] ?? '']);
-        $cId = $aStmt->fetchColumn();
-        if ($cId) $customerId = (int)$cId;
+        try {
+            $adm = $pdo->prepare('SELECT email, phone FROM admins WHERE id = ?');
+            $adm->execute([$auth['id']]);
+            $admRow = $adm->fetch();
+            if ($admRow) {
+                $aStmt = $pdo->prepare('SELECT id FROM customers WHERE email = ? OR (phone = ? AND phone != "") LIMIT 1');
+                $aStmt->execute([$admRow['email'] ?? '', $admRow['phone'] ?? '']);
+                $cId = $aStmt->fetchColumn();
+                if ($cId) $customerId = (int)$cId;
+            }
+        } catch (Exception $e) {}
     }
+}
+
+// Fallback: Check if client explicitly sent customer_id
+if (empty($customerId) && !empty($input['customer_id'])) {
+    try {
+        $cCheck = $pdo->prepare('SELECT id FROM customers WHERE id = ? LIMIT 1');
+        $cCheck->execute([(int)$input['customer_id']]);
+        $cValid = $cCheck->fetchColumn();
+        if ($cValid) $customerId = (int)$cValid;
+    } catch (Exception $e) {}
 }
 
 // Customer & Shipping Info
@@ -58,16 +75,16 @@ if (!in_array($paymentMode, ['COD', 'UPI'])) {
     Response::error('Invalid payment method selected.', 422);
 }
 
-// If customerId is not found from token, look it up by phone or email in customers table
+// If customerId is not found from token or payload, look it up by phone or email in customers table
 if (empty($customerId)) {
     if (!empty($last10)) {
-        $cStmt = $pdo->prepare('SELECT id FROM customers WHERE phone LIKE ? OR phone = ? LIMIT 1');
-        $cStmt->execute(['%' . $last10, $customerPhone]);
+        $cStmt = $pdo->prepare('SELECT id FROM customers WHERE phone LIKE ? OR phone = ? OR RIGHT(REGEXP_REPLACE(phone, "[^0-9]", ""), 10) = ? LIMIT 1');
+        $cStmt->execute(['%' . $last10, $customerPhone, $last10]);
         $cId = $cStmt->fetchColumn();
         if ($cId) $customerId = (int)$cId;
     }
     if (empty($customerId) && !empty($customerEmail)) {
-        $cStmt = $pdo->prepare('SELECT id FROM customers WHERE email = ? LIMIT 1');
+        $cStmt = $pdo->prepare('SELECT id FROM customers WHERE LOWER(email) = LOWER(?) LIMIT 1');
         $cStmt->execute([$customerEmail]);
         $cId = $cStmt->fetchColumn();
         if ($cId) $customerId = (int)$cId;
@@ -347,6 +364,40 @@ try {
             'amount'         => $totalAmount,
             'deep_link'      => $deepLink
         ];
+    }
+
+    // Auto-generate Invoice Record
+    try {
+        $invNumber = 'NU-INV-' . date('Y') . '-' . strtoupper(bin2hex(random_bytes(3)));
+        $invAddress = trim("{$addressLine1}, {$addressLine2} {$landmark} {$city}, {$state} - {$pincode}");
+        $invStmt = $pdo->prepare('
+            INSERT INTO invoices (
+                invoice_number, order_id, invoice_type, invoice_date, customer_name,
+                customer_phone, customer_address, subtotal, tax_amount, discount_amount,
+                total_amount, payment_mode, payment_status
+            ) VALUES (?, ?, "ONLINE", CURDATE(), ?, ?, ?, ?, 0.00, ?, ?, ?, ?)
+        ');
+        $invStmt->execute([
+            $invNumber, $orderId, $customerName, $customerPhone, $invAddress,
+            $subtotal, $discountAmount, $totalAmount, $paymentMode, $paymentStatus
+        ]);
+    } catch (Exception $e) {}
+
+    // Auto-save address to customer profile if customerId is present
+    if (!empty($customerId) && !empty($addressLine1)) {
+        try {
+            $addrCheck = $pdo->prepare('SELECT id FROM customer_addresses WHERE customer_id = ? AND address_line1 = ? AND pincode = ? LIMIT 1');
+            $addrCheck->execute([$customerId, $addressLine1, $pincode]);
+            if (!$addrCheck->fetchColumn()) {
+                $insAddr = $pdo->prepare('
+                    INSERT INTO customer_addresses (customer_id, recipient_name, phone, address_line1, address_line2, landmark, city, state, pincode, address_type, is_default)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, "HOME", 0)
+                ');
+                $insAddr->execute([
+                    $customerId, $customerName, $customerPhone, $addressLine1, $addressLine2 ?: null, $landmark ?: null, $city, $state, $pincode
+                ]);
+            }
+        } catch (Exception $e) {}
     }
 
     // COMMIT ATOMIC TRANSACTION

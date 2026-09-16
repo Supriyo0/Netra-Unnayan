@@ -54,13 +54,28 @@ export const CheckoutPage = () => {
     setPincode(addr.pincode || '');
   };
 
-  // Fetch saved addresses from server on mount
+  // Fetch saved addresses from server and prefill customer info from user account
   useEffect(() => {
     if (user) {
+      if (!customerName && (user.full_name || user.name)) {
+        setCustomerName(user.full_name || user.name || '');
+      }
+      if (!customerPhone && user.phone) {
+        setCustomerPhone(user.phone || '');
+      }
+      if (!customerEmail && user.email) {
+        setCustomerEmail(user.email || '');
+      }
+
       api.get('/account/addresses.php').then((res) => {
         if (res.success && Array.isArray(res.data) && res.data.length > 0) {
           setSavedAddresses(res.data);
-          // Do not auto-prefill: customer can click a saved address if desired
+          // If customer has a default address, select it immediately
+          const def = res.data.find(a => a.is_default == 1) || res.data[0];
+          if (def) {
+            selectAddress(def);
+            setUseNewAddress(false);
+          }
         }
       }).catch(() => {});
     }
@@ -108,6 +123,7 @@ export const CheckoutPage = () => {
       const firstRx = items.find(i => i.prescription)?.prescription || null;
 
       const payload = {
+        customer_id: user?.id || null,
         customer_name: customerName.trim(),
         customer_phone: customerPhone.trim(),
         customer_email: customerEmail.trim() || null,
@@ -240,27 +256,62 @@ export const CheckoutPage = () => {
 
           {/* Delivery Address Card with Interactive Saved Addresses Section */}
           <div className="glass-card rounded-2xl p-6 space-y-4 border-2 border-slate-200 dark:border-white/10 shadow-sm">
-            <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/10 pb-2">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-200 dark:border-white/10 pb-3 gap-2">
               <h3 className="text-xs font-bold uppercase tracking-wider text-brand-cyan flex items-center gap-1.5">
                 <MapPin className="w-4 h-4" /> 2. Delivery Address
               </h3>
+              
+              {/* Segmented Mode Switcher if customer has saved addresses */}
               {savedAddresses.length > 0 && (
-                <button
-                  type="button"
-                  onClick={() => setUseNewAddress(!useNewAddress)}
-                  className="text-xs text-brand-cyan hover:underline font-bold flex items-center gap-1"
-                >
-                  {useNewAddress ? '← Choose from Saved Addresses' : '+ Enter Different Address'}
-                </button>
+                <div className="inline-flex items-center p-1 rounded-xl bg-slate-100 dark:bg-white/10 border border-slate-300 dark:border-white/10 text-xs font-bold">
+                  <button
+                    type="button"
+                    onClick={() => setUseNewAddress(false)}
+                    className={`px-3 py-1 rounded-lg transition-all flex items-center gap-1.5 ${
+                      !useNewAddress
+                        ? 'bg-brand-cyan text-slate-950 shadow-sm'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                    }`}
+                  >
+                    <span>🏠 Use Saved Address ({savedAddresses.length})</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setUseNewAddress(true);
+                      setSelectedAddressId(null);
+                    }}
+                    className={`px-3 py-1 rounded-lg transition-all flex items-center gap-1.5 ${
+                      useNewAddress
+                        ? 'bg-brand-cyan text-slate-950 shadow-sm'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                    }`}
+                  >
+                    <span>✍️ Enter New Address</span>
+                  </button>
+                </div>
               )}
             </div>
 
-            {/* Saved Addresses Picker Grid */}
+            {/* Mode 1: Saved Addresses Picker Grid with Explicit 'Use This Address' Buttons */}
             {!useNewAddress && savedAddresses.length > 0 && (
               <div className="space-y-3">
-                <p className="text-xs text-slate-600 dark:text-slate-400 font-medium">
-                  Select a saved delivery destination for this shipment:
-                </p>
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-slate-700 dark:text-slate-300 font-semibold">
+                    Select a saved delivery destination for this shipment:
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setUseNewAddress(true);
+                      setSelectedAddressId(null);
+                    }}
+                    className="text-xs text-brand-cyan hover:underline font-bold flex items-center gap-1"
+                  >
+                    + Add Different Address
+                  </button>
+                </div>
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {savedAddresses.map((addr) => {
                     const isSelected = selectedAddressId === addr.id;
@@ -268,33 +319,60 @@ export const CheckoutPage = () => {
                       <div
                         key={addr.id}
                         onClick={() => selectAddress(addr)}
-                        className={`p-4 rounded-xl cursor-pointer transition-all border-2 relative ${
+                        className={`p-4 rounded-xl cursor-pointer transition-all border-2 relative flex flex-col justify-between ${
                           isSelected
-                            ? 'border-brand-cyan bg-brand-cyan/10 shadow-cyan-glow/20'
+                            ? 'border-brand-cyan bg-brand-cyan/10 shadow-cyan-glow/25 ring-2 ring-brand-cyan/20'
                             : 'border-slate-300 dark:border-white/15 bg-slate-50 dark:bg-white/5 hover:border-brand-cyan/50'
                         }`}
                       >
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded bg-brand-cyan/20 text-brand-cyan border border-brand-cyan/30">
-                            {addr.address_type || 'HOME'}
-                          </span>
-                          {isSelected && (
-                            <span className="flex items-center gap-1 text-[11px] font-bold text-teal-600 dark:text-teal-300">
-                              <Check className="w-3.5 h-3.5" /> Deliver Here
+                        <div>
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded bg-brand-cyan/20 text-brand-cyan border border-brand-cyan/30">
+                              {addr.address_type || 'HOME'}
                             </span>
-                          )}
+                            {addr.is_default == 1 && (
+                              <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 bg-amber-400/10 px-1.5 py-0.5 rounded border border-amber-400/30">
+                                Default
+                              </span>
+                            )}
+                          </div>
+                          <h4 className="font-bold text-xs text-slate-900 dark:text-white">
+                            {addr.recipient_name}
+                          </h4>
+                          <p className="text-[11px] text-slate-600 dark:text-slate-400 font-mono mt-0.5">
+                            {addr.phone}
+                          </p>
+                          <p className="text-[11px] text-slate-700 dark:text-slate-300 mt-2 leading-relaxed">
+                            {addr.address_line1}{addr.address_line2 ? `, ${addr.address_line2}` : ''}
+                            {addr.landmark ? ` (Near ${addr.landmark})` : ''}<br />
+                            {addr.city}, {addr.state} - <strong className="font-mono text-slate-900 dark:text-white">{addr.pincode}</strong>
+                          </p>
                         </div>
-                        <h4 className="font-bold text-xs text-slate-900 dark:text-white">
-                          {addr.recipient_name}
-                        </h4>
-                        <p className="text-[11px] text-slate-600 dark:text-slate-400 font-mono mt-0.5">
-                          {addr.phone}
-                        </p>
-                        <p className="text-[11px] text-slate-700 dark:text-slate-300 mt-2 leading-relaxed">
-                          {addr.address_line1}{addr.address_line2 ? `, ${addr.address_line2}` : ''}
-                          {addr.landmark ? ` (Near ${addr.landmark})` : ''}<br />
-                          {addr.city}, {addr.state} - <strong className="font-mono text-slate-900 dark:text-white">{addr.pincode}</strong>
-                        </p>
+
+                        {/* Explicit 'Use This Address' Button */}
+                        <div className="pt-3 mt-3 border-t border-slate-200 dark:border-white/10 flex items-center justify-between">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              selectAddress(addr);
+                            }}
+                            className={`w-full py-1.5 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                              isSelected
+                                ? 'bg-teal-500 text-white shadow-sm'
+                                : 'bg-brand-cyan/15 hover:bg-brand-cyan text-brand-cyan hover:text-slate-950 border border-brand-cyan/40'
+                            }`}
+                          >
+                            {isSelected ? (
+                              <>
+                                <Check className="w-3.5 h-3.5" />
+                                <span>Using This Address</span>
+                              </>
+                            ) : (
+                              <span>Use This Address</span>
+                            )}
+                          </button>
+                        </div>
                       </div>
                     );
                   })}
@@ -302,9 +380,36 @@ export const CheckoutPage = () => {
               </div>
             )}
 
-            {/* Manual Address Input Form (shown when useNewAddress is true or no saved addresses) */}
+            {/* Mode 2: Manual Address Input with Quick-Fill Saved Address Dropdown */}
             {(useNewAddress || savedAddresses.length === 0) && (
               <div className="space-y-4">
+                {/* Quick-Fill dropdown if customer has saved addresses */}
+                {savedAddresses.length > 0 && (
+                  <div className="p-3 rounded-xl bg-brand-cyan/10 border border-brand-cyan/30 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                    <div className="flex items-center gap-2 text-xs font-semibold text-slate-900 dark:text-white">
+                      <Sparkles className="w-4 h-4 text-brand-cyan shrink-0" />
+                      <span>Have a saved address? Use it to auto-fill:</span>
+                    </div>
+                    <select
+                      onChange={(e) => {
+                        const targetId = parseInt(e.target.value, 10);
+                        const found = savedAddresses.find((a) => a.id === targetId);
+                        if (found) {
+                          selectAddress(found);
+                        }
+                      }}
+                      defaultValue=""
+                      className="glass-input rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-800 dark:text-slate-200 border-brand-cyan/40"
+                    >
+                      <option value="" disabled>-- Select Saved Address to Auto-fill --</option>
+                      {savedAddresses.map((a) => (
+                        <option key={a.id} value={a.id}>
+                          {a.address_type || 'HOME'}: {a.recipient_name} ({a.city} - {a.pincode})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
                 <div>
                   <label className="block text-xs text-slate-700 dark:text-slate-300 font-semibold mb-1">
                     Flat / House / Building / Street *
