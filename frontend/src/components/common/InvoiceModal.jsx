@@ -216,12 +216,12 @@ export const InvoiceModal = ({ isOpen, onClose, invoiceData }) => {
         {/* =========================================================================
             EXACT PIXEL-MATCH PRINTABLE INVOICE CANVAS (1-PAGE STRICT A4 DIMENSION)
            ========================================================================= */}
-        {/* Mobile scale wrapper: shrinks the A4 canvas to fit small screens */}
-        <div className="print:contents overflow-x-hidden">
+        {/* Mobile scale wrapper: shrinks the A4 canvas to fit small screens using CSS transform */}
+        <div className="invoice-scale-wrapper print:contents">
           <div 
             ref={printRef}
-            className="p-4 sm:p-5 md:p-7 bg-white text-slate-900 font-sans text-[9px] sm:text-[10px] md:text-[11px] leading-tight selection:bg-cyan-100"
-            style={{ width: '100%', boxSizing: 'border-box' }}
+            className="invoice-canvas p-5 sm:p-6 md:p-8 bg-white text-slate-900 font-sans text-[9px] leading-tight selection:bg-cyan-100 print:transform-none print:w-full print:p-7"
+            style={{ minWidth: '780px', boxSizing: 'border-box' }}
           >
           
           {/* ================= 1. HEADER ROW ================= */}
@@ -355,7 +355,7 @@ export const InvoiceModal = ({ isOpen, onClose, invoiceData }) => {
               <div className="text-slate-300">Payment Mode</div>
               <div className="font-bold">: {paymentMode}</div>
               <div className="text-slate-300">Staff</div>
-              <div>: {cashier || 'Supriyo Naskar'}</div>
+              <div>: {cashier || 'Sagar Shaoo'}</div>
             </div>
 
             {/* Scan to View Product QR Box + Thank You message */}
@@ -740,7 +740,9 @@ export const InvoiceModal = ({ isOpen, onClose, invoiceData }) => {
             </span>
           </div>
 
-        </div>{/* end mobile scale wrapper */}
+          </div>{/* end invoice-canvas */}
+
+        </div>{/* end invoice-scale-wrapper */}
 
       </div>
 
