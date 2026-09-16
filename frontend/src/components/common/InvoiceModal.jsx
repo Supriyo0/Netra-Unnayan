@@ -225,33 +225,38 @@ export const InvoiceModal = ({ isOpen, onClose, invoiceData }) => {
           >
           
           {/* ================= 1. HEADER ROW ================= */}
-          <div className="grid grid-cols-12 gap-3 items-center pb-2.5">
+          <div className="grid grid-cols-12 gap-2 items-center pb-2.5">
             
             {/* Left Col (5 cols): Logo & 6 Category Icons */}
             <div className="col-span-5 space-y-2">
               <div className="flex items-center gap-2">
-                <div className="flex flex-col">
-                  <div className="flex items-center gap-2">
-                    <svg className="w-9 h-9 text-[#002D5B] shrink-0" viewBox="0 0 100 100" fill="none">
-                      <circle cx="50" cy="50" r="45" stroke="#002D5B" strokeWidth="6" />
-                      <circle cx="50" cy="50" r="28" fill="#00B4D8" />
-                      <circle cx="50" cy="50" r="14" fill="#002D5B" />
-                      <path d="M50 15 L70 35 L60 35 L60 65 L40 65 L40 35 L30 35 Z" fill="#00F5D4" opacity="0.9" />
-                    </svg>
-                    <div>
-                      <h1 className="text-xl font-black tracking-tight text-[#002D5B] uppercase leading-none font-heading">
-                        NETRA UNNAYAN
-                      </h1>
-                      <p className="text-[10px] font-semibold text-slate-600 tracking-wide mt-0.5">
-                        Clarity You Can Trust
-                      </p>
-                    </div>
-                  </div>
+                {/* Actual company logo */}
+                <img 
+                  src="/logo_print.png"
+                  alt="Netra Unnayan"
+                  className="h-12 w-auto object-contain"
+                  onError={(e) => {
+                    e.currentTarget.onerror = null;
+                    e.currentTarget.src = '/logo_horizontal.png';
+                    e.currentTarget.onError = (e2) => {
+                      e2.currentTarget.style.display = 'none';
+                      e2.currentTarget.nextSibling && (e2.currentTarget.nextSibling.style.display = 'flex');
+                    };
+                  }}
+                />
+                {/* Fallback text logo if image fails */}
+                <div className="hidden">
+                  <h1 className="text-xl font-black tracking-tight text-[#002D5B] uppercase leading-none font-heading">
+                    NETRA UNNAYAN
+                  </h1>
+                  <p className="text-[10px] font-semibold text-slate-600 tracking-wide mt-0.5">
+                    Clarity You Can Trust
+                  </p>
                 </div>
               </div>
 
               {/* 6 Category Icons Row */}
-              <div className="flex items-start gap-2 pt-1 text-slate-700">
+              <div className="flex items-start gap-2 pt-0.5 text-slate-700">
                 {[
                   { name: 'Eyeglasses Frames', icon: '👓' },
                   { name: 'Sunglasses', icon: '🕶️' },
@@ -294,8 +299,8 @@ export const InvoiceModal = ({ isOpen, onClose, invoiceData }) => {
               </div>
             </div>
 
-            {/* Right Col (4 cols): Store Contact & Eyewear Graphic */}
-            <div className="col-span-4 flex items-center justify-end gap-3 text-[9.5px] text-slate-700">
+            {/* Right Col (4 cols): Store Contact only (no product image) */}
+            <div className="col-span-4 flex items-start justify-end text-[9px] text-slate-700">
               <div className="space-y-0.5 text-right">
                 <div className="flex items-center justify-end gap-1.5">
                   <MapPin className="w-3 h-3 text-cyan-800 shrink-0" />
@@ -313,19 +318,11 @@ export const InvoiceModal = ({ isOpen, onClose, invoiceData }) => {
                   <Globe className="w-3 h-3 text-cyan-800 shrink-0" />
                   <span className="font-mono">www.netraunnayan.in</span>
                 </div>
-              </div>
-
-              {/* Eyeglasses Graphic on the right */}
-              <div className="flex flex-col items-center shrink-0 w-28">
-                <img 
-                  src="https://images.unsplash.com/photo-1591076482161-42ce6da69f67?w=200&auto=format&fit=crop&q=80" 
-                  alt="Eyewear Frame" 
-                  className="w-24 h-12 object-contain rounded drop-shadow-sm"
-                  onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                />
-                <span className="text-[7.5px] font-black uppercase tracking-widest text-cyan-900 mt-0.5 whitespace-nowrap">
-                  SEE A CLEARER TOMORROW
-                </span>
+                <div className="mt-1 text-right">
+                  <span className="text-[7.5px] font-black uppercase tracking-widest text-cyan-900 bg-cyan-50 px-1.5 py-0.5 rounded border border-cyan-200">
+                    SEE A CLEARER TOMORROW
+                  </span>
+                </div>
               </div>
             </div>
 
@@ -355,7 +352,7 @@ export const InvoiceModal = ({ isOpen, onClose, invoiceData }) => {
               <div className="text-slate-300">Payment Mode</div>
               <div className="font-bold">: {paymentMode}</div>
               <div className="text-slate-300">Staff</div>
-              <div>: {cashier || 'Sagar Shaoo'}</div>
+              <div>: Sagar Shaoo</div>
             </div>
 
             {/* Scan to View Product QR Box + Thank You message */}

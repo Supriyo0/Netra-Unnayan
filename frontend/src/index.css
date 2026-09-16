@@ -2220,6 +2220,32 @@ html.light [class*="selection"] textarea {
     display: none !important;
     visibility: hidden !important;
   }
+
+  /* ---- INVOICE MOBILE SCALE RESET FOR PRINT ---- */
+  /* Remove the CSS transform used for mobile viewing so the invoice prints full-size */
+  .invoice-scale-wrapper {
+    width: 100% !important;
+    overflow: visible !important;
+    display: block !important;
+    visibility: visible !important;
+  }
+  .invoice-canvas {
+    transform: none !important;
+    transform-origin: top left !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    padding: 6mm 8mm !important;
+    visibility: visible !important;
+    display: block !important;
+    font-size: 9pt !important;
+    box-sizing: border-box !important;
+  }
+  .invoice-canvas * {
+    visibility: visible !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
 }
 /* Hero Banner Slide-in from right animation */
 @keyframes heroBannerSlideRightToLeft {
