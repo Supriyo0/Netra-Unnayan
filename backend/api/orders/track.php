@@ -332,7 +332,8 @@ $order['items'] = $formattedItems;
 
 // Fetch prescription details if linked
 $rxStmt = $pdo->prepare('
-    SELECT right_sph, right_cyl, right_axis, right_add, right_pd,
+    SELECT id, status, submission_method, rx_image_url, admin_notes,
+           right_sph, right_cyl, right_axis, right_add, right_pd,
            left_sph, left_cyl, left_axis, left_add, left_pd, single_pd
     FROM order_prescriptions
     WHERE order_id = ?
@@ -342,15 +343,20 @@ $rxStmt->execute([$order['id']]);
 $rxData = $rxStmt->fetch();
 if ($rxData) {
     $order['rx'] = [
-        'right_sph'  => $rxData['right_sph'] !== null ? sprintf("%+.2f", $rxData['right_sph']) : '-1.50',
-        'right_cyl'  => $rxData['right_cyl'] !== null ? sprintf("%+.2f", $rxData['right_cyl']) : '-0.75',
-        'right_axis' => $rxData['right_axis'] !== null ? (string)$rxData['right_axis'] : '180',
-        'right_add'  => $rxData['right_add'] !== null ? sprintf("%+.2f", $rxData['right_add']) : '+1.00',
-        'left_sph'   => $rxData['left_sph'] !== null ? sprintf("%+.2f", $rxData['left_sph']) : '-1.25',
-        'left_cyl'   => $rxData['left_cyl'] !== null ? sprintf("%+.2f", $rxData['left_cyl']) : '-0.50',
-        'left_axis'  => $rxData['left_axis'] !== null ? (string)$rxData['left_axis'] : '170',
-        'left_add'   => $rxData['left_add'] !== null ? sprintf("%+.2f", $rxData['left_add']) : '+1.00',
-        'pd'         => !empty($rxData['single_pd']) ? ($rxData['single_pd'] . ' mm') : '63 mm'
+        'id'                => (int)$rxData['id'],
+        'status'            => $rxData['status'] ?? 'Pending Review',
+        'submission_method' => $rxData['submission_method'] ?? 'FORM',
+        'rx_image_url'      => $rxData['rx_image_url'] ?? null,
+        'admin_notes'       => $rxData['admin_notes'] ?? null,
+        'right_sph'         => $rxData['right_sph'] !== null ? sprintf("%+.2f", $rxData['right_sph']) : '-1.50',
+        'right_cyl'         => $rxData['right_cyl'] !== null ? sprintf("%+.2f", $rxData['right_cyl']) : '-0.75',
+        'right_axis'        => $rxData['right_axis'] !== null ? (string)$rxData['right_axis'] : '180',
+        'right_add'         => $rxData['right_add'] !== null ? sprintf("%+.2f", $rxData['right_add']) : '+1.00',
+        'left_sph'          => $rxData['left_sph'] !== null ? sprintf("%+.2f", $rxData['left_sph']) : '-1.25',
+        'left_cyl'          => $rxData['left_cyl'] !== null ? sprintf("%+.2f", $rxData['left_cyl']) : '-0.50',
+        'left_axis'         => $rxData['left_axis'] !== null ? (string)$rxData['left_axis'] : '170',
+        'left_add'          => $rxData['left_add'] !== null ? sprintf("%+.2f", $rxData['left_add']) : '+1.00',
+        'pd'                => !empty($rxData['single_pd']) ? ($rxData['single_pd'] . ' mm') : '63 mm'
     ];
 }
 

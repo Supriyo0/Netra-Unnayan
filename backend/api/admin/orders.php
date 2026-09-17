@@ -80,6 +80,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             $ord['prescription'] = null;
         }
 
+        if (empty($ord['prescriptions'])) {
+            $lensItem = null;
+            if (!empty($ord['items']) && is_array($ord['items'])) {
+                foreach ($ord['items'] as $it) {
+                    if (!empty($it['lens_type'])) {
+                        $lensItem = $it;
+                        break;
+                    }
+                }
+            }
+            if ($lensItem || (!empty($ord['prescription_status']) && $ord['prescription_status'] !== 'Not Required')) {
+                $synth = [
+                    'id'                => 0,
+                    'order_id'          => $ord['id'],
+                    'submission_method' => 'FORM',
+                    'lens_type'         => $lensItem['lens_type'] ?? 'Prescription Optical Lenses',
+                    'status'            => $ord['prescription_status'] ?: 'Pending Review',
+                    'admin_notes'       => $ord['notes'] ?? null,
+                    'right_sph'         => null,
+                    'left_sph'          => null,
+                    'single_pd'         => 63,
+                    'rx_image_url'      => null
+                ];
+                $ord['prescriptions'] = [$synth];
+                $ord['prescription'] = $synth;
+            }
+        }
+
         try {
             $payStmt = $pdo->prepare('SELECT * FROM payments WHERE order_id = ? ORDER BY id DESC LIMIT 1');
             $payStmt->execute([$orderId]);
@@ -194,6 +222,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             $ord['prescription'] = null;
         }
 
+        if (empty($ord['prescriptions'])) {
+            $lensItem = null;
+            if (!empty($ord['items']) && is_array($ord['items'])) {
+                foreach ($ord['items'] as $it) {
+                    if (!empty($it['lens_type'])) {
+                        $lensItem = $it;
+                        break;
+                    }
+                }
+            }
+            if ($lensItem || (!empty($ord['prescription_status']) && $ord['prescription_status'] !== 'Not Required')) {
+                $synth = [
+                    'id'                => 0,
+                    'order_id'          => $ord['id'],
+                    'submission_method' => 'FORM',
+                    'lens_type'         => $lensItem['lens_type'] ?? 'Prescription Optical Lenses',
+                    'status'            => $ord['prescription_status'] ?: 'Pending Review',
+                    'admin_notes'       => $ord['notes'] ?? null,
+                    'right_sph'         => null,
+                    'left_sph'          => null,
+                    'single_pd'         => 63,
+                    'rx_image_url'      => null
+                ];
+                $ord['prescriptions'] = [$synth];
+                $ord['prescription'] = $synth;
+            }
+        }
+
         try {
             $payStmt = $pdo->prepare('SELECT * FROM payments WHERE order_id = ? ORDER BY id DESC LIMIT 1');
             $payStmt->execute([$ord['id']]);
@@ -223,13 +279,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     // Update Order Status / Prescription Workflow
     $input = json_decode(file_get_contents('php://input'), true) ?? [];
     $orderId = (int)($input['order_id'] ?? 0);
-    $newStatus = trim($input['new_status'] ?? '');
-    $note = trim($input['note'] ?? 'Status updated by staff');
-    $paymentStatus = trim($input['payment_status'] ?? '');
-    $prescriptionStatus = trim($input['prescription_status'] ?? '');
+    $action = trim($input['action'] ?? '');
 
-    if (empty($orderId) || empty($newStatus)) {
-        Response::error('Order ID and new status are required.', 422);
+    if (empty($orderId)) {
+        Response::error('Order ID is required.', 422);
     }
 
     $stmt = $pdo->prepare('SELECT * FROM orders WHERE id = ?');
@@ -238,6 +291,145 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 
     if (!$order) Response::notFound('Order not found.');
     $oldStatus = $order['order_status'] ?? 'Pending';
+
+    // 0. VERIFY PRESCRIPTION WORKFLOW
+    if ($action === 'verify_prescription') {
+        $statusVal = trim($input['prescription_status'] ?? $input['verification_status'] ?? '');
+        $note = trim($input['note'] ?? '');
+        $prescriptionId = (int)($input['prescription_id'] ?? 0);
+
+        if (empty($statusVal)) {
+            Response::error('Prescription status is required.', 422);
+        }
+
+        // Map status
+        $normalizedStatus = 'Pending Review';
+        if (in_array(strtolower($statusVal), ['verified', 'approved'])) {
+            $normalizedStatus = 'Approved';
+            if (empty($note)) $note = 'Prescription diopters verified and approved by clinical optician for lab edging.';
+        } elseif (in_array(strtolower($statusVal), ['needs clarification', 'needs_clarification', 'clarification'])) {
+            $normalizedStatus = 'Needs Clarification';
+            if (empty($note)) $note = 'Prescription parameters require clarification. Please review with customer.';
+        } else {
+            $normalizedStatus = $statusVal;
+        }
+
+        // Update or insert into order_prescriptions
+        $rxExists = (int)$pdo->query("SELECT COUNT(*) FROM order_prescriptions WHERE order_id = {$orderId}")->fetchColumn();
+        if ($rxExists > 0) {
+            if ($prescriptionId > 0) {
+                $pdo->prepare('UPDATE order_prescriptions SET status = ?, admin_notes = ? WHERE id = ? AND order_id = ?')
+                    ->execute([$normalizedStatus, $note, $prescriptionId, $orderId]);
+            } else {
+                $pdo->prepare('UPDATE order_prescriptions SET status = ?, admin_notes = ? WHERE order_id = ?')
+                    ->execute([$normalizedStatus, $note, $orderId]);
+            }
+        } else {
+            // Synthesize and insert row
+            $pdo->prepare('
+                INSERT INTO order_prescriptions (order_id, submission_method, status, admin_notes)
+                VALUES (?, "FORM", ?, ?)
+            ')->execute([$orderId, $normalizedStatus, $note]);
+        }
+
+        // Update order record
+        $targetOrderStatus = $oldStatus;
+        if ($normalizedStatus === 'Approved') {
+            if (in_array($oldStatus, ['Pending', 'Payment Confirmed', 'Prescription Review'])) {
+                $targetOrderStatus = 'Order Confirmed';
+            }
+        } elseif ($normalizedStatus === 'Needs Clarification') {
+            $targetOrderStatus = 'Prescription Review';
+        }
+
+        $pdo->prepare('UPDATE orders SET prescription_status = ?, order_status = ? WHERE id = ?')
+            ->execute([$normalizedStatus, $targetOrderStatus, $orderId]);
+
+        // Record Status History
+        $pdo->prepare('
+            INSERT INTO order_status_history (order_id, old_status, new_status, note, updated_by_admin_id)
+            VALUES (?, ?, ?, ?, ?)
+        ')->execute([$orderId, $oldStatus, $targetOrderStatus, "Prescription {$normalizedStatus}: {$note}", $admin['id']]);
+
+        // Dispatch Email to Customer
+        if (!empty($order['customer_email'])) {
+            if ($normalizedStatus === 'Needs Clarification') {
+                $emailBody = <<<HTML
+                    <div style="background:#FEE2E2; color:#B91C1C; padding:6px 14px; border-radius:9999px; font-weight:bold; font-size:12px; display:inline-block; border:1px solid #F87171;">
+                        Action Required: Prescription Needs Clarification
+                    </div>
+                    <h2 style="color:#0F172A; margin-top:16px;">Prescription Clarification Required for Order #{$order['order_number']}</h2>
+                    <p>Dear {$order['customer_name']},</p>
+                    <p>Our senior clinical optometrist reviewed your prescription details for optical order <strong>{$order['order_number']}</strong>, but needs a quick clarification before our laboratory can cut your lenses.</p>
+                    
+                    <div style="margin:16px 0; padding:16px; background:#FFFBEB; border-left:4px solid #F59E0B; border-radius:8px;">
+                        <p style="margin:0; font-weight:bold; color:#92400E; font-size:12px; text-transform:uppercase;">Optometrist Lab Note:</p>
+                        <p style="margin:6px 0 0; color:#78350F; font-size:14px; font-weight:500;">{$note}</p>
+                    </div>
+
+                    <h3 style="color:#0F172A; font-size:14px; margin-top:20px;">How to resolve this easily:</h3>
+                    <ol style="color:#334155; font-size:13px; line-height:1.6; padding-left:20px;">
+                        <li><strong>Option 1 (Online):</strong> Log in to your Netra Unnayan account, go to <a href="https://netraunnayan.com/account?tab=orders" style="color:#0284C7; font-weight:bold;">My Orders</a>, and tap <em>"Re-Upload / Update Prescription"</em> to submit a new slip or diopters.</li>
+                        <li><strong>Option 2 (WhatsApp - Recommended):</strong> Message our optometrist directly on WhatsApp at <a href="https://wa.me/919382293614?text=Hi%20Netra%20Unnayan,%20here%20is%20my%20prescription%20slip%20for%20Order%20{$order['order_number']}" style="color:#059669; font-weight:bold;">+91 9382293614</a> with your doctor's slip photo.</li>
+                    </ol>
+                    <p style="color:#64748B; font-size:12px; margin-top:20px;">Your frame has been safely reserved in our Digha clinical facility and lens cutting will commence immediately upon verification.</p>
+HTML;
+                Mailer::send($order['customer_email'], $order['customer_name'], "Action Required: Prescription Clarification - Order #{$order['order_number']} | Netra Unnayan", $emailBody);
+            } elseif ($normalizedStatus === 'Approved') {
+                $emailBody = <<<HTML
+                    <div style="background:#DCFCE7; color:#15803D; padding:6px 14px; border-radius:9999px; font-weight:bold; font-size:12px; display:inline-block; border:1px solid #86EFAC;">
+                        Prescription Verified &amp; Approved
+                    </div>
+                    <h2 style="color:#0F172A; margin-top:16px;">Optical Prescription Approved for Order #{$order['order_number']}</h2>
+                    <p>Dear {$order['customer_name']},</p>
+                    <p>Great news! Your prescription diopters and pupillary distance (PD) have been clinically verified by our optometry team. Your customized optical lenses have moved to <strong>Laboratory Lens Edging &amp; Cutting</strong>.</p>
+                    
+                    <div style="margin:16px 0; padding:14px; background:#F0FDF4; border-radius:8px; border:1px solid #BBF7D0;">
+                        <p style="margin:0; font-weight:bold; color:#166534; font-size:13px;">Clinical Verification Details:</p>
+                        <p style="margin:4px 0 0; color:#15803D; font-size:13px;">{$note}</p>
+                    </div>
+                    <p style="color:#64748B; font-size:12px; margin-top:16px;">You can track real-time optical cutting and assembly in your Netra Unnayan customer portal.</p>
+HTML;
+                Mailer::send($order['customer_email'], $order['customer_name'], "Prescription Approved for Lab Cutting - Order #{$order['order_number']} | Netra Unnayan", $emailBody);
+            }
+        }
+
+        Response::success([
+            'order_id'            => $orderId,
+            'prescription_status' => $normalizedStatus,
+            'order_status'        => $targetOrderStatus,
+            'note'                => $note
+        ], "Prescription status updated to '{$normalizedStatus}' successfully.");
+        exit;
+    }
+
+    // 0.1 VERIFY PAYMENT WORKFLOW
+    if ($action === 'verify_payment') {
+        $paymentStatusVal = trim($input['payment_status'] ?? 'Paid');
+        $pdo->prepare('UPDATE orders SET payment_status = ? WHERE id = ?')->execute([$paymentStatusVal, $orderId]);
+        $pdo->prepare('UPDATE payments SET status = ?, verified_by_admin_id = ?, verified_at = NOW() WHERE order_id = ?')
+            ->execute([$paymentStatusVal, $admin['id'], $orderId]);
+
+        $pdo->prepare('
+            INSERT INTO order_status_history (order_id, old_status, new_status, note, updated_by_admin_id)
+            VALUES (?, ?, ?, ?, ?)
+        ')->execute([$orderId, $oldStatus, $oldStatus, "Payment status marked as {$paymentStatusVal}", $admin['id']]);
+
+        Response::success([
+            'order_id'       => $orderId,
+            'payment_status' => $paymentStatusVal
+        ], "Payment status updated to '{$paymentStatusVal}' successfully.");
+        exit;
+    }
+
+    $newStatus = trim($input['new_status'] ?? '');
+    $note = trim($input['note'] ?? 'Status updated by staff');
+    $paymentStatus = trim($input['payment_status'] ?? '');
+    $prescriptionStatus = trim($input['prescription_status'] ?? '');
+
+    if (empty($newStatus)) {
+        Response::error('New order status is required.', 422);
+    }
 
     $action = trim($input['action'] ?? '');
     $rejectionReason = trim($input['rejection_reason'] ?? $input['note'] ?? '');

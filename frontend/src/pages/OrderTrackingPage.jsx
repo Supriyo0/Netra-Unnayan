@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { 
   Search, Package, Clock, CheckCircle2, AlertCircle, 
-  ShieldCheck, XCircle, ArrowRight, Truck, FileText, Printer 
+  ShieldCheck, XCircle, ArrowRight, Truck, FileText, Printer,
+  MessageCircle, Upload 
 } from 'lucide-react';
 import api from '../api/client';
 import { useAuth } from '../context/AuthContext';
@@ -219,7 +220,21 @@ export const OrderTrackingPage = () => {
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+              {(order.prescription_status === 'Needs Clarification' || order.rx?.status === 'Needs Clarification') && (
+                <span className="px-3 py-1 rounded-full text-xs font-black inline-flex items-center gap-1.5 bg-rose-600 text-white shadow-sm animate-pulse border border-rose-700">
+                  <AlertCircle className="w-3.5 h-3.5" />
+                  <span>Rx Clarification Required</span>
+                </span>
+              )}
+
+              {(order.prescription_status === 'Approved' || order.rx?.status === 'Approved') && (
+                <span className="px-3 py-1 rounded-full text-xs font-bold inline-flex items-center gap-1.5 bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  <span>Rx Approved for Lab</span>
+                </span>
+              )}
+
               <span className={`px-3 py-1 rounded-full text-xs font-bold ${
                 order.order_status === 'Cancelled'
                   ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40'
@@ -250,6 +265,48 @@ export const OrderTrackingPage = () => {
               )}
             </div>
           </div>
+
+          {/* PRESCRIPTION CLARIFICATION REQUIRED BANNER */}
+          {(order.prescription_status === 'Needs Clarification' || order.rx?.status === 'Needs Clarification') && (
+            <div className="p-4 sm:p-5 rounded-2xl bg-rose-50 dark:bg-rose-500/10 border-2 border-rose-300 dark:border-rose-500/30 text-xs space-y-3 shadow-sm">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-rose-700 dark:text-rose-400 font-extrabold uppercase tracking-wider text-xs">
+                  <AlertCircle className="w-5 h-5 text-rose-600 shrink-0" />
+                  <span>Prescription Action Required Before Lab Cutting</span>
+                </div>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-rose-100 dark:bg-rose-500/20 text-rose-800 dark:text-rose-300 font-bold border border-rose-200 dark:border-rose-500/30">
+                  Optometrist Review
+                </span>
+              </div>
+
+              <div className="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-rose-200 dark:border-white/10 space-y-1">
+                <span className="text-slate-500 text-[10px] uppercase font-bold block">Optometrist Note:</span>
+                <p className="text-slate-800 dark:text-rose-200 leading-relaxed font-semibold">
+                  {order.rx?.admin_notes || 'Your prescription details or slip photo require confirmation before our optical lab can begin lens edging.'}
+                </p>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-3 pt-1">
+                <Link
+                  to="/account?tab=orders"
+                  className="btn-primary bg-rose-600 hover:bg-rose-500 text-white font-black text-xs px-4 py-2 rounded-xl flex items-center gap-2 shadow-sm transition-all"
+                >
+                  <Upload className="w-3.5 h-3.5" />
+                  <span>Upload Updated Prescription Slip</span>
+                </Link>
+
+                <a
+                  href={`https://wa.me/919382293614?text=${encodeURIComponent(`Hi Netra Unnayan Optometrist, regarding prescription clarification for Order #${order.order_number}: `)}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs inline-flex items-center gap-2 shadow-sm transition-all cursor-pointer"
+                >
+                  <MessageCircle className="w-3.5 h-3.5" />
+                  <span>Resolve via WhatsApp (+91 9382293614)</span>
+                </a>
+              </div>
+            </div>
+          )}
 
           {/* Cancelled Alert if order is cancelled */}
           {order.order_status === 'Cancelled' && (

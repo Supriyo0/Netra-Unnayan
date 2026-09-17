@@ -248,7 +248,11 @@ export default function AdminOrdersPage() {
   };
 
 
-  const handleVerifyPrescription = async (prescriptionId, statusVal) => {
+  const [clarificationModalOpen, setClarificationModalOpen] = useState(false);
+  const [clarificationRxId, setClarificationRxId] = useState(null);
+  const [clarificationNote, setClarificationNote] = useState('Prescription slip photo is unclear or missing cylinder axis / PD values. Please re-upload a clear slip or message us on WhatsApp.');
+
+  const handleVerifyPrescription = async (prescriptionId, statusVal, customNote = '') => {
     try {
       setActionLoading(true);
       const res = await api.post('/admin/orders.php', {
@@ -257,15 +261,18 @@ export default function AdminOrdersPage() {
         prescription_id: prescriptionId,
         prescription_status: statusVal,
         verification_status: statusVal,
-        note: statusVal === 'verified' || statusVal === 'Verified' ? 'Prescription verified by clinical optician' : 'Rx needs customer clarification'
+        note: customNote || (statusVal === 'verified' || statusVal === 'Verified' || statusVal === 'Approved' ? 'Prescription verified by clinical optician' : 'Rx needs customer clarification')
       });
       if (res.success || res.data?.success) {
         setActionMessage(`Prescription marked as ${statusVal}`);
+        setClarificationModalOpen(false);
         await openOrderDetail(selectedOrder.id);
         fetchOrders();
+      } else {
+        alert(res.message || 'Failed to update prescription status');
       }
     } catch (err) {
-      alert('Failed to update prescription status');
+      alert(err.message || 'Failed to update prescription status');
     } finally {
       setActionLoading(false);
     }
@@ -1192,15 +1199,18 @@ export default function AdminOrdersPage() {
                               {/* Optician Verification Action Buttons */}
                               <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-100 dark:border-white/5">
                                 <button
-                                  onClick={() => handleVerifyPrescription(rx.id, 'Verified')}
-                                  disabled={actionLoading || rx.status === 'Verified'}
+                                  onClick={() => handleVerifyPrescription(rx.id, 'Approved')}
+                                  disabled={actionLoading || rx.status === 'Approved'}
                                   className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm transition-all cursor-pointer disabled:opacity-50"
                                 >
                                   <CheckCircle2 className="w-3.5 h-3.5" />
                                   <span>Approve Diopters for Lab</span>
                                 </button>
                                 <button
-                                  onClick={() => handleVerifyPrescription(rx.id, 'Needs Clarification')}
+                                  onClick={() => {
+                                    setClarificationRxId(rx.id);
+                                    setClarificationModalOpen(true);
+                                  }}
                                   disabled={actionLoading || rx.status === 'Needs Clarification'}
                                   className="px-3.5 py-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500 text-amber-700 dark:text-amber-300 hover:text-white border border-amber-500/40 font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
                                 >
@@ -1650,6 +1660,62 @@ export default function AdminOrdersPage() {
                 className="btn-primary bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs px-4 py-2 rounded-xl font-black"
               >
                 {actionLoading ? 'Saving...' : 'Confirm & Notify Customer'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Optician Prescription Clarification Modal */}
+      {clarificationModalOpen && (
+        <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+          <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/15 rounded-3xl p-6 shadow-2xl space-y-4 text-slate-900 dark:text-white animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/10 pb-3">
+              <h3 className="text-base font-extrabold flex items-center gap-2 text-rose-500">
+                <AlertTriangle className="w-5 h-5 text-rose-500" />
+                <span>Flag Prescription Clarification</span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => setClarificationModalOpen(false)}
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+              Flagging this order will send an urgent email notification to <strong>{selectedOrder?.customer_name}</strong> and display a high-visibility Red Badge on their "My Orders" and tracking page with direct WhatsApp &amp; re-upload options.
+            </p>
+
+            <div>
+              <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
+                Note / Reason for Customer &amp; Lab Log *
+              </label>
+              <textarea
+                rows="3"
+                value={clarificationNote}
+                onChange={(e) => setClarificationNote(e.target.value)}
+                placeholder="e.g. Doctor slip image is blurry / cylinder axis is missing. Please send a clearer slip via WhatsApp or re-upload."
+                className="w-full glass-input rounded-xl p-3 text-xs"
+              />
+            </div>
+
+            <div className="flex justify-end gap-2.5 pt-2">
+              <button
+                type="button"
+                onClick={() => setClarificationModalOpen(false)}
+                className="px-4 py-2 text-xs font-bold text-slate-500 hover:text-slate-800 dark:hover:text-white"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={actionLoading || !clarificationNote.trim()}
+                onClick={() => handleVerifyPrescription(clarificationRxId, 'Needs Clarification', clarificationNote.trim())}
+                className="btn-primary bg-rose-600 hover:bg-rose-500 text-white text-xs px-4 py-2 rounded-xl font-bold shadow-sm"
+              >
+                {actionLoading ? 'Updating...' : 'Flag & Send Customer Alert'}
               </button>
             </div>
           </div>

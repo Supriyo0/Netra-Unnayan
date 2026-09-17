@@ -75,24 +75,28 @@ export const PrescriptionModal = ({ isOpen, onClose, onSave, product }) => {
   ];
 
   const handleConfirm = () => {
+    const canonicalMethod = method === 'UPLOAD' ? 'IMAGE_UPLOAD' : method;
+    const finalUrl = uploadedFileUrl || null;
     const rxPayload = {
-      method,
+      method: canonicalMethod,
       lens_type: selectedLens.lens_type,
       lens_price: selectedLens.lens_price,
-      right_sph: parseFloat(rightSph) || 0,
-      right_cyl: parseFloat(rightCyl) || 0,
+      right_sph: rightSph !== '' ? (parseFloat(rightSph) || 0) : null,
+      right_cyl: rightCyl !== '' ? (parseFloat(rightCyl) || 0) : null,
       right_axis: parseInt(rightAxis) || null,
       right_add: parseFloat(rightAdd) || null,
       right_pd: isDualPd ? (parseFloat(rightPd) || null) : null,
-      left_sph: parseFloat(leftSph) || 0,
-      left_cyl: parseFloat(leftCyl) || 0,
+      left_sph: leftSph !== '' ? (parseFloat(leftSph) || 0) : null,
+      left_cyl: leftCyl !== '' ? (parseFloat(leftCyl) || 0) : null,
       left_axis: parseInt(leftAxis) || null,
       left_add: parseFloat(leftAdd) || null,
       left_pd: isDualPd ? (parseFloat(leftPd) || null) : null,
       single_pd: !isDualPd ? (parseFloat(singlePd) || 63) : null,
       notes,
       file_name: uploadedFile ? uploadedFile.name : null,
-      file_url: uploadedFileUrl || null
+      file_url: finalUrl,
+      image_url: finalUrl,
+      rx_image_url: finalUrl
     };
 
     onSave({

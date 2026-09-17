@@ -231,13 +231,13 @@ try {
     } else {
         if (!empty($upiUtr) || !empty($paymentProofUrl)) {
             $paymentStatus = 'Under Verification';
-            $orderStatus = 'Payment Under Verification';
+            $orderStatus = 'Pending';
         } else {
             $paymentStatus = 'Payment Pending';
             $orderStatus = 'Payment Pending';
         }
     }
-    $prescriptionStatus = $hasPrescription ? 'Pending Review' : 'Not Required';
+    $prescriptionStatus = (!empty($prescriptionData) || $hasPrescription) ? 'Pending Review' : 'Not Required';
 
     // 12-hour cancellation cutoff window
     $canCancelUntil = date('Y-m-d H:i:s', strtotime('+12 hours'));
@@ -259,7 +259,7 @@ try {
         )
     ');
     $orderStmt->execute([
-        $orderNumber, $customerId, $customerName, $customerEmail ?: null, $customerPhone,
+        $orderNumber, $customerId ?: null, $customerName, $customerEmail ?: null, $customerPhone,
         $addressLine1, $addressLine2 ?: null, $landmark ?: null, $city,
         $state, $pincode, $subtotal, $discountAmount, $shippingFee,
         $totalAmount, $paymentMode, $paymentStatus, $orderStatus,
@@ -278,6 +278,7 @@ try {
         VALUES (?, "ONLINE_SALE", ?, ?, ?, "ORDER", ?, ?)
     ');
 
+    $primaryOrderItemId = null;
     foreach ($orderItemsToInsert as $oi) {
         try {
             $itemInsert = $pdo->prepare('
@@ -300,7 +301,10 @@ try {
                 $oi['unit_price'], $oi['quantity'], $oi['lens_type'], $oi['lens_price'], $oi['total_price']
             ]);
         }
-        $orderItemId = (int)$pdo->lastInsertId();
+        $currentOrderItemId = (int)$pdo->lastInsertId();
+        if ($primaryOrderItemId === null) {
+            $primaryOrderItemId = $currentOrderItemId;
+        }
 
         // Audit inventory reduction
         $invLogStmt->execute([
@@ -309,29 +313,66 @@ try {
         ]);
     }
 
-    // Insert Prescription if provided
-    if ($hasPrescription && !empty($prescriptionData)) {
-        $rxMethod = $prescriptionData['method'] ?? 'FORM';
+    // Insert Prescription if provided (or if lens requires prescription)
+    if (!empty($prescriptionData) || $hasPrescription) {
+        $rawMethod = strtoupper(trim($prescriptionData['method'] ?? 'FORM'));
+        $validMethods = ['FORM', 'IMAGE_UPLOAD', 'WHATSAPP', 'SAVED_PROFILE'];
+        $rxMethod = 'FORM';
+        if (in_array($rawMethod, $validMethods)) {
+            $rxMethod = $rawMethod;
+        } elseif ($rawMethod === 'UPLOAD') {
+            $rxMethod = 'IMAGE_UPLOAD';
+        }
+
+        $rxImageUrl = $prescriptionData['rx_image_url'] 
+            ?? $prescriptionData['file_url'] 
+            ?? $prescriptionData['image_url'] 
+            ?? null;
+
+        $notesStr = trim($prescriptionData['notes'] ?? '');
+        if ($rxMethod === 'WHATSAPP' && empty($notesStr)) {
+            $notesStr = 'Customer opted to send prescription slip via WhatsApp';
+        }
+
         $rxInsert = $pdo->prepare('
             INSERT INTO order_prescriptions (
-                order_id, submission_method, right_sph, right_cyl, right_axis, right_add, right_pd,
-                left_sph, left_cyl, left_axis, left_add, left_pd, single_pd, rx_image_url, status
+                order_id, order_item_id, submission_method, right_sph, right_cyl, right_axis, right_add, right_pd,
+                left_sph, left_cyl, left_axis, left_add, left_pd, single_pd, rx_image_url, status, admin_notes
             ) VALUES (
-                ?, ?, ?, ?, ?, ?, ?,
-                ?, ?, ?, ?, ?, ?, ?, "Pending Review"
+                ?, ?, ?, ?, ?, ?, ?, ?,
+                ?, ?, ?, ?, ?, ?, ?, "Pending Review", ?
             )
         ');
         $rxInsert->execute([
-            $orderId, $rxMethod,
-            $prescriptionData['right_sph'] ?? null, $prescriptionData['right_cyl'] ?? null,
-            $prescriptionData['right_axis'] ?? null, $prescriptionData['right_add'] ?? null,
-            $prescriptionData['right_pd'] ?? null,
-            $prescriptionData['left_sph'] ?? null, $prescriptionData['left_cyl'] ?? null,
-            $prescriptionData['left_axis'] ?? null, $prescriptionData['left_add'] ?? null,
-            $prescriptionData['left_pd'] ?? null,
-            $prescriptionData['single_pd'] ?? null,
-            $prescriptionData['image_url'] ?? null
+            $orderId,
+            $primaryOrderItemId,
+            $rxMethod,
+            isset($prescriptionData['right_sph']) && $prescriptionData['right_sph'] !== '' ? $prescriptionData['right_sph'] : null,
+            isset($prescriptionData['right_cyl']) && $prescriptionData['right_cyl'] !== '' ? $prescriptionData['right_cyl'] : null,
+            isset($prescriptionData['right_axis']) && $prescriptionData['right_axis'] !== '' ? $prescriptionData['right_axis'] : null,
+            isset($prescriptionData['right_add']) && $prescriptionData['right_add'] !== '' ? $prescriptionData['right_add'] : null,
+            isset($prescriptionData['right_pd']) && $prescriptionData['right_pd'] !== '' ? $prescriptionData['right_pd'] : null,
+            isset($prescriptionData['left_sph']) && $prescriptionData['left_sph'] !== '' ? $prescriptionData['left_sph'] : null,
+            isset($prescriptionData['left_cyl']) && $prescriptionData['left_cyl'] !== '' ? $prescriptionData['left_cyl'] : null,
+            isset($prescriptionData['left_axis']) && $prescriptionData['left_axis'] !== '' ? $prescriptionData['left_axis'] : null,
+            isset($prescriptionData['left_add']) && $prescriptionData['left_add'] !== '' ? $prescriptionData['left_add'] : null,
+            isset($prescriptionData['left_pd']) && $prescriptionData['left_pd'] !== '' ? $prescriptionData['left_pd'] : null,
+            isset($prescriptionData['single_pd']) && $prescriptionData['single_pd'] !== '' ? $prescriptionData['single_pd'] : null,
+            $rxImageUrl,
+            $notesStr ?: null
         ]);
+    }
+
+    // Auto-link any past orders for this customer by phone or email
+    if (!empty($customerId)) {
+        try {
+            if (!empty($last10)) {
+                $pdo->prepare('UPDATE orders SET customer_id = ? WHERE (customer_id IS NULL OR customer_id = 0) AND customer_phone LIKE CONCAT("%", ?)')->execute([$customerId, $last10]);
+            }
+            if (!empty($customerEmail)) {
+                $pdo->prepare('UPDATE orders SET customer_id = ? WHERE (customer_id IS NULL OR customer_id = 0) AND LOWER(customer_email) = LOWER(?)')->execute([$customerId, $customerEmail]);
+            }
+        } catch (Exception $e) {}
     }
 
     // Insert Order Status History

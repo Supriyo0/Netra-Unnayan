@@ -5,9 +5,11 @@ import {
   LogOut, Shield, Plus, Check, Clock, ChevronRight, X, 
   ExternalLink, Truck, CheckCircle2, AlertCircle, Phone, 
   Home as HomeIcon, Stethoscope, Trash2, Star, Sparkles, Edit2,
-  Upload, Camera, Lock, Save, Key, Award, Glasses, Heart, RefreshCw
+  Upload, Camera, Lock, Save, Key, Award, Glasses, Heart, RefreshCw,
+  MessageCircle
 } from 'lucide-react';
 import api from '../api/client';
+import { uploadToImgBB } from '../utils/imgbb';
 import { useAuth } from '../context/AuthContext';
 import { InvoiceModal } from '../components/common/InvoiceModal';
 
@@ -63,6 +65,66 @@ export const AccountPage = () => {
   const [cancelCustomReason, setCancelCustomReason] = useState('');
   const [cancellingOrder, setCancellingOrder] = useState(false);
   const [cancelFeedback, setCancelFeedback] = useState({ type: '', text: '' });
+
+  // Customer Prescription Update State
+  const [rxUpdateModalOpen, setRxUpdateModalOpen] = useState(false);
+  const [rxUpdateOrder, setRxUpdateOrder] = useState(null);
+  const [rxUpdateFileUrl, setRxUpdateFileUrl] = useState('');
+  const [uploadingUpdateRx, setUploadingUpdateRx] = useState(false);
+  const [rxUpdateNotes, setRxUpdateNotes] = useState('');
+  const [submittingRxUpdate, setSubmittingRxUpdate] = useState(false);
+
+  const handleUploadNewSlip = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setUploadingUpdateRx(true);
+    try {
+      const res = await uploadToImgBB(file);
+      if (res.success && res.url) {
+        setRxUpdateFileUrl(res.url);
+      } else {
+        alert(res.message || 'Failed to upload slip image');
+      }
+    } catch (err) {
+      alert('Upload error: ' + err.message);
+    } finally {
+      setUploadingUpdateRx(false);
+    }
+  };
+
+  const handleConfirmRxUpdate = async (e) => {
+    e.preventDefault();
+    if (!rxUpdateOrder) return;
+    setSubmittingRxUpdate(true);
+    try {
+      const res = await api.post('/orders/update_prescription.php', {
+        order_id: rxUpdateOrder.id,
+        method: rxUpdateFileUrl ? 'IMAGE_UPLOAD' : 'FORM',
+        rx_image_url: rxUpdateFileUrl || null,
+        file_url: rxUpdateFileUrl || null,
+        notes: rxUpdateNotes.trim() || 'Updated prescription slip submitted by customer'
+      });
+      if (res.success || res.data?.success) {
+        setCancelFeedback({
+          type: 'success',
+          text: `Updated prescription received for Order #${rxUpdateOrder.order_number}! Our optometrist will review it shortly.`
+        });
+        setRxUpdateModalOpen(false);
+        setRxUpdateOrder(null);
+        setRxUpdateFileUrl('');
+        setRxUpdateNotes('');
+        // Refresh orders
+        const ordRes = await api.get('/orders/my_orders.php');
+        if (ordRes.success) setOrders(ordRes.data || []);
+      } else {
+        alert(res.message || 'Failed to update prescription');
+      }
+    } catch (err) {
+      alert(err.message || 'Error updating prescription');
+    } finally {
+      setSubmittingRxUpdate(false);
+    }
+  };
 
   const handleCancelCustomerOrder = async (e) => {
     e.preventDefault();
@@ -657,6 +719,20 @@ export const AccountPage = () => {
                           {ord.order_status === 'Pending' ? 'Pending Confirmation' : ord.order_status}
                         </span>
 
+                        {ord.prescription_status === 'Needs Clarification' && (
+                          <span className="px-3 py-1 rounded-full text-xs font-black inline-flex items-center gap-1.5 bg-rose-600 text-white shadow-sm animate-pulse border border-rose-700">
+                            <AlertCircle className="w-3.5 h-3.5" />
+                            <span>Prescription Clarification Required</span>
+                          </span>
+                        )}
+
+                        {ord.prescription_status === 'Approved' && (
+                          <span className="px-2.5 py-1 rounded-full text-xs font-bold inline-flex items-center gap-1 bg-emerald-100 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700/50">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                            <span>Rx Approved for Lab</span>
+                          </span>
+                        )}
+
                         <Link 
                           to={`/order-tracking?order=${ord.order_number}`}
                           className="btn-secondary text-[11px] py-1.5 px-3 rounded-lg flex items-center gap-1 text-slate-800 dark:text-slate-200 border-slate-300 dark:border-white/15"
@@ -665,6 +741,59 @@ export const AccountPage = () => {
                         </Link>
                       </div>
                     </div>
+
+                    {/* PRESCRIPTION CLARIFICATION RESOLUTION CARD */}
+                    {ord.prescription_status === 'Needs Clarification' && (
+                      <div className="p-4 rounded-2xl bg-rose-50 dark:bg-rose-500/10 border-2 border-rose-300 dark:border-rose-500/30 text-xs space-y-3 shadow-xs">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2 text-rose-700 dark:text-rose-400 font-extrabold uppercase tracking-wider text-xs">
+                            <AlertCircle className="w-4.5 h-4.5 text-rose-600 shrink-0" />
+                            <span>Action Required: Prescription Needs Clarification</span>
+                          </div>
+                          <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-rose-100 dark:bg-rose-500/20 text-rose-800 dark:text-rose-300 font-bold border border-rose-200 dark:border-rose-500/30">
+                            Clinical Lab Flag
+                          </span>
+                        </div>
+
+                        <div className="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-rose-200 dark:border-white/10 space-y-1">
+                          <span className="text-slate-500 text-[10px] uppercase font-bold block">Optometrist Lab Note:</span>
+                          <p className="text-slate-800 dark:text-rose-200 leading-relaxed font-semibold">
+                            {ord.prescription?.admin_notes || ord.notes || 'Your prescription slip photo or diopter parameters need verification before laboratory cutting can begin.'}
+                          </p>
+                        </div>
+
+                        <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-snug">
+                          Please re-upload a clear prescription slip photo or resolve directly with our optometrist via WhatsApp so your lenses can be cut and assembled.
+                        </p>
+
+                        {/* Actions */}
+                        <div className="flex flex-wrap items-center gap-2.5 pt-1">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setRxUpdateOrder(ord);
+                              setRxUpdateFileUrl('');
+                              setRxUpdateNotes('');
+                              setRxUpdateModalOpen(true);
+                            }}
+                            className="btn-primary bg-rose-600 hover:bg-rose-500 text-white font-black text-xs px-4 py-2 rounded-xl flex items-center gap-2 shadow-sm transition-all cursor-pointer"
+                          >
+                            <Upload className="w-3.5 h-3.5" />
+                            <span>Update / Re-Upload Prescription Slip</span>
+                          </button>
+
+                          <a
+                            href={`https://wa.me/919382293614?text=${encodeURIComponent(`Hi Netra Unnayan, here is my updated prescription for Order #${ord.order_number}: `)}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs inline-flex items-center gap-2 shadow-sm transition-all cursor-pointer"
+                          >
+                            <MessageCircle className="w-3.5 h-3.5" />
+                            <span>Send Slip via WhatsApp (+91 9382293614)</span>
+                          </a>
+                        </div>
+                      </div>
+                    )}
 
                     {/* Rejection Notice Banner (if admin declined cancellation) */}
                     {rejectionNote && ord.order_status !== 'Cancelled' && (
@@ -2007,6 +2136,143 @@ export const AccountPage = () => {
                 >
                   {cancellingOrder ? 'Processing Cancellation...' : 'Confirm Cancellation'}
                 </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Customer Prescription Update Modal */}
+      {rxUpdateModalOpen && rxUpdateOrder && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 dark:bg-black/85 backdrop-blur-md animate-fade-in">
+          <div className="w-full max-w-lg bg-white dark:bg-[#0A192F] border border-rose-500/30 rounded-3xl p-6 shadow-2xl space-y-4 text-slate-900 dark:text-white">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/10 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center font-bold">
+                  <Upload className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                    Update Prescription for Order #{rxUpdateOrder.order_number}
+                  </h3>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                    Submit clear slip photo or diopter note for our clinical lab
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setRxUpdateModalOpen(false)}
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Optometrist clarification note alert */}
+            <div className="p-3.5 rounded-xl bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/30 text-xs">
+              <span className="font-bold text-rose-700 dark:text-rose-400 block mb-1">Optometrist's Clarification Note:</span>
+              <p className="text-slate-700 dark:text-slate-200 font-medium">
+                {rxUpdateOrder.prescription?.admin_notes || rxUpdateOrder.notes || 'Clarification required before laboratory lens cutting.'}
+              </p>
+            </div>
+
+            <form onSubmit={handleConfirmRxUpdate} className="space-y-4">
+              {/* Slip upload section */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                  Upload New Prescription Slip Photo (Optional if providing note)
+                </label>
+                
+                {rxUpdateFileUrl ? (
+                  <div className="relative rounded-2xl overflow-hidden border border-emerald-500/30 bg-emerald-500/5 p-3 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <img 
+                        src={rxUpdateFileUrl} 
+                        alt="Updated prescription" 
+                        className="w-14 h-14 object-cover rounded-lg border border-slate-200 dark:border-white/10" 
+                      />
+                      <div>
+                        <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                          <CheckCircle2 className="w-3.5 h-3.5" /> Slip Uploaded Successfully
+                        </span>
+                        <a 
+                          href={rxUpdateFileUrl} 
+                          target="_blank" 
+                          rel="noreferrer"
+                          className="text-[10px] text-cyan-600 hover:underline flex items-center gap-1 mt-0.5"
+                        >
+                          View full slip image <ExternalLink className="w-3 h-3" />
+                        </a>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setRxUpdateFileUrl('')}
+                      className="text-xs text-rose-600 hover:text-rose-700 font-bold px-2 py-1"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ) : (
+                  <label className="border-2 border-dashed border-slate-300 dark:border-white/20 hover:border-brand-cyan/50 rounded-2xl p-4 flex flex-col items-center justify-center gap-2 cursor-pointer transition-colors bg-slate-50 dark:bg-white/[0.02]">
+                    <Upload className="w-6 h-6 text-slate-400" />
+                    <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                      {uploadingUpdateRx ? 'Uploading to secure server...' : 'Click to select prescription photo or PDF'}
+                    </span>
+                    <span className="text-[10px] text-slate-400">JPG, PNG, WEBP, PDF up to 10MB</span>
+                    <input
+                      type="file"
+                      accept="image/*,application/pdf"
+                      onChange={handleUploadNewSlip}
+                      disabled={uploadingUpdateRx}
+                      className="hidden"
+                    />
+                  </label>
+                )}
+              </div>
+
+              {/* Message / diopter clarification notes */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                  Message / Diopter Details for Optometrist
+                </label>
+                <textarea
+                  rows="3"
+                  value={rxUpdateNotes}
+                  onChange={(e) => setRxUpdateNotes(e.target.value)}
+                  placeholder="e.g. Confirming SPH is -2.25 and AXIS is 90 for right eye. Attached the latest prescription slip."
+                  className="w-full glass-input rounded-xl p-3 text-xs"
+                />
+              </div>
+
+              <div className="flex items-center justify-between pt-2 border-t border-slate-200 dark:border-white/10">
+                <a
+                  href={`https://wa.me/919382293614?text=${encodeURIComponent(`Hi Netra Unnayan Optometrist, regarding prescription clarification for Order #${rxUpdateOrder.order_number}: `)}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-xs font-bold text-emerald-600 hover:text-emerald-500 inline-flex items-center gap-1.5"
+                >
+                  <MessageCircle className="w-3.5 h-3.5" />
+                  <span>Send via WhatsApp instead</span>
+                </a>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setRxUpdateModalOpen(false)}
+                    className="px-4 py-2 text-xs font-bold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={submittingRxUpdate || uploadingUpdateRx || (!rxUpdateFileUrl && !rxUpdateNotes.trim())}
+                    className="btn-primary text-xs px-5 py-2.5 rounded-xl font-black shadow-cyan-glow disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {submittingRxUpdate ? 'Submitting to Lab...' : 'Submit Updated Rx'}
+                  </button>
+                </div>
               </div>
             </form>
           </div>

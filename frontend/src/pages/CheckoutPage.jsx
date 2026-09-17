@@ -3,7 +3,8 @@ import { useNavigate, Link } from 'react-router-dom';
 import { 
   ShieldCheck, Truck, QrCode, CreditCard, Lock, 
   ArrowRight, AlertCircle, CheckCircle2, ChevronRight,
-  Upload, Image as ImageIcon, X, Sparkles, MapPin, Plus, Check
+  Upload, Image as ImageIcon, X, Sparkles, MapPin, Plus, Check,
+  FileText, MessageCircle, ExternalLink
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import api from '../api/client';
@@ -108,6 +109,42 @@ export const CheckoutPage = () => {
     }
   };
 
+  // Prescription handling at checkout
+  const existingRx = items.find(i => i.prescription)?.prescription || null;
+  const [checkoutRx, setCheckoutRx] = useState(existingRx);
+  const [uploadingCheckoutRx, setUploadingCheckoutRx] = useState(false);
+
+  useEffect(() => {
+    if (!checkoutRx && existingRx) {
+      setCheckoutRx(existingRx);
+    }
+  }, [existingRx]);
+
+  const handleCheckoutRxUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setUploadingCheckoutRx(true);
+    try {
+      const res = await uploadToImgBB(file);
+      if (res.success && res.url) {
+        setCheckoutRx(prev => ({
+          ...(prev || {}),
+          method: 'IMAGE_UPLOAD',
+          file_url: res.url,
+          image_url: res.url,
+          rx_image_url: res.url,
+          notes: prev?.notes || 'Prescription slip uploaded at checkout'
+        }));
+      } else {
+        alert(res.message || 'Failed to upload prescription slip');
+      }
+    } catch (err) {
+      alert('Upload error: ' + err.message);
+    } finally {
+      setUploadingCheckoutRx(false);
+    }
+  };
+
   const handlePlaceOrder = async (e) => {
     e.preventDefault();
     setErrorMessage('');
@@ -119,11 +156,11 @@ export const CheckoutPage = () => {
 
     setIsSubmitting(true);
     try {
-      // First item's prescription if available
-      const firstRx = items.find(i => i.prescription)?.prescription || null;
+      // First item's prescription if available or checkout-attached prescription
+      const firstRx = checkoutRx || items.find(i => i.prescription)?.prescription || null;
 
       const payload = {
-        customer_id: user?.id || null,
+        customer_id: user?.type === 'customer' ? user.id : null,
         customer_name: customerName.trim(),
         customer_phone: customerPhone.trim(),
         customer_email: customerEmail.trim() || null,
@@ -507,6 +544,123 @@ export const CheckoutPage = () => {
                 className="w-full glass-input rounded-xl px-3.5 py-2 text-xs"
               />
             </div>
+          </div>
+
+          {/* SECTION 2: OPTICAL PRESCRIPTION & CUSTOMIZATION */}
+          <div className="glass-card rounded-2xl p-6 space-y-4 border-2 border-slate-200 dark:border-white/10 shadow-sm">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/10 pb-2">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-brand-cyan flex items-center gap-1.5">
+                <FileText className="w-4 h-4 text-brand-cyan" />
+                <span>2. Optical Prescription Details</span>
+              </h3>
+              {checkoutRx && (
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700/50 flex items-center gap-1">
+                  <Check className="w-3 h-3" /> Attached
+                </span>
+              )}
+            </div>
+
+            {checkoutRx ? (
+              <div className="p-4 rounded-xl bg-cyan-50/50 dark:bg-brand-cyan/[0.04] border border-cyan-200 dark:border-brand-cyan/20 space-y-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5 text-brand-cyan" />
+                      <span>{checkoutRx.lens_type || 'Prescription Eyewear Customized'}</span>
+                    </div>
+                    <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                      Method: <strong className="text-slate-800 dark:text-slate-200">{checkoutRx.method === 'IMAGE_UPLOAD' ? 'Slip Photo Upload' : checkoutRx.method === 'WHATSAPP' ? 'Fast-Track via WhatsApp' : 'Direct Diopter Values'}</strong>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setCheckoutRx(null)}
+                    className="text-[11px] text-rose-500 hover:underline font-semibold"
+                  >
+                    Change
+                  </button>
+                </div>
+
+                {/* Display preview if image is attached */}
+                {(checkoutRx.file_url || checkoutRx.rx_image_url || checkoutRx.image_url) && (
+                  <div className="flex items-center gap-3 p-2.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10">
+                    <img 
+                      src={checkoutRx.file_url || checkoutRx.rx_image_url || checkoutRx.image_url} 
+                      alt="Prescription Slip" 
+                      className="w-12 h-12 rounded object-cover border border-slate-200 dark:border-white/10 shrink-0 cursor-pointer"
+                      onClick={() => window.open(checkoutRx.file_url || checkoutRx.rx_image_url || checkoutRx.image_url, '_blank')}
+                    />
+                    <div className="min-w-0 flex-1">
+                      <div className="text-xs font-bold text-slate-900 dark:text-white truncate">Doctor Prescription Slip Attached</div>
+                      <a 
+                        href={checkoutRx.file_url || checkoutRx.rx_image_url || checkoutRx.image_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-[10px] text-brand-cyan hover:underline inline-flex items-center gap-0.5"
+                      >
+                        View Full Slip <ExternalLink className="w-2.5 h-2.5" />
+                      </a>
+                    </div>
+                  </div>
+                )}
+
+                {/* Display Diopters if entered */}
+                {(checkoutRx.right_sph !== null && checkoutRx.right_sph !== undefined && checkoutRx.method === 'FORM') && (
+                  <div className="grid grid-cols-2 gap-2 text-center text-xs font-mono bg-white dark:bg-slate-900 p-2.5 rounded-lg border border-slate-200 dark:border-white/10">
+                    <div>
+                      <span className="text-[10px] text-slate-400 block font-sans">OD (Right Eye)</span>
+                      <strong className="text-slate-900 dark:text-white">SPH: {checkoutRx.right_sph} | CYL: {checkoutRx.right_cyl || '0.00'}</strong>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-400 block font-sans">OS (Left Eye)</span>
+                      <strong className="text-slate-900 dark:text-white">SPH: {checkoutRx.left_sph} | CYL: {checkoutRx.left_cyl || '0.00'}</strong>
+                    </div>
+                  </div>
+                )}
+
+                {checkoutRx.method === 'WHATSAPP' && (
+                  <div className="flex items-center gap-2 text-xs text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/20 p-2 rounded-lg border border-emerald-200 dark:border-emerald-800/30">
+                    <MessageCircle className="w-4 h-4 text-emerald-500 shrink-0" />
+                    <span>Our optometrist will contact you on WhatsApp to collect your slip photo.</span>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <p className="text-xs text-slate-600 dark:text-slate-400">
+                  You can upload a photo of your doctor's slip now, or send it directly to our optometrist on WhatsApp after checkout.
+                </p>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  {/* Upload photo slip */}
+                  <label className="p-3 rounded-xl border border-dashed border-sky-300 dark:border-brand-cyan/40 bg-sky-50/50 dark:bg-brand-cyan/[0.04] cursor-pointer hover:bg-sky-100/50 dark:hover:bg-brand-cyan/[0.08] transition-colors flex items-center justify-center gap-2 text-xs font-bold text-slate-800 dark:text-slate-200">
+                    <Upload className="w-4 h-4 text-brand-cyan shrink-0" />
+                    <span>{uploadingCheckoutRx ? 'Uploading Slip...' : 'Upload Prescription Slip'}</span>
+                    <input
+                      type="file"
+                      accept="image/*,application/pdf"
+                      disabled={uploadingCheckoutRx}
+                      onChange={handleCheckoutRxUpload}
+                      className="hidden"
+                    />
+                  </label>
+
+                  {/* Send via WhatsApp */}
+                  <button
+                    type="button"
+                    onClick={() => setCheckoutRx({
+                      method: 'WHATSAPP',
+                      lens_type: 'Single Vision Precision Optics',
+                      notes: 'Customer chose to send prescription via WhatsApp'
+                    })}
+                    className="p-3 rounded-xl border border-emerald-300 dark:border-emerald-500/40 bg-emerald-50/50 dark:bg-emerald-950/20 hover:bg-emerald-100/50 dark:hover:bg-emerald-950/40 transition-colors flex items-center justify-center gap-2 text-xs font-bold text-emerald-800 dark:text-emerald-300 cursor-pointer"
+                  >
+                    <MessageCircle className="w-4 h-4 text-emerald-500 shrink-0" />
+                    <span>Provide via WhatsApp</span>
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Payment Method Card */}

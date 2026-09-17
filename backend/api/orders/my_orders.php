@@ -11,7 +11,7 @@ $pdo = Database::getConnection();
 $custId = (int)($customer['id'] ?? 0);
 $custPhone = trim($customer['phone'] ?? '');
 $cleanPhone = preg_replace('/[^0-9]/', '', $custPhone);
-$last10 = substr($cleanPhone, -10);
+$last10 = strlen($cleanPhone) >= 10 ? substr($cleanPhone, -10) : $cleanPhone;
 $custEmail = trim($customer['email'] ?? '');
 
 // 0. Ensure invoices table exists
@@ -49,11 +49,10 @@ if (!empty($last10)) {
             SET customer_id = ? 
             WHERE (customer_id IS NULL OR customer_id = 0) 
               AND (
-                customer_phone = ? 
-                OR customer_phone LIKE CONCAT("%", ?)
-                OR RIGHT(REGEXP_REPLACE(customer_phone, "[^0-9]", ""), 10) = ?
+                customer_phone LIKE CONCAT("%", ?)
+                OR customer_phone = ?
               )
-        ')->execute([$custId, $custPhone, $last10, $last10]);
+        ')->execute([$custId, $last10, $custPhone]);
     } catch (Exception $e) {}
 }
 if (!empty($custEmail)) {
@@ -79,23 +78,25 @@ try {
             o.can_cancel_until, o.cancelled_at, o.cancel_reason, o.notes,
             o.shipping_address_line1, o.shipping_address_line2, o.shipping_landmark,
             o.shipping_city, o.shipping_state, o.shipping_pincode,
+            o.courier_name, o.tracking_number, o.tracking_url, o.estimated_delivery_date,
             o.customer_name, o.customer_phone, o.customer_email,
             COALESCE((SELECT invoice_number FROM invoices WHERE order_id = o.id LIMIT 1), CONCAT("NU-INV-", o.id)) as invoice_number,
             (SELECT COUNT(*) FROM order_items WHERE order_id = o.id) as item_count
         FROM orders o
-        WHERE o.customer_id = ? 
-           OR (o.customer_phone = ? AND o.customer_phone != "") 
-           OR (LOWER(o.customer_email) = LOWER(?) AND o.customer_email != "")
-           OR (? != "" AND o.customer_phone != "" AND (
-               o.customer_phone LIKE CONCAT("%", ?)
-               OR RIGHT(REGEXP_REPLACE(o.customer_phone, "[^0-9]", ""), 10) = ?
-           ))
+        WHERE o.customer_id = :custId 
+           OR (:last10 != "" AND (o.customer_phone LIKE CONCAT("%", :last10) OR o.customer_phone = :custPhone))
+           OR (:custEmail != "" AND LOWER(o.customer_email) = LOWER(:custEmail))
         ORDER BY o.id DESC
     ');
-    $stmt->execute([$custId, $custPhone, $custEmail, $last10, $last10, $last10]);
+    $stmt->execute([
+        ':custId'    => $custId,
+        ':last10'    => $last10,
+        ':custPhone' => $custPhone,
+        ':custEmail' => $custEmail
+    ]);
     $orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (Exception $e) {
-    // Fallback query if any subquery has an issue
+    // Fallback query if any issue
     try {
         $stmt = $pdo->prepare('
             SELECT o.*, CONCAT("NU-INV-", o.id) as invoice_number, 0 as item_count
@@ -143,6 +144,44 @@ foreach ($orders as &$ord) {
         $ord['status_history'] = $histStmt->fetchAll(PDO::FETCH_ASSOC);
     } catch (Exception $e) {
         $ord['status_history'] = [];
+    }
+
+    // Prescription details
+    try {
+        $rxStmt = $pdo->prepare('SELECT * FROM order_prescriptions WHERE order_id = ? ORDER BY id DESC');
+        $rxStmt->execute([$ord['id']]);
+        $ord['prescriptions'] = $rxStmt->fetchAll(PDO::FETCH_ASSOC);
+        $ord['prescription'] = $ord['prescriptions'][0] ?? null;
+    } catch (Exception $e) {
+        $ord['prescriptions'] = [];
+        $ord['prescription'] = null;
+    }
+
+    // Fallback synthesis if prescription record is not yet in order_prescriptions
+    if (empty($ord['prescriptions'])) {
+        $lensItem = null;
+        foreach ($ord['items'] as $it) {
+            if (!empty($it['lens_type'])) {
+                $lensItem = $it;
+                break;
+            }
+        }
+        if ($lensItem || (!empty($ord['prescription_status']) && $ord['prescription_status'] !== 'Not Required')) {
+            $synth = [
+                'id'                => 0,
+                'order_id'          => $ord['id'],
+                'submission_method' => 'FORM',
+                'lens_type'         => $lensItem['lens_type'] ?? 'Prescription Lenses',
+                'status'            => $ord['prescription_status'] ?: 'Pending Review',
+                'admin_notes'       => $ord['notes'] ?? null,
+                'right_sph'         => null,
+                'left_sph'          => null,
+                'single_pd'         => 63,
+                'rx_image_url'      => null
+            ];
+            $ord['prescriptions'] = [$synth];
+            $ord['prescription'] = $synth;
+        }
     }
 
     $ord['can_cancel'] = ($ord['can_cancel_until'] !== null) 
