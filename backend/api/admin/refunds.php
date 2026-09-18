@@ -33,7 +33,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         Response::error('Valid Refund ID and status (Approved/Completed/Failed) required.', 422);
     }
 
-    $stmt = $pdo->prepare('SELECT r.*, o.order_number, o.customer_name, o.customer_email FROM refunds r JOIN orders o ON r.order_id = o.id WHERE r.id = ?');
+    $stmt = $pdo->prepare('SELECT r.*, o.order_number, o.customer_name, o.customer_email, o.customer_id, o.customer_phone FROM refunds r JOIN orders o ON r.order_id = o.id WHERE r.id = ?');
     $stmt->execute([$refundId]);
     $refund = $stmt->fetch();
 
@@ -56,15 +56,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     ')->execute([$refund['order_id'], "Refund {$refund['refund_number']} marked as {$status} by {$admin['full_name']}. Ref: {$txnRef}", $admin['id']]);
 
     // Notify customer
-    if (!empty($refund['customer_email']) && $status === 'Completed') {
-        $emailBody = <<<HTML
-            <div class="badge" style="background:#D1FAE5; color:#065F46;">Refund Completed</div>
-            <h2>Refund Processed</h2>
-            <p>Dear {$refund['customer_name']}, your refund of <strong>₹{$refund['amount']}</strong> for Order <strong>{$refund['order_number']}</strong> has been processed successfully.</p>
-            <p><strong>Bank Reference #:</strong> {$txnRef}</p>
-            <p>The funds will reflect in your source account within 5–7 business days according to standard banking clearing schedules.</p>
+    if ($status === 'Completed') {
+        try {
+            $custEmail = Mailer::resolveCustomerEmail($pdo, $refund);
+            if (!empty($custEmail)) {
+                $custName = !empty($refund['customer_name']) ? $refund['customer_name'] : 'Valued Customer';
+                $emailBody = <<<HTML
+                    <div class="badge" style="background:#D1FAE5; color:#065F46; padding:4px 10px; border-radius:9999px; font-weight:bold; font-size:12px; display:inline-block; border:1px solid #A7F3D0;">&#10003; Refund Completed</div>
+                    <h2 style="color:#0F172A; margin-top:14px;">Refund Processed for Order #{$refund['order_number']}</h2>
+                    <p>Dear {$custName},</p>
+                    <p>Your refund of <strong>₹{$refund['amount']}</strong> for Order <strong>#{$refund['order_number']}</strong> has been processed successfully by our accounts team.</p>
+                    <div style="margin:16px 0; padding:14px; background:#F0FDF4; border-left:4px solid #10B981; border-radius:6px;">
+                        <p style="margin:0; font-size:13px; color:#065F46;"><strong>Refund Reference:</strong> {$refund['refund_number']}</p>
+                        <p style="margin:4px 0 0; font-size:13px; color:#065F46;"><strong>Bank Reference #:</strong> {$txnRef}</p>
+                    </div>
+                    <p style="color:#334155; font-size:13px;">The funds will reflect in your source bank account / UPI within 3–5 business days depending on your bank's clearing cycle.</p>
+                    <p style="color:#64748B; font-size:12px; margin-top:20px;">If you have any questions, feel free to reach out to us at <a href="https://wa.me/919382293614" style="color:#059669; font-weight:bold;">+91 9382293614</a>.</p>
 HTML;
-        Mailer::send($refund['customer_email'], $refund['customer_name'], "Refund Processed - {$refund['refund_number']} | Netra Unnayan", $emailBody);
+                Mailer::send($custEmail, $custName, "Refund Processed - {$refund['refund_number']} | Netra Unnayan", $emailBody);
+            }
+        } catch (\Throwable $mailErr) {
+            error_log('Refund notification email error: ' . $mailErr->getMessage());
+        }
     }
 
     Response::success([

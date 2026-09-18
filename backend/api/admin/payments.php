@@ -60,7 +60,7 @@ try {
         }
 
         // Get payment record
-        $stmt = $pdo->prepare("SELECT p.*, o.order_number, o.customer_name, o.customer_email FROM payments p LEFT JOIN orders o ON p.order_id = o.id WHERE p.id = ?");
+        $stmt = $pdo->prepare("SELECT p.*, o.order_number, o.customer_name, o.customer_email, o.customer_id, o.customer_phone FROM payments p LEFT JOIN orders o ON p.order_id = o.id WHERE p.id = ?");
         $stmt->execute([$paymentId]);
         $payment = $stmt->fetch();
 
@@ -88,23 +88,39 @@ try {
             // Add to status history
             $pdo->prepare("INSERT INTO order_status_history (order_id, old_status, new_status, note, updated_by_admin_id) VALUES (?, 'Payment Under Verification', 'Order Confirmed', 'UPI Payment verified and confirmed by Admin staff.', ?)")
                 ->execute([$payment['order_id'], $adminId]);
-
-            // Send confirmation email
-            if (!empty($payment['customer_email'])) {
-                $emailHtml = <<<HTML
-                    <div style="background:#DCFCE7; color:#15803D; padding:4px 10px; border-radius:9999px; font-weight:bold; font-size:12px; display:inline-block;">&#10003; Payment Approved & Confirmed</div>
-                    <h2>Payment Verified for Order #{$payment['order_number']}</h2>
-                    <p>Dear {$payment['customer_name']}, your online UPI payment of <strong>₹{$payment['amount']}</strong> has been verified by our accounts team.</p>
-                    <p>Your order is now <strong>Confirmed</strong> and moving into optical lens fabrication.</p>
-HTML;
-                Mailer::send($payment['customer_email'], $payment['customer_name'], "Payment Approved: Order #{$payment['order_number']} - Netra Unnayan", $emailHtml);
-            }
         } elseif ($newStatus === 'Failed' && !empty($payment['order_id'])) {
             $orderStmt = $pdo->prepare("UPDATE orders SET payment_status = 'Failed', order_status = 'Payment Failed', updated_at = NOW() WHERE id = ?");
             $orderStmt->execute([$payment['order_id']]);
         }
 
         $pdo->commit();
+
+        // Send confirmation email after commit
+        if ($newStatus === 'Paid' && !empty($payment['order_id'])) {
+            try {
+                $custEmail = Mailer::resolveCustomerEmail($pdo, $payment);
+                if (!empty($custEmail)) {
+                    $custName = !empty($payment['customer_name']) ? $payment['customer_name'] : 'Valued Customer';
+                    $emailHtml = <<<HTML
+                        <div style="background:#DCFCE7; color:#15803D; padding:4px 10px; border-radius:9999px; font-weight:bold; font-size:12px; display:inline-block; border:1px solid #86EFAC;">&#10003; Payment Approved &amp; Confirmed</div>
+                        <h2 style="color:#0F172A; margin-top:14px;">Payment Verified for Order #{$payment['order_number']}</h2>
+                        <p>Dear {$custName},</p>
+                        <p>Your online UPI payment of <strong>₹{$payment['amount']}</strong> has been successfully verified by our accounts team.</p>
+                        <p>Your order is now <strong>Confirmed</strong> and progressing into optical laboratory lens fabrication.</p>
+                        
+                        <div style="margin-top:20px; padding:16px; background:#F8FAFC; border-radius:8px; border:1px solid #E2E8F0; text-align:center;">
+                            <a href="https://netraunnayan.com/order-tracking?order={$payment['order_number']}" style="display:inline-block; background:#0284C7; color:#FFFFFF; text-decoration:none; padding:10px 18px; border-radius:6px; font-weight:bold; font-size:13px; margin:4px 6px;">Track Eyewear Live &rarr;</a>
+                            <a href="https://netraunnayan.com/order-tracking?order={$payment['order_number']}&view=invoice" style="display:inline-block; background:#0F172A; color:#FFFFFF; text-decoration:none; padding:10px 18px; border-radius:6px; font-weight:bold; font-size:13px; margin:4px 6px;">View Official Invoice</a>
+                        </div>
+                        
+                        <p style="color:#64748B; font-size:12px; margin-top:20px;">If you have any questions, message us on WhatsApp at <a href="https://wa.me/919382293614" style="color:#059669; font-weight:bold;">+91 9382293614</a>.</p>
+HTML;
+                    Mailer::send($custEmail, $custName, "Payment Approved: Order #{$payment['order_number']} - Netra Unnayan", $emailHtml);
+                }
+            } catch (\Throwable $mailErr) {
+                error_log('Payment approval email error: ' . $mailErr->getMessage());
+            }
+        }
 
         Response::success(null, "Payment status successfully updated to '{$newStatus}'!");
     }

@@ -49,6 +49,14 @@ class Database {
             try {
                 self::$instance = new PDO($dsn, $user, $pass, $options);
             } catch (PDOException $e) {
+                if (($host === 'localhost' || $host === '127.0.0.1') && $user !== 'root') {
+                    try {
+                        self::$instance = new PDO("mysql:host=127.0.0.1;port=$port;dbname=netra_unnayan_db;charset=$charset", 'root', '', $options);
+                        return self::$instance;
+                    } catch (PDOException $e2) {
+                        // fallback failed too, let error below handle
+                    }
+                }
                 http_response_code(500);
                 echo json_encode([
                     'success' => false,

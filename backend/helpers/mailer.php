@@ -8,6 +8,15 @@ class Mailer {
      * Send email using configured SMTP or PHP mail() fallback
      */
     public static function send(string $toEmail, string $toName, string $subject, string $htmlBody): bool {
+        $toEmail = trim($toEmail);
+        if (empty($toEmail) || !filter_var($toEmail, FILTER_VALIDATE_EMAIL)) {
+            return false;
+        }
+        // Avoid sending to synthetic dummy guest addresses
+        if (str_starts_with(strtolower($toEmail), 'guest_') && str_ends_with(strtolower($toEmail), '@netraunnayan.com')) {
+            return false;
+        }
+
         $pdo = Database::getConnection();
 
         // Fetch SMTP credentials and company metadata from settings
@@ -16,10 +25,10 @@ class Mailer {
 
         $smtpHost = $settings['smtp_host'] ?? 'smtp.gmail.com';
         $smtpPort = (int)($settings['smtp_port'] ?? 587);
-        $smtpUser = $settings['smtp_user'] ?? 'netraunnayan7@gmail.com';
+        $smtpUser = $settings['smtp_user'] ?? 'netraunnayan@gmail.com';
         $smtpPass = $settings['smtp_pass'] ?? '';
         $smtpEnc  = strtolower($settings['smtp_encryption'] ?? 'tls');
-        $fromEmail = $settings['smtp_from_email'] ?? ($settings['contact_email'] ?? 'netraunnayan7@gmail.com');
+        $fromEmail = !empty($settings['smtp_from_email']) ? $settings['smtp_from_email'] : $smtpUser;
         $fromName  = $settings['smtp_from_name'] ?? ($settings['business_name'] ?? 'Netra Unnayan Eye Care');
 
         $fullHtml = self::wrapWithBrandTemplate($subject, $htmlBody);
@@ -68,14 +77,51 @@ class Mailer {
     }
 
     /**
+     * Resolve the true customer email for an order, falling back to registered account and phone lookups
+     */
+    public static function resolveCustomerEmail(PDO $pdo, array $order): string {
+        $custEmail = !empty($order['customer_email']) ? trim($order['customer_email']) : '';
+        if ((empty($custEmail) || str_ends_with(strtolower($custEmail), '@netraunnayan.com')) && !empty($order['customer_id'])) {
+            $cStmt = $pdo->prepare('SELECT email FROM customers WHERE id = ?');
+            $cStmt->execute([$order['customer_id']]);
+            $realEmail = trim((string)$cStmt->fetchColumn());
+            if (!empty($realEmail) && !str_ends_with(strtolower($realEmail), '@netraunnayan.com')) {
+                return $realEmail;
+            }
+        }
+        if ((empty($custEmail) || str_ends_with(strtolower($custEmail), '@netraunnayan.com')) && !empty($order['customer_phone'])) {
+            $cleanPhone = preg_replace('/[^0-9]/', '', $order['customer_phone']);
+            if (strlen($cleanPhone) >= 10) {
+                $last10 = substr($cleanPhone, -10);
+                $cStmt = $pdo->prepare('SELECT email FROM customers WHERE phone LIKE ? AND email IS NOT NULL AND email != "" ORDER BY id DESC LIMIT 1');
+                $cStmt->execute(['%' . $last10]);
+                $realEmail = trim((string)$cStmt->fetchColumn());
+                if (!empty($realEmail) && !str_ends_with(strtolower($realEmail), '@netraunnayan.com')) {
+                    return $realEmail;
+                }
+            }
+        }
+        return $custEmail;
+    }
+
+    /**
      * Native Socket SMTP Implementation
      */
     private static function sendViaSocketSmtp(string $host, int $port, string $user, string $pass, string $enc, string $fromEmail, string $fromName, string $toEmail, string $toName, string $subject, string $html): bool {
-        $timeout = 10;
+        $timeout = 6;
         $connectionPrefix = ($enc === 'ssl') ? 'ssl://' : '';
-        $socket = @fsockopen($connectionPrefix . $host, $port, $errno, $errstr, $timeout);
+        $context = stream_context_create([
+            'ssl' => [
+                'verify_peer'       => false,
+                'verify_peer_name'  => false,
+                'allow_self_signed' => true
+            ]
+        ]);
 
+        $socket = @stream_socket_client($connectionPrefix . $host . ':' . $port, $errno, $errstr, $timeout, STREAM_CLIENT_CONNECT, $context);
         if (!$socket) return false;
+
+        stream_set_timeout($socket, 6);
 
         $read = function() use ($socket) {
             $response = '';
@@ -100,9 +146,14 @@ class Mailer {
         if ($enc === 'tls' && strpos($res, 'STARTTLS') !== false) {
             $write('STARTTLS');
             $res = $read();
-            if (substr($res, 0, 3) !== '220') return false;
+            if (substr($res, 0, 3) !== '220') {
+                fclose($socket);
+                return false;
+            }
 
-            if (!stream_socket_enable_crypto($socket, true, STREAM_CRYPTO_METHOD_TLSv1_2_CLIENT)) {
+            $cryptoMethod = defined('STREAM_CRYPTO_METHOD_TLS_CLIENT') ? STREAM_CRYPTO_METHOD_TLS_CLIENT : STREAM_CRYPTO_METHOD_TLSv1_2_CLIENT;
+            if (!stream_socket_enable_crypto($socket, true, $cryptoMethod)) {
+                fclose($socket);
                 return false;
             }
 

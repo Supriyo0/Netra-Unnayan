@@ -179,17 +179,49 @@ try {
     $pdo->commit();
 
     // Send cancellation notification
-    if (!empty($order['customer_email'])) {
+    $custEmail = !empty($order['customer_email']) ? trim($order['customer_email']) : '';
+    if ((empty($custEmail) || str_ends_with($custEmail, '@netraunnayan.com')) && !empty($order['customer_id'])) {
         try {
-            $emailBody = <<<HTML
-                <div class="badge" style="background:#FEE2E2; color:#B91C1C;">Order Cancelled</div>
-                <h2>Order {$orderNumber} Cancelled</h2>
-                <p>Your order has been cancelled as requested.</p>
-                <p><strong>Reason:</strong> {$cancelReason}</p>
-                <p>If you made an online payment, a full refund of ₹{$order['total_amount']} has been initiated and will credit to your account within 5–7 business days.</p>
-HTML;
-            Mailer::send($order['customer_email'], $order['customer_name'], "Order Cancelled - {$orderNumber} | Netra Unnayan", $emailBody);
+            $cStmt = $pdo->prepare('SELECT email FROM customers WHERE id = ?');
+            $cStmt->execute([$order['customer_id']]);
+            $dbEmail = trim((string)$cStmt->fetchColumn());
+            if (!empty($dbEmail) && !str_ends_with($dbEmail, '@netraunnayan.com')) {
+                $custEmail = $dbEmail;
+            }
         } catch (Exception $e) {}
+    }
+
+    if (!empty($custEmail) && !str_ends_with($custEmail, '@netraunnayan.com')) {
+        try {
+            $custName = $order['customer_name'] ?: 'Valued Customer';
+            $refundNotice = ($order['payment_status'] === 'Paid')
+                ? "<div style='padding:12px; background:#ECFDF5; border-left:4px solid #10B981; border-radius:6px; margin:16px 0; color:#065F46; font-size:13px;'><strong>Full Refund Initiated:</strong> A refund of ₹{$order['total_amount']} has been initiated to your original payment mode and will credit within 5–7 business days.</div>"
+                : "<div style='padding:12px; background:#F8FAFC; border-left:4px solid #64748B; border-radius:6px; margin:16px 0; color:#475569; font-size:13px;'>No payment was captured for this order.</div>";
+
+            $emailBody = <<<HTML
+                <div style="background:#FEE2E2; color:#B91C1C; padding:6px 14px; border-radius:9999px; font-weight:bold; font-size:12px; display:inline-block; border:1px solid #F87171;">
+                    Order Cancelled
+                </div>
+                <h2 style="color:#0F172A; margin-top:14px;">Cancellation Confirmation for Order #{$orderNumber}</h2>
+                <p>Dear {$custName},</p>
+                <p>Your order <strong>{$orderNumber}</strong> has been cancelled as requested before lens cutting started.</p>
+                
+                <div style="margin:16px 0; padding:12px 16px; background:#FFFBEB; border-left:4px solid #F59E0B; border-radius:6px; font-size:13px; color:#78350F;">
+                    <strong>Reason for Cancellation:</strong> {$cancelReason}
+                </div>
+
+                {$refundNotice}
+
+                <div style="margin-top:24px; text-align:center;">
+                    <a href="https://netraunnayan.com/shop" style="background:#0284C7; color:#FFFFFF; padding:12px 24px; border-radius:10px; font-weight:bold; font-size:13px; text-decoration:none; display:inline-block;">
+                        Browse Eyewear Catalog &rarr;
+                    </a>
+                </div>
+HTML;
+            Mailer::send($custEmail, $custName, "Order Cancelled - {$orderNumber} | Netra Unnayan", $emailBody);
+        } catch (\Throwable $e) {
+            error_log('Cancellation email non-fatal error: ' . $e->getMessage());
+        }
     }
 
     Response::success([

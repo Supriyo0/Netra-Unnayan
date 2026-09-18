@@ -351,47 +351,59 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             VALUES (?, ?, ?, ?, ?)
         ')->execute([$orderId, $oldStatus, $targetOrderStatus, "Prescription {$normalizedStatus}: {$note}", $admin['id']]);
 
-        // Dispatch Email to Customer
-        if (!empty($order['customer_email'])) {
-            if ($normalizedStatus === 'Needs Clarification') {
-                $emailBody = <<<HTML
-                    <div style="background:#FEE2E2; color:#B91C1C; padding:6px 14px; border-radius:9999px; font-weight:bold; font-size:12px; display:inline-block; border:1px solid #F87171;">
-                        Action Required: Prescription Needs Clarification
-                    </div>
-                    <h2 style="color:#0F172A; margin-top:16px;">Prescription Clarification Required for Order #{$order['order_number']}</h2>
-                    <p>Dear {$order['customer_name']},</p>
-                    <p>Our senior clinical optometrist reviewed your prescription details for optical order <strong>{$order['order_number']}</strong>, but needs a quick clarification before our laboratory can cut your lenses.</p>
-                    
-                    <div style="margin:16px 0; padding:16px; background:#FFFBEB; border-left:4px solid #F59E0B; border-radius:8px;">
-                        <p style="margin:0; font-weight:bold; color:#92400E; font-size:12px; text-transform:uppercase;">Optometrist Lab Note:</p>
-                        <p style="margin:6px 0 0; color:#78350F; font-size:14px; font-weight:500;">{$note}</p>
-                    </div>
-
-                    <h3 style="color:#0F172A; font-size:14px; margin-top:20px;">How to resolve this easily:</h3>
-                    <ol style="color:#334155; font-size:13px; line-height:1.6; padding-left:20px;">
-                        <li><strong>Option 1 (Online):</strong> Log in to your Netra Unnayan account, go to <a href="https://netraunnayan.com/account?tab=orders" style="color:#0284C7; font-weight:bold;">My Orders</a>, and tap <em>"Re-Upload / Update Prescription"</em> to submit a new slip or diopters.</li>
-                        <li><strong>Option 2 (WhatsApp - Recommended):</strong> Message our optometrist directly on WhatsApp at <a href="https://wa.me/919382293614?text=Hi%20Netra%20Unnayan,%20here%20is%20my%20prescription%20slip%20for%20Order%20{$order['order_number']}" style="color:#059669; font-weight:bold;">+91 9382293614</a> with your doctor's slip photo.</li>
-                    </ol>
-                    <p style="color:#64748B; font-size:12px; margin-top:20px;">Your frame has been safely reserved in our Digha clinical facility and lens cutting will commence immediately upon verification.</p>
-HTML;
-                Mailer::send($order['customer_email'], $order['customer_name'], "Action Required: Prescription Clarification - Order #{$order['order_number']} | Netra Unnayan", $emailBody);
-            } elseif ($normalizedStatus === 'Approved') {
-                $emailBody = <<<HTML
-                    <div style="background:#DCFCE7; color:#15803D; padding:6px 14px; border-radius:9999px; font-weight:bold; font-size:12px; display:inline-block; border:1px solid #86EFAC;">
-                        Prescription Verified &amp; Approved
-                    </div>
-                    <h2 style="color:#0F172A; margin-top:16px;">Optical Prescription Approved for Order #{$order['order_number']}</h2>
-                    <p>Dear {$order['customer_name']},</p>
-                    <p>Great news! Your prescription diopters and pupillary distance (PD) have been clinically verified by our optometry team. Your customized optical lenses have moved to <strong>Laboratory Lens Edging &amp; Cutting</strong>.</p>
-                    
-                    <div style="margin:16px 0; padding:14px; background:#F0FDF4; border-radius:8px; border:1px solid #BBF7D0;">
-                        <p style="margin:0; font-weight:bold; color:#166534; font-size:13px;">Clinical Verification Details:</p>
-                        <p style="margin:4px 0 0; color:#15803D; font-size:13px;">{$note}</p>
-                    </div>
-                    <p style="color:#64748B; font-size:12px; margin-top:16px;">You can track real-time optical cutting and assembly in your Netra Unnayan customer portal.</p>
-HTML;
-                Mailer::send($order['customer_email'], $order['customer_name'], "Prescription Approved for Lab Cutting - Order #{$order['order_number']} | Netra Unnayan", $emailBody);
+        // Dispatch Email to Customer (non-blocking)
+        try {
+            $custEmail = !empty($order['customer_email']) ? trim($order['customer_email']) : '';
+            if (empty($custEmail) && !empty($order['customer_id'])) {
+                $cStmt = $pdo->prepare('SELECT email FROM customers WHERE id = ?');
+                $cStmt->execute([$order['customer_id']]);
+                $custEmail = (string)$cStmt->fetchColumn();
             }
+
+            if (!empty($custEmail)) {
+                $custName = $order['customer_name'] ?: 'Valued Customer';
+                if ($normalizedStatus === 'Needs Clarification') {
+                    $emailBody = <<<HTML
+                        <div style="background:#FEE2E2; color:#B91C1C; padding:6px 14px; border-radius:9999px; font-weight:bold; font-size:12px; display:inline-block; border:1px solid #F87171;">
+                            Action Required: Prescription Needs Clarification
+                        </div>
+                        <h2 style="color:#0F172A; margin-top:16px;">Prescription Clarification Required for Order #{$order['order_number']}</h2>
+                        <p>Dear {$custName},</p>
+                        <p>Our senior clinical optometrist reviewed your prescription details for optical order <strong>{$order['order_number']}</strong>, but needs a quick clarification before our laboratory can cut your lenses.</p>
+                        
+                        <div style="margin:16px 0; padding:16px; background:#FFFBEB; border-left:4px solid #F59E0B; border-radius:8px;">
+                            <p style="margin:0; font-weight:bold; color:#92400E; font-size:12px; text-transform:uppercase;">Optometrist Lab Note:</p>
+                            <p style="margin:6px 0 0; color:#78350F; font-size:14px; font-weight:500;">{$note}</p>
+                        </div>
+
+                        <h3 style="color:#0F172A; font-size:14px; margin-top:20px;">How to resolve this easily:</h3>
+                        <ol style="color:#334155; font-size:13px; line-height:1.6; padding-left:20px;">
+                            <li><strong>Option 1 (Online):</strong> Log in to your Netra Unnayan account, go to <a href="https://netraunnayan.com/account?tab=orders" style="color:#0284C7; font-weight:bold;">My Orders</a>, and tap <em>"Re-Upload / Update Prescription"</em> to submit a new slip or diopters.</li>
+                            <li><strong>Option 2 (WhatsApp - Recommended):</strong> Message our optometrist directly on WhatsApp at <a href="https://wa.me/919382293614?text=Hi%20Netra%20Unnayan,%20here%20is%20my%20prescription%20slip%20for%20Order%20{$order['order_number']}" style="color:#059669; font-weight:bold;">+91 9382293614</a> with your doctor's slip photo.</li>
+                        </ol>
+                        <p style="color:#64748B; font-size:12px; margin-top:20px;">Your frame has been safely reserved in our Digha clinical facility and lens cutting will commence immediately upon verification.</p>
+HTML;
+                    Mailer::send($custEmail, $custName, "Action Required: Prescription Clarification - Order #{$order['order_number']} | Netra Unnayan", $emailBody);
+                } elseif ($normalizedStatus === 'Approved') {
+                    $emailBody = <<<HTML
+                        <div style="background:#DCFCE7; color:#15803D; padding:6px 14px; border-radius:9999px; font-weight:bold; font-size:12px; display:inline-block; border:1px solid #86EFAC;">
+                            Prescription Verified &amp; Approved
+                        </div>
+                        <h2 style="color:#0F172A; margin-top:16px;">Optical Prescription Approved for Order #{$order['order_number']}</h2>
+                        <p>Dear {$custName},</p>
+                        <p>Great news! Your prescription diopters and pupillary distance (PD) have been clinically verified by our optometry team. Your customized optical lenses have moved to <strong>Laboratory Lens Edging &amp; Cutting</strong>.</p>
+                        
+                        <div style="margin:16px 0; padding:14px; background:#F0FDF4; border-radius:8px; border:1px solid #BBF7D0;">
+                            <p style="margin:0; font-weight:bold; color:#166534; font-size:13px;">Clinical Verification Details:</p>
+                            <p style="margin:4px 0 0; color:#15803D; font-size:13px;">{$note}</p>
+                        </div>
+                        <p style="color:#64748B; font-size:12px; margin-top:16px;">You can track real-time optical cutting and assembly in your Netra Unnayan customer portal.</p>
+HTML;
+                    Mailer::send($custEmail, $custName, "Prescription Approved for Lab Cutting - Order #{$order['order_number']} | Netra Unnayan", $emailBody);
+                }
+            }
+        } catch (\Throwable $mailErr) {
+            error_log('Prescription email notification non-fatal error: ' . $mailErr->getMessage());
         }
 
         Response::success([
@@ -453,18 +465,30 @@ HTML;
         ')->execute([$orderId, $oldStatus, $targetStatus, "Cancellation Request Rejected: {$rejectionReason}", $admin['id']]);
 
         // Send email to customer explaining why cancellation was declined
-        if (!empty($order['customer_email'])) {
-            $emailHtml = <<<HTML
-                <div class="badge" style="background:#FEF3C7; color:#92400E; padding:4px 10px; border-radius:9999px; font-weight:bold; font-size:12px; display:inline-block;">Cancellation Request Update</div>
-                <h2>Order {$order['order_number']} Cancellation Notice</h2>
-                <p>Dear {$order['customer_name']}, your cancellation request for order <strong>{$order['order_number']}</strong> could not be processed at this time.</p>
-                <div style="margin-top:12px; padding:12px; background:#F8FAFC; border-left:4px solid #F59E0B; border-radius:4px;">
-                    <p style="margin:0; font-weight:bold; color:#0F172A;">Reason from Optical Team:</p>
-                    <p style="margin:4px 0 0; color:#334155;">{$rejectionReason}</p>
-                </div>
-                <p style="color:#64748B; font-size:12px; margin-top:16px;">If you have questions, please feel free to call our Digha clinical support line at 9382293614.</p>
+        try {
+            $custEmail = Mailer::resolveCustomerEmail($pdo, $order);
+            if (!empty($custEmail)) {
+                $custName = !empty($order['customer_name']) ? $order['customer_name'] : 'Valued Customer';
+                $emailHtml = <<<HTML
+                    <div class="badge" style="background:#FEF3C7; color:#92400E; padding:4px 10px; border-radius:9999px; font-weight:bold; font-size:12px; display:inline-block;">Cancellation Request Update</div>
+                    <h2 style="color:#0F172A; margin-top:14px;">Order #{$order['order_number']} Cancellation Notice</h2>
+                    <p>Dear {$custName},</p>
+                    <p>Your cancellation request for order <strong>#{$order['order_number']}</strong> could not be processed at this time.</p>
+                    <div style="margin:16px 0; padding:14px; background:#FFFBEB; border-left:4px solid #F59E0B; border-radius:6px;">
+                        <p style="margin:0; font-weight:bold; color:#92400E; font-size:12px; text-transform:uppercase;">Reason from Optical Lab Team:</p>
+                        <p style="margin:6px 0 0; color:#78350F; font-size:14px; line-height:1.5;">{$rejectionReason}</p>
+                    </div>
+                    <div style="margin-top:20px; padding:16px; background:#F8FAFC; border-radius:8px; border:1px solid #E2E8F0; text-align:center;">
+                        <p style="margin:0 0 12px; font-size:13px; color:#334155;"><strong>Current Status:</strong> {$targetStatus}</p>
+                        <a href="https://netraunnayan.com/order-tracking?order={$order['order_number']}" style="display:inline-block; background:#0284C7; color:#FFFFFF; text-decoration:none; padding:10px 18px; border-radius:6px; font-weight:bold; font-size:13px; margin:4px 6px;">Track Eyewear Live &rarr;</a>
+                        <a href="https://netraunnayan.com/order-tracking?order={$order['order_number']}&view=invoice" style="display:inline-block; background:#0F172A; color:#FFFFFF; text-decoration:none; padding:10px 18px; border-radius:6px; font-weight:bold; font-size:13px; margin:4px 6px;">View Official Invoice</a>
+                    </div>
+                    <p style="color:#64748B; font-size:12px; margin-top:20px;">If you have any questions or wish to modify optical parameters, please message our clinical support desk on WhatsApp at <a href="https://wa.me/919382293614?text=Hi%20Netra%20Unnayan,%20I%20have%20a%20query%20about%20Order%20{$order['order_number']}" style="color:#059669; font-weight:bold;">+91 9382293614</a>.</p>
 HTML;
-            Mailer::send($order['customer_email'], $order['customer_name'], "Cancellation Update - Order {$order['order_number']} | Netra Unnayan", $emailHtml);
+                Mailer::send($custEmail, $custName, "Cancellation Update - Order #{$order['order_number']} | Netra Unnayan", $emailHtml);
+            }
+        } catch (\Throwable $mailErr) {
+            error_log('Cancellation rejection email error: ' . $mailErr->getMessage());
         }
 
         Response::success([
@@ -514,6 +538,7 @@ HTML;
         ')->execute([$orderId, $oldStatus, "Cancelled by staff: {$cancelReason}", $admin['id']]);
 
         // If paid, insert refund record
+        $refundNumber = null;
         if ($order['payment_status'] === 'Paid') {
             $refundNumber = 'NU-REF-' . strtoupper(bin2hex(random_bytes(4)));
             $pdo->prepare('
@@ -523,14 +548,30 @@ HTML;
         }
 
         // Send email
-        if (!empty($order['customer_email'])) {
-            $emailBody = <<<HTML
-                <div class="badge" style="background:#FEE2E2; color:#B91C1C; padding:4px 10px; border-radius:9999px; font-weight:bold; font-size:12px; display:inline-block;">Order Cancelled</div>
-                <h2>Order {$order['order_number']} Cancelled</h2>
-                <p>Your order has been cancelled.</p>
-                <p><strong>Reason:</strong> {$cancelReason}</p>
+        try {
+            $custEmail = Mailer::resolveCustomerEmail($pdo, $order);
+            if (!empty($custEmail)) {
+                $custName = !empty($order['customer_name']) ? $order['customer_name'] : 'Valued Customer';
+                $refundNote = ($order['payment_status'] === 'Paid')
+                    ? "<div style='margin-top:14px; padding:12px; background:#ECFDF5; border-radius:6px; border:1px solid #A7F3D0;'><p style='margin:0; color:#065F46; font-size:13px;'><strong>Refund Status:</strong> A full refund of <strong>₹" . number_format((float)$order['total_amount'], 2) . "</strong> has been initiated under reference <strong>" . ($refundNumber ?? 'NU-REF') . "</strong>. It will be credited back to your original payment method in 3–5 business days.</p></div>"
+                    : "<div style='margin-top:14px; padding:12px; background:#F8FAFC; border-radius:6px; border:1px solid #E2E8F0;'><p style='margin:0; color:#64748B; font-size:13px;'><strong>Payment Status:</strong> Cash on Delivery / Unpaid — No payment was captured.</p></div>";
+
+                $emailBody = <<<HTML
+                    <div class="badge" style="background:#FEE2E2; color:#B91C1C; padding:4px 10px; border-radius:9999px; font-weight:bold; font-size:12px; display:inline-block;">Order Cancelled</div>
+                    <h2 style="color:#0F172A; margin-top:14px;">Order #{$order['order_number']} Cancelled</h2>
+                    <p>Dear {$custName},</p>
+                    <p>Your order <strong>#{$order['order_number']}</strong> has been cancelled.</p>
+                    <div style="margin:16px 0; padding:14px; background:#FFF1F2; border-left:4px solid #F43F5E; border-radius:6px;">
+                        <p style="margin:0; font-weight:bold; color:#9F1239; font-size:13px;">Reason:</p>
+                        <p style="margin:4px 0 0; color:#881337; font-size:13px;">{$cancelReason}</p>
+                    </div>
+                    {$refundNote}
+                    <p style="color:#64748B; font-size:12px; margin-top:20px;">If you cancelled by mistake or wish to choose an alternative optical frame or lens, feel free to reach out to our team at <a href="https://wa.me/919382293614" style="color:#059669; font-weight:bold;">+91 9382293614</a> or explore new collections at <a href="https://netraunnayan.com" style="color:#0284C7; font-weight:bold;">netraunnayan.com</a>.</p>
 HTML;
-            Mailer::send($order['customer_email'], $order['customer_name'], "Order Cancelled - {$order['order_number']} | Netra Unnayan", $emailBody);
+                Mailer::send($custEmail, $custName, "Order Cancelled - #{$order['order_number']} | Netra Unnayan", $emailBody);
+            }
+        } catch (\Throwable $mailErr) {
+            error_log('Order cancellation email error: ' . $mailErr->getMessage());
         }
 
         Response::success([
@@ -604,25 +645,110 @@ HTML;
     ')->execute([$orderId, $oldStatus, $newStatus, $note, $admin['id']]);
 
     // Send customer email update
-    if (!empty($order['customer_email']) && $oldStatus !== $newStatus) {
-        $shippingInfoHtml = '';
-        if (!empty($courierName) || !empty($trackingNumber)) {
-            $shippingInfoHtml = "<div style='margin-top:14px; padding:12px; background:#F1F5F9; border-radius:8px; border:1px solid #CBD5E1;'>";
-            if (!empty($courierName)) $shippingInfoHtml .= "<p style='margin:0 0 4px;'><strong>Courier Partner:</strong> {$courierName}</p>";
-            if (!empty($trackingNumber)) $shippingInfoHtml .= "<p style='margin:0 0 4px;'><strong>AWB / Tracking #:</strong> {$trackingNumber}</p>";
-            if (!empty($trackingUrl)) $shippingInfoHtml .= "<p style='margin:0;'><a href='{$trackingUrl}' target='_blank' style='color:#0284C7; font-weight:bold;'>Click to Track Shipment Online &rarr;</a></p>";
-            $shippingInfoHtml .= "</div>";
-        }
+    try {
+        $custEmail = Mailer::resolveCustomerEmail($pdo, $order);
+        if (!empty($custEmail) && ($oldStatus !== $newStatus || !empty($trackingNumber))) {
+            $custName = !empty($order['customer_name']) ? $order['customer_name'] : 'Valued Customer';
 
-        $emailHtml = <<<HTML
-            <div class="badge" style="background:#E0F2FE; color:#0369A1; padding:4px 10px; border-radius:9999px; font-weight:bold; font-size:12px; display:inline-block;">Status Update: {$newStatus}</div>
-            <h2>Order {$order['order_number']} Progress Update</h2>
-            <p>Dear {$order['customer_name']}, your eyewear order has progressed to stage: <strong>{$newStatus}</strong>.</p>
-            <p><strong>Note:</strong> {$note}</p>
-            {$shippingInfoHtml}
-            <p style="color:#64748B; font-size:12px; margin-top:16px;">You can track live optical fabrication and courier delivery updates anytime in your Netra Unnayan account portal.</p>
+            // Stage-specific details & styling
+            $stageDetails = [
+                'Order Confirmed' => [
+                    'badge_bg' => '#E0F2FE', 'badge_color' => '#0369A1',
+                    'title' => 'Order Confirmed & Optical Job Queued',
+                    'desc' => 'Your optical order and payment have been verified. Our clinical lab has received your frame and lens specifications.'
+                ],
+                'Prescription Review' => [
+                    'badge_bg' => '#FEF3C7', 'badge_color' => '#92400E',
+                    'title' => 'Optometrist Reviewing Prescription',
+                    'desc' => 'Our clinical optometrist is verifying your diopters, cylinder axes, and pupillary distance (PD) for optical perfection.'
+                ],
+                'Prescription Approved' => [
+                    'badge_bg' => '#DCFCE7', 'badge_color' => '#15803D',
+                    'title' => 'Prescription Clinically Certified',
+                    'desc' => 'Your prescription has passed optical tolerance standards and the lenses are queued for computerized edging.'
+                ],
+                'Lens Cutting' => [
+                    'badge_bg' => '#F3E8FF', 'badge_color' => '#7E22CE',
+                    'title' => 'Laboratory Lens Edging & Cutting in Progress',
+                    'desc' => 'Your optical lenses are undergoing precision CNC diamond-wheel bevel edging and surface coating.'
+                ],
+                'Fitting' => [
+                    'badge_bg' => '#E0E7FF', 'badge_color' => '#4338CA',
+                    'title' => 'Frame Assembly & Lens Mounting',
+                    'desc' => 'Our optical technicians are mounting your lenses into the frame, aligning optical centers, and tensioning hinges.'
+                ],
+                'Quality Check' => [
+                    'badge_bg' => '#CCFBF1', 'badge_color' => '#0F766E',
+                    'title' => 'Final Optical & Structural Inspection',
+                    'desc' => 'Your eyewear is undergoing digital lensometer verification for diopter accuracy, scratch inspection, and alignment.'
+                ],
+                'Packed' => [
+                    'badge_bg' => '#FEF9C3', 'badge_color' => '#854D0E',
+                    'title' => 'Eyewear Boxed & Sanitized for Dispatch',
+                    'desc' => 'Your custom glasses have been ultrasonically cleaned, boxed with premium hard protective case and microfiber cloth.'
+                ],
+                'Shipped' => [
+                    'badge_bg' => '#DBEAFE', 'badge_color' => '#1E40AF',
+                    'title' => 'Package Dispatched & In Transit',
+                    'desc' => 'Your eyewear has been handed over to our courier partner and is on its way to your delivery address.'
+                ],
+                'Out for Delivery' => [
+                    'badge_bg' => '#FFEDD5', 'badge_color' => '#C2410C',
+                    'title' => 'Out for Delivery Today',
+                    'desc' => 'Your package has arrived at your local delivery hub and our courier partner will attempt delivery today.'
+                ],
+                'Delivered' => [
+                    'badge_bg' => '#DCFCE7', 'badge_color' => '#166534',
+                    'title' => 'Eyewear Successfully Delivered',
+                    'desc' => 'Your Netra Unnayan eyewear package has been delivered! We hope you enjoy clear, comfortable vision.'
+                ],
+            ];
+
+            $stageInfo = $stageDetails[$newStatus] ?? [
+                'badge_bg' => '#F1F5F9', 'badge_color' => '#334155',
+                'title' => "Order Status: {$newStatus}",
+                'desc' => "Your eyewear order has progressed to stage: {$newStatus}."
+            ];
+
+            $shippingInfoHtml = '';
+            if (!empty($courierName) || !empty($trackingNumber)) {
+                $shippingInfoHtml = "<div style='margin-top:16px; padding:14px; background:#F8FAFC; border-radius:8px; border:1px solid #CBD5E1;'>";
+                $shippingInfoHtml .= "<p style='margin:0 0 6px; font-weight:bold; color:#0F172A; font-size:13px;'>Shipping & Tracking Details:</p>";
+                if (!empty($courierName)) $shippingInfoHtml .= "<p style='margin:0 0 4px; font-size:13px; color:#334155;'><strong>Courier Partner:</strong> {$courierName}</p>";
+                if (!empty($trackingNumber)) $shippingInfoHtml .= "<p style='margin:0 0 6px; font-size:13px; color:#334155;'><strong>AWB / Tracking #:</strong> <code style='background:#E2E8F0; padding:2px 6px; border-radius:4px; font-weight:bold;'>{$trackingNumber}</code></p>";
+                if (!empty($trackingUrl)) {
+                    $shippingInfoHtml .= "<p style='margin:6px 0 0;'><a href='{$trackingUrl}' target='_blank' style='display:inline-block; background:#0284C7; color:#FFFFFF; text-decoration:none; padding:6px 14px; border-radius:6px; font-size:12px; font-weight:bold;'>Track on Courier Website &rarr;</a></p>";
+                }
+                $shippingInfoHtml .= "</div>";
+            }
+
+            $noteHtml = '';
+            if (!empty($note) && $note !== 'Status updated by staff') {
+                $noteHtml = "<div style='margin-top:14px; padding:12px; background:#FFFBEB; border-left:3px solid #F59E0B; border-radius:4px;'><p style='margin:0; font-size:12px; color:#92400E;'><strong>Staff Update Note:</strong> {$note}</p></div>";
+            }
+
+            $emailHtml = <<<HTML
+                <div class="badge" style="background:{$stageInfo['badge_bg']}; color:{$stageInfo['badge_color']}; padding:5px 12px; border-radius:9999px; font-weight:bold; font-size:12px; display:inline-block;">{$newStatus}</div>
+                <h2 style="color:#0F172A; margin-top:14px; margin-bottom:6px;">{$stageInfo['title']}</h2>
+                <p style="color:#64748B; font-size:13px; margin:0 0 16px;">Order #<strong>{$order['order_number']}</strong></p>
+                <p>Dear {$custName},</p>
+                <p>{$stageInfo['desc']}</p>
+                {$shippingInfoHtml}
+                {$noteHtml}
+                
+                <div style="margin-top:22px; padding:16px; background:#F8FAFC; border-radius:8px; border:1px solid #E2E8F0; text-align:center;">
+                    <a href="https://netraunnayan.com/order-tracking?order={$order['order_number']}" style="display:inline-block; background:#0284C7; color:#FFFFFF; text-decoration:none; padding:11px 20px; border-radius:6px; font-weight:bold; font-size:13px; margin:4px 6px;">Track Eyewear Live &rarr;</a>
+                    <a href="https://netraunnayan.com/order-tracking?order={$order['order_number']}&view=invoice" style="display:inline-block; background:#0F172A; color:#FFFFFF; text-decoration:none; padding:11px 20px; border-radius:6px; font-weight:bold; font-size:13px; margin:4px 6px;">Official Tax Invoice</a>
+                </div>
+                
+                <p style="color:#64748B; font-size:12px; margin-top:22px; line-height:1.5;">
+                    Need help? Connect with our optical clinic directly on WhatsApp at <a href="https://wa.me/919382293614?text=Hi%20Netra%20Unnayan,%20I%20have%20a%20query%20about%20Order%20{$order['order_number']}" style="color:#059669; font-weight:bold;">+91 9382293614</a>.
+                </p>
 HTML;
-        Mailer::send($order['customer_email'], $order['customer_name'], "Order Update: {$newStatus} - {$order['order_number']} | Netra Unnayan", $emailHtml);
+            Mailer::send($custEmail, $custName, "Order Update: {$newStatus} - #{$order['order_number']} | Netra Unnayan", $emailHtml);
+        }
+    } catch (\Throwable $mailErr) {
+        error_log('Status update email non-fatal error: ' . $mailErr->getMessage());
     }
 
     Response::success([

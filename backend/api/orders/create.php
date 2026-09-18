@@ -444,24 +444,124 @@ try {
     // COMMIT ATOMIC TRANSACTION
     $pdo->commit();
 
-    // Send confirmation email asynchronously / logged
-    if (!empty($customerEmail)) {
-        $itemsHtml = '';
-        foreach ($orderItemsToInsert as $oi) {
-            $itemsHtml .= "<li><strong>{$oi['product_name']}</strong> ({$oi['product_sku']}) &times; {$oi['quantity']} - ₹" . number_format($oi['total_price'], 2) . "</li>";
-        }
-        $emailHtml = <<<HTML
-            <div class="badge">Order Confirmed</div>
-            <h2>Thank you for your order, {$customerName}!</h2>
-            <p>Your order <strong>{$orderNumber}</strong> has been received and is being prepared with clinical precision.</p>
-            <hr style="border: 0; border-top: 1px solid #E2E8F0; margin: 20px 0;">
-            <h3>Order Details</h3>
-            <ul>{$itemsHtml}</ul>
-            <p><strong>Total Amount:</strong> ₹{$totalAmount} ({$paymentMode})</p>
-            <p><strong>Delivery Address:</strong> {$addressLine1}, {$city}, {$pincode}</p>
-            <p style="color: #64748B; font-size: 13px;">Our optical lab team is verifying your frame and lens specifications. You can track your order status in real time on our website.</p>
+    // Send confirmation email with full Tax Invoice details
+    if ((empty($customerEmail) || str_ends_with($customerEmail, '@netraunnayan.com')) && !empty($customerId)) {
+        try {
+            $cStmt = $pdo->prepare('SELECT email FROM customers WHERE id = ?');
+            $cStmt->execute([$customerId]);
+            $dbEmail = trim((string)$cStmt->fetchColumn());
+            if (!empty($dbEmail) && !str_ends_with($dbEmail, '@netraunnayan.com')) {
+                $customerEmail = $dbEmail;
+            }
+        } catch (Exception $e) {}
+    }
+
+    if (!empty($customerEmail) && !str_ends_with($customerEmail, '@netraunnayan.com')) {
+        try {
+            $invDate = date('d M Y');
+            $fullAddress = trim("{$addressLine1}, {$addressLine2} {$landmark} {$city}, {$state} - {$pincode}");
+            
+            $itemsRows = '';
+            foreach ($orderItemsToInsert as $oi) {
+                $lensNote = !empty($oi['lens_type']) ? "<br><span style='font-size:11px; color:#0284C7;'>Lens: {$oi['lens_type']}</span>" : "";
+                $itemsRows .= "
+                    <tr style='border-bottom: 1px solid #E2E8F0;'>
+                        <td style='padding: 10px 8px; font-size: 13px; color: #0F172A;'>
+                            <strong>{$oi['product_name']}</strong>{$lensNote}
+                            <div style='font-size: 11px; color: #64748B; font-family: monospace;'>SKU: {$oi['product_sku']}</div>
+                        </td>
+                        <td style='padding: 10px 8px; text-align: center; font-size: 13px; color: #334155;'>{$oi['quantity']}</td>
+                        <td style='padding: 10px 8px; text-align: right; font-size: 13px; color: #334155;'>₹" . number_format($oi['unit_price'], 2) . "</td>
+                        <td style='padding: 10px 8px; text-align: right; font-size: 13px; font-weight: bold; color: #0F172A;'>₹" . number_format($oi['total_price'], 2) . "</td>
+                    </tr>
+                ";
+            }
+
+            $emailHtml = <<<HTML
+                <div style="background:#DCFCE7; color:#15803D; padding:6px 14px; border-radius:9999px; font-weight:bold; font-size:12px; display:inline-block; border:1px solid #86EFAC;">
+                    Order Confirmed &bull; Tax Invoice Issued
+                </div>
+                <h2 style="color:#0F172A; margin-top:14px; margin-bottom:4px;">Thank you for your order, {$customerName}!</h2>
+                <p style="color:#475569; font-size:14px; margin-top:0;">Your optical eyewear order <strong>{$orderNumber}</strong> has been received and verified by our clinical desk.</p>
+
+                <!-- Tax Invoice Header Card -->
+                <div style="background:#F8FAFC; border:1px solid #E2E8F0; border-radius:12px; padding:16px; margin:20px 0;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #E2E8F0; padding-bottom:10px; margin-bottom:12px;">
+                        <div>
+                            <span style="font-size:10px; font-weight:bold; color:#64748B; text-transform:uppercase;">Tax Invoice / Cash Bill</span>
+                            <div style="font-size:16px; font-weight:bold; color:#0F172A; font-family:monospace;">{$invNumber}</div>
+                        </div>
+                        <div style="text-align:right;">
+                            <span style="font-size:10px; font-weight:bold; color:#64748B; text-transform:uppercase;">Date</span>
+                            <div style="font-size:13px; font-weight:600; color:#334155;">{$invDate}</div>
+                        </div>
+                    </div>
+
+                    <div style="font-size:12px; color:#475569; line-height:1.5;">
+                        <p style="margin:0;"><strong>Billed &amp; Shipped To:</strong> {$customerName} &bull; {$customerPhone}</p>
+                        <p style="margin:2px 0 0;">{$fullAddress}</p>
+                        <p style="margin:2px 0 0;"><strong>Payment Method:</strong> {$paymentMode} ({$paymentStatus})</p>
+                    </div>
+
+                    <!-- Itemized Invoice Table -->
+                    <table style="width:100%; border-collapse:collapse; margin-top:14px; background:#FFFFFF; border-radius:8px; overflow:hidden; border:1px solid #E2E8F0;">
+                        <thead>
+                            <tr style="background:#F1F5F9; font-size:11px; font-weight:bold; color:#475569; text-transform:uppercase;">
+                                <th style="padding:8px; text-align:left;">Item / Optics</th>
+                                <th style="padding:8px; text-align:center;">Qty</th>
+                                <th style="padding:8px; text-align:right;">Rate</th>
+                                <th style="padding:8px; text-align:right;">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {$itemsRows}
+                        </tbody>
+                        <tfoot>
+                            <tr style="border-top:1px solid #E2E8F0; font-size:12px; color:#475569;">
+                                <td colspan="3" style="padding:8px; text-align:right;">Subtotal:</td>
+                                <td style="padding:8px; text-align:right; font-weight:bold;">₹" . number_format($subtotal, 2) . "</td>
+                            </tr>
+                            " . ($discountAmount > 0 ? "
+                            <tr style='font-size:12px; color:#059669;'>
+                                <td colspan='3' style='padding:4px 8px; text-align:right;'>Discount Coupon:</td>
+                                <td style='padding:4px 8px; text-align:right; font-weight:bold;'>-₹" . number_format($discountAmount, 2) . "</td>
+                            </tr>
+                            " : "") . "
+                            <tr style="font-size:12px; color:#475569;">
+                                <td colspan="3" style="padding:4px 8px; text-align:right;">Eyewear GST (12% Included):</td>
+                                <td style="padding:4px 8px; text-align:right;">Included</td>
+                            </tr>
+                            <tr style="font-size:12px; color:#475569;">
+                                <td colspan="3" style="padding:4px 8px; text-align:right;">Delivery / Courier:</td>
+                                <td style="padding:4px 8px; text-align:right; font-weight:bold;">" . ($shippingFee > 0 ? "₹" . number_format($shippingFee, 2) : "FREE") . "</td>
+                            </tr>
+                            <tr style="border-top:2px solid #0F172A; font-size:14px; font-weight:bold; color:#0F172A; background:#F8FAFC;">
+                                <td colspan="3" style="padding:10px 8px; text-align:right;">Total Amount:</td>
+                                <td style="padding:10px 8px; text-align:right; color:#0284C7; font-size:16px;">₹" . number_format($totalAmount, 2) . "</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+
+                <!-- Action Buttons -->
+                <div style="margin:24px 0; text-align:center;">
+                    <a href="https://netraunnayan.com/order-tracking?order={$orderNumber}&view=invoice" target="_blank" style="background:#0284C7; color:#FFFFFF; padding:12px 24px; border-radius:10px; font-weight:bold; font-size:13px; text-decoration:none; display:inline-block; margin-right:8px; box-shadow:0 4px 12px rgba(2,132,199,0.25);">
+                        View &amp; Print Official Tax Invoice &rarr;
+                    </a>
+                    <a href="https://netraunnayan.com/order-tracking?order={$orderNumber}" target="_blank" style="background:#F1F5F9; color:#0F172A; padding:12px 20px; border-radius:10px; font-weight:bold; font-size:13px; text-decoration:none; display:inline-block; border:1px solid #CBD5E1;">
+                        Live Manufacturing Tracker
+                    </a>
+                </div>
+
+                <!-- Optical Guarantee Notice -->
+                <div style="padding:12px 16px; background:#F0FDF4; border-radius:8px; border:1px solid #BBF7D0; font-size:12px; color:#166534; margin-top:20px;">
+                    <strong>Netra Unnayan Clinical Guarantee:</strong> All lenses undergo focimeter laser tolerance verification and carry a 1-year anti-peel coating warranty. For questions, WhatsApp our clinical desk at <a href="https://wa.me/919382293614" style="color:#15803D; font-weight:bold;">+91 9382293614</a>.
+                </div>
 HTML;
-        Mailer::send($customerEmail, $customerName, "Order Confirmed - {$orderNumber} | Netra Unnayan", $emailHtml);
+            Mailer::send($customerEmail, $customerName, "Order Confirmed & Tax Invoice - {$orderNumber} | Netra Unnayan", $emailHtml);
+        } catch (\Throwable $e) {
+            error_log('Order confirmation email non-fatal error: ' . $e->getMessage());
+        }
     }
 
     Response::created([

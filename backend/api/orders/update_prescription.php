@@ -125,21 +125,30 @@ $pdo->prepare('
 ')->execute([$orderId, $order['order_status'], $order['order_status'], $logNote]);
 
 // Dispatch email confirmation
-if (!empty($order['customer_email'])) {
-    $emailBody = <<<HTML
-        <div style="background:#E0F2FE; color:#0369A1; padding:6px 14px; border-radius:9999px; font-weight:bold; font-size:12px; display:inline-block; border:1px solid #BAE6FD;">
-            Prescription Under Review
-        </div>
-        <h2 style="color:#0F172A; margin-top:16px;">Updated Prescription Received for Order #{$order['order_number']}</h2>
-        <p>Dear {$order['customer_name']},</p>
-        <p>Thank you for providing your updated optical prescription parameters. Our senior clinical optometrist is reviewing your details to ensure exact optical focal alignment.</p>
-        <div style="margin:16px 0; padding:14px; background:#F8FAFC; border-left:4px solid #0284C7; border-radius:6px;">
-            <p style="margin:0; font-size:13px; color:#334155;"><strong>Status:</strong> Under Verification by Optometrist Desk</p>
-            <p style="margin:4px 0 0; font-size:12px; color:#64748B;">Once approved, customized lens cutting and chassis edging will start immediately.</p>
-        </div>
-        <p style="color:#64748B; font-size:12px; margin-top:16px;">Track live progress in your Netra Unnayan account at any time.</p>
+try {
+    $custEmail = Mailer::resolveCustomerEmail($pdo, $order);
+    if (!empty($custEmail)) {
+        $custName = !empty($order['customer_name']) ? $order['customer_name'] : 'Valued Customer';
+        $emailBody = <<<HTML
+            <div style="background:#E0F2FE; color:#0369A1; padding:6px 14px; border-radius:9999px; font-weight:bold; font-size:12px; display:inline-block; border:1px solid #BAE6FD;">
+                Prescription Under Review
+            </div>
+            <h2 style="color:#0F172A; margin-top:16px;">Updated Prescription Received for Order #{$order['order_number']}</h2>
+            <p>Dear {$custName},</p>
+            <p>Thank you for providing your updated optical prescription parameters. Our senior clinical optometrist is reviewing your details to ensure exact optical focal alignment.</p>
+            <div style="margin:16px 0; padding:14px; background:#F8FAFC; border-left:4px solid #0284C7; border-radius:6px;">
+                <p style="margin:0; font-size:13px; color:#334155;"><strong>Status:</strong> Under Verification by Optometrist Desk</p>
+                <p style="margin:4px 0 0; font-size:12px; color:#64748B;">Once approved, customized lens cutting and frame edging will start immediately.</p>
+            </div>
+            <div style="margin-top:20px; text-align:center;">
+                <a href="https://netraunnayan.com/order-tracking?order={$order['order_number']}" style="display:inline-block; background:#0284C7; color:#FFFFFF; text-decoration:none; padding:10px 18px; border-radius:6px; font-weight:bold; font-size:13px;">Track Order Live &rarr;</a>
+            </div>
+            <p style="color:#64748B; font-size:12px; margin-top:20px;">For instant support, WhatsApp our optometrist team at <a href="https://wa.me/919382293614" style="color:#059669; font-weight:bold;">+91 9382293614</a>.</p>
 HTML;
-    Mailer::send($order['customer_email'], $order['customer_name'], "Updated Prescription Received - Order #{$order['order_number']} | Netra Unnayan", $emailBody);
+        Mailer::send($custEmail, $custName, "Updated Prescription Received - Order #{$order['order_number']} | Netra Unnayan", $emailBody);
+    }
+} catch (\Throwable $mailErr) {
+    error_log('Update prescription email non-fatal error: ' . $mailErr->getMessage());
 }
 
 Response::success([

@@ -4,7 +4,8 @@ import {
   Clock, Truck, DollarSign, RefreshCw, X, FileText, ChevronRight,
   Printer, Send, ShieldAlert, ArrowUpDown, Trash2, ExternalLink,
   Image as ImageIcon, MapPin, User, Phone, Mail, History,
-  ShieldCheck, ShoppingBag, Sparkles, Scissors, Glasses, Check, Store, ArrowRight
+  ShieldCheck, ShoppingBag, Sparkles, Scissors, Glasses, Check, Store, ArrowRight,
+  MessageCircle
 } from 'lucide-react';
 import api from '../../api/client';
 import { InvoiceModal } from '../../components/common/InvoiceModal';
@@ -253,21 +254,26 @@ export default function AdminOrdersPage() {
   const [clarificationNote, setClarificationNote] = useState('Prescription slip photo is unclear or missing cylinder axis / PD values. Please re-upload a clear slip or message us on WhatsApp.');
 
   const handleVerifyPrescription = async (prescriptionId, statusVal, customNote = '') => {
+    if (!selectedOrder) return;
     try {
       setActionLoading(true);
+      const targetRxId = prescriptionId || selectedOrder.prescription?.id || selectedOrder.prescriptions?.[0]?.id || 0;
       const res = await api.post('/admin/orders.php', {
         action: 'verify_prescription',
         order_id: selectedOrder.id,
-        prescription_id: prescriptionId,
+        prescription_id: targetRxId,
         prescription_status: statusVal,
         verification_status: statusVal,
         note: customNote || (statusVal === 'verified' || statusVal === 'Verified' || statusVal === 'Approved' ? 'Prescription verified by clinical optician' : 'Rx needs customer clarification')
       });
       if (res.success || res.data?.success) {
-        setActionMessage(`Prescription marked as ${statusVal}`);
         setClarificationModalOpen(false);
         await openOrderDetail(selectedOrder.id);
         fetchOrders();
+        setActionMessage(statusVal === 'Needs Clarification' 
+          ? 'Prescription flagged as Needs Clarification. Customer notification dispatched!' 
+          : 'Prescription diopters verified & approved for lab edging!'
+        );
       } else {
         alert(res.message || 'Failed to update prescription status');
       }
@@ -503,9 +509,23 @@ export default function AdminOrdersPage() {
                         </div>
                       </td>
                       <td className="px-5 py-4">
-                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider ${getOrderStatusBadge(currentStatus)}`}>
-                          {currentStatus.replace('_', ' ')}
-                        </span>
+                        <div className="flex flex-col gap-1 items-start">
+                          <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider ${getOrderStatusBadge(currentStatus)}`}>
+                            {currentStatus.replace('_', ' ')}
+                          </span>
+                          {order.prescription_status === 'Needs Clarification' && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black bg-rose-600 text-white uppercase tracking-wider animate-pulse shadow-xs">
+                              <AlertTriangle className="w-2.5 h-2.5" />
+                              <span>Rx Clarification</span>
+                            </span>
+                          )}
+                          {order.prescription_status === 'Approved' && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700/50">
+                              <CheckCircle2 className="w-2.5 h-2.5" />
+                              <span>Rx Approved</span>
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="px-5 py-4 text-xs text-slate-600 dark:text-slate-400 whitespace-nowrap">
                         {orderDate}
@@ -579,6 +599,18 @@ export default function AdminOrdersPage() {
                     <span className={`px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-extrabold uppercase tracking-wider ${getOrderStatusBadge(selectedOrder.order_status || selectedOrder.status)}`}>
                       {(selectedOrder.order_status || selectedOrder.status || 'Pending').replace('_', ' ')}
                     </span>
+                    {selectedOrder.prescription_status === 'Needs Clarification' && (
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-black uppercase tracking-wider bg-rose-600 text-white flex items-center gap-1 shadow-sm animate-pulse border border-rose-700">
+                        <AlertTriangle className="w-3 h-3" />
+                        <span>Prescription Clarification Required</span>
+                      </span>
+                    )}
+                    {selectedOrder.prescription_status === 'Approved' && (
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider bg-emerald-600 text-white flex items-center gap-1 shadow-sm">
+                        <CheckCircle2 className="w-3 h-3" />
+                        <span>Rx Approved</span>
+                      </span>
+                    )}
                   </div>
                   <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
                     Placed on {selectedOrder.created_at ? new Date(selectedOrder.created_at).toLocaleString('en-IN') : 'Recent'}
@@ -657,7 +689,13 @@ export default function AdminOrdersPage() {
                     <FileText className="w-3.5 h-3.5" />
                     <span>Prescription</span>
                     {rxList.length > 0 && (
-                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                      selectedOrder.prescription_status === 'Needs Clarification' ? (
+                        <span className="px-1.5 py-0.5 rounded-full text-[9px] font-black bg-rose-600 text-white animate-pulse flex items-center gap-0.5 shadow-xs">
+                          <AlertTriangle className="w-2.5 h-2.5" /> Flagged
+                        </span>
+                      ) : (
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                      )
                     )}
                   </button>
 
@@ -1196,6 +1234,18 @@ export default function AdminOrdersPage() {
                                 </div>
                               )}
 
+                              {/* Existing Optometrist Lab Notes if any */}
+                              {(rx.admin_notes || selectedOrder.prescription_status === 'Needs Clarification') && (
+                                <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-300 dark:border-amber-500/30 text-xs space-y-1">
+                                  <span className="text-[10px] font-bold text-amber-800 dark:text-amber-300 uppercase block">
+                                    Clinical Optometrist Note:
+                                  </span>
+                                  <p className="text-amber-900 dark:text-amber-200 font-semibold leading-relaxed">
+                                    {rx.admin_notes || 'Prescription details require clarification before laboratory lens cutting.'}
+                                  </p>
+                                </div>
+                              )}
+
                               {/* Optician Verification Action Buttons */}
                               <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-100 dark:border-white/5">
                                 <button
@@ -1208,14 +1258,17 @@ export default function AdminOrdersPage() {
                                 </button>
                                 <button
                                   onClick={() => {
-                                    setClarificationRxId(rx.id);
+                                    setClarificationRxId(rx.id || selectedOrder.prescription?.id || 0);
+                                    if (rx.admin_notes) {
+                                      setClarificationNote(rx.admin_notes);
+                                    }
                                     setClarificationModalOpen(true);
                                   }}
-                                  disabled={actionLoading || rx.status === 'Needs Clarification'}
+                                  disabled={actionLoading}
                                   className="px-3.5 py-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500 text-amber-700 dark:text-amber-300 hover:text-white border border-amber-500/40 font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
                                 >
                                   <AlertTriangle className="w-3.5 h-3.5" />
-                                  <span>Flag: Needs Clarification</span>
+                                  <span>{rx.status === 'Needs Clarification' || selectedOrder.prescription_status === 'Needs Clarification' ? 'Update Clarification Flag' : 'Flag: Needs Clarification'}</span>
                                 </button>
                               </div>
                             </div>
@@ -1627,10 +1680,10 @@ export default function AdminOrdersPage() {
 
       {/* Rejection Note Modal */}
       {rejectReasonModalOpen && (
-        <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
           <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/15 rounded-3xl p-6 shadow-2xl space-y-4 text-slate-900 dark:text-white">
             <h3 className="text-base font-extrabold flex items-center gap-2 text-amber-500">
-              <AlertTriangle className="w-5 h-5" /> Reject Cancellation Request
+              <AlertTriangle className="w-5 h-5 text-amber-500" /> Reject Cancellation Request
             </h3>
             <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
               Please enter the explanation note that will be sent to <strong>{selectedOrder?.customer_name}</strong> and displayed on their live order tracker.
@@ -1668,8 +1721,8 @@ export default function AdminOrdersPage() {
 
       {/* Optician Prescription Clarification Modal */}
       {clarificationModalOpen && (
-        <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-          <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/15 rounded-3xl p-6 shadow-2xl space-y-4 text-slate-900 dark:text-white animate-in fade-in zoom-in-95 duration-150">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-150">
+          <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/15 rounded-3xl p-6 shadow-2xl space-y-4 text-slate-900 dark:text-white animate-in zoom-in-95 duration-150">
             <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/10 pb-3">
               <h3 className="text-base font-extrabold flex items-center gap-2 text-rose-500">
                 <AlertTriangle className="w-5 h-5 text-rose-500" />
@@ -1701,22 +1754,44 @@ export default function AdminOrdersPage() {
               />
             </div>
 
-            <div className="flex justify-end gap-2.5 pt-2">
-              <button
-                type="button"
-                onClick={() => setClarificationModalOpen(false)}
-                className="px-4 py-2 text-xs font-bold text-slate-500 hover:text-slate-800 dark:hover:text-white"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                disabled={actionLoading || !clarificationNote.trim()}
-                onClick={() => handleVerifyPrescription(clarificationRxId, 'Needs Clarification', clarificationNote.trim())}
-                className="btn-primary bg-rose-600 hover:bg-rose-500 text-white text-xs px-4 py-2 rounded-xl font-bold shadow-sm"
-              >
-                {actionLoading ? 'Updating...' : 'Flag & Send Customer Alert'}
-              </button>
+            <div className="flex flex-wrap items-center justify-between gap-2.5 pt-3 border-t border-slate-200 dark:border-white/10">
+              {(() => {
+                const custPhone = (selectedOrder?.customer_phone || '').replace(/\D/g, '').slice(-10);
+                if (custPhone.length === 10) {
+                  const waUrl = `https://wa.me/91${custPhone}?text=${encodeURIComponent(`Hi ${selectedOrder.customer_name || 'Customer'}, this is Netra Unnayan Eye Clinic regarding your optical Order #${selectedOrder.order_number}. Prescription clarification: ${clarificationNote.trim()}`)}`;
+                  return (
+                    <a
+                      href={waUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold inline-flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
+                      title="Open WhatsApp chat with customer"
+                    >
+                      <MessageCircle className="w-3.5 h-3.5" />
+                      <span>WhatsApp Customer</span>
+                    </a>
+                  );
+                }
+                return <div />;
+              })()}
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setClarificationModalOpen(false)}
+                  className="px-4 py-2 text-xs font-bold text-slate-500 hover:text-slate-800 dark:hover:text-white cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={actionLoading || !clarificationNote.trim()}
+                  onClick={() => handleVerifyPrescription(clarificationRxId, 'Needs Clarification', clarificationNote.trim())}
+                  className="btn-primary bg-rose-600 hover:bg-rose-500 text-white text-xs px-4 py-2 rounded-xl font-bold shadow-sm flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                >
+                  {actionLoading ? 'Updating...' : 'Flag & Send Customer Alert'}
+                </button>
+              </div>
             </div>
           </div>
         </div>
