@@ -6,12 +6,13 @@ import {
   ExternalLink, Truck, CheckCircle2, AlertCircle, Phone, 
   Home as HomeIcon, Stethoscope, Trash2, Star, Sparkles, Edit2,
   Upload, Camera, Lock, Save, Key, Award, Glasses, Heart, RefreshCw,
-  MessageCircle, MessageSquare, Tag
+  MessageCircle, MessageSquare, Tag, Mail, HelpCircle, Bot
 } from 'lucide-react';
 import api from '../api/client';
 import { uploadToImgBB } from '../utils/imgbb';
 import { useAuth } from '../context/AuthContext';
 import { InvoiceModal } from '../components/common/InvoiceModal';
+import { SupportChatWidget } from '../components/support/SupportChatWidget';
 
 export const AccountPage = () => {
   const navigate = useNavigate();
@@ -652,6 +653,15 @@ export const AccountPage = () => {
           }`}
         >
           <User className="w-4 h-4" /> Profile &amp; Settings
+        </button>
+
+        <button
+          onClick={() => handleTabChange('support')}
+          className={`px-4 py-2.5 rounded-xl font-bold flex items-center gap-2 transition-all shrink-0 ${
+            activeTab === 'support' ? 'bg-gradient-to-r from-brand-cyan to-teal-400 text-slate-950 font-black shadow-cyan-glow' : 'glass-nav-pill text-slate-700 dark:text-slate-300 hover:text-slate-950 dark:hover:text-white'
+          }`}
+        >
+          <MessageSquare className="w-4 h-4 text-emerald-500" /> Helpdesk &amp; Live Chat
         </button>
       </div>
 
@@ -1878,6 +1888,109 @@ export const AccountPage = () => {
                 <p className="text-[11px] text-slate-500">Guaranteed optical anti-reflection coatings</p>
               </div>
             </div>
+          </div>
+
+        </div>
+      )}
+
+      {/* TAB 6: CUSTOMER SUPPORT, DIRECT WHATSAPP, EMAIL & LIVE CHATBOT */}
+      {activeTab === 'support' && (
+        <div className="space-y-6">
+          
+          {/* Quick Contact Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            
+            {/* Direct WhatsApp Card */}
+            <a
+              href="https://wa.me/919382293614?text=Hi%20Netra%20Unnayan%20Team,%20I%20need%20assistance%20with%20an%20eyewear%20order%20or%20eye%20care."
+              target="_blank"
+              rel="noopener noreferrer"
+              className="p-5 rounded-3xl bg-gradient-to-br from-emerald-500/15 via-emerald-500/5 to-transparent border border-emerald-500/30 hover:border-emerald-500 transition-all group flex flex-col justify-between"
+            >
+              <div className="space-y-2">
+                <div className="w-10 h-10 rounded-2xl bg-emerald-500 text-slate-950 flex items-center justify-center font-bold shadow-md">
+                  <MessageCircle className="w-5 h-5 fill-slate-950 stroke-none" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-slate-900 dark:text-white group-hover:text-emerald-500 transition-colors flex items-center gap-1.5">
+                    <span>Direct WhatsApp Chat</span>
+                    <ArrowUpRight className="w-4 h-4" />
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                    Instant reply on order tracking, prescription verification &amp; lens guidance.
+                  </p>
+                </div>
+              </div>
+              <div className="mt-4 pt-3 border-t border-emerald-500/20 text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                +91 9382293614 &bull; 1-Tap Connect
+              </div>
+            </a>
+
+            {/* Direct Mail Card */}
+            <a
+              href="mailto:netraunnayan@gmail.com?subject=Netra%20Unnayan%20Customer%20Support%20Inquiry"
+              className="p-5 rounded-3xl bg-gradient-to-br from-brand-cyan/15 via-brand-cyan/5 to-transparent border border-brand-cyan/30 hover:border-brand-cyan transition-all group flex flex-col justify-between"
+            >
+              <div className="space-y-2">
+                <div className="w-10 h-10 rounded-2xl bg-brand-cyan text-slate-950 flex items-center justify-center font-bold shadow-md">
+                  <Mail className="w-5 h-5 stroke-[2.4]" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-slate-900 dark:text-white group-hover:text-brand-cyan transition-colors flex items-center gap-1.5">
+                    <span>Direct Email Support</span>
+                    <ArrowUpRight className="w-4 h-4" />
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                    Send detailed inquiries, attachments, or optical prescription cards.
+                  </p>
+                </div>
+              </div>
+              <div className="mt-4 pt-3 border-t border-brand-cyan/20 text-xs font-mono font-bold text-cyan-600 dark:text-brand-cyan">
+                netraunnayan@gmail.com
+              </div>
+            </a>
+
+            {/* Helpline Call Card */}
+            <a
+              href="tel:9382293614"
+              className="p-5 rounded-3xl bg-gradient-to-br from-amber-500/15 via-amber-500/5 to-transparent border border-amber-500/30 hover:border-amber-500 transition-all group flex flex-col justify-between"
+            >
+              <div className="space-y-2">
+                <div className="w-10 h-10 rounded-2xl bg-amber-500 text-slate-950 flex items-center justify-center font-bold shadow-md">
+                  <Phone className="w-5 h-5 stroke-[2.4]" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-slate-900 dark:text-white group-hover:text-amber-500 transition-colors flex items-center gap-1.5">
+                    <span>Optical Clinic Hotline</span>
+                    <ArrowUpRight className="w-4 h-4" />
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                    Speak directly with clinic reception (Mon–Sat, 10 AM–8 PM IST).
+                  </p>
+                </div>
+              </div>
+              <div className="mt-4 pt-3 border-t border-amber-500/20 text-xs font-mono font-bold text-amber-600 dark:text-amber-400">
+                +91 9382293614 &bull; Call Now
+              </div>
+            </a>
+
+          </div>
+
+          {/* Embedded Interactive Live Helpdesk & Chatbot */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-black text-slate-900 dark:text-white flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-brand-cyan" />
+                  <span>Optical AI Assistant &amp; Live Admin Desk</span>
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  Chat with our smart bot for instant guidance or message an admin live. Attach photos of prescription slips or frames anytime.
+                </p>
+              </div>
+            </div>
+
+            <SupportChatWidget isEmbedded={true} />
           </div>
 
         </div>

@@ -5,7 +5,7 @@ import {
   QrCode, Image as ImageIcon, Settings, LogOut, 
   ChevronRight, Bell, Shield, Store, User, Tag, 
   BarChart3, Sliders, CreditCard, Users, ExternalLink, Menu, X, Calendar,
-  Stethoscope, Sun, Moon, UserCheck, Palette
+  Stethoscope, Sun, Moon, UserCheck, Palette, MessageSquare
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
@@ -21,7 +21,8 @@ export const AdminLayout = () => {
     pendingOrders: 0,
     pendingPayments: 0,
     pendingAppointments: 0,
-    lowStock: 0
+    lowStock: 0,
+    unreadMessages: 0
   });
   const [maintenanceMode, setMaintenanceMode] = useState(false);
   const [maintToggling, setMaintToggling] = useState(false);
@@ -40,7 +41,8 @@ export const AdminLayout = () => {
             pendingOrders: dashRes.data.metrics.pending_orders || 0,
             pendingPayments: dashRes.data.metrics.pending_payments || 0,
             pendingAppointments: dashRes.data.metrics.pending_appointments || 0,
-            lowStock: dashRes.data.metrics.low_stock_count || 0
+            lowStock: dashRes.data.metrics.low_stock_count || 0,
+            unreadMessages: dashRes.data.metrics.unread_messages || 0
           });
         }
         if (setRes.success && setRes.data) {
@@ -139,6 +141,13 @@ export const AdminLayout = () => {
       items: [
         { label: 'Executive Dashboard', path: '/admin', icon: LayoutDashboard, exact: true },
         { label: 'POS Billing Counter', path: '/admin/pos', icon: ShoppingCart },
+        { 
+          label: 'Customer Live Messages', 
+          path: '/admin/messages', 
+          icon: MessageSquare,
+          badge: counts.unreadMessages > 0 ? `${counts.unreadMessages} New` : null,
+          badgeColor: 'bg-emerald-500 text-slate-950 font-black animate-pulse'
+        },
         { 
           label: 'Orders & Prescriptions', 
           path: '/admin/orders', 

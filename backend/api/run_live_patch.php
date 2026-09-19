@@ -212,4 +212,50 @@ try {
     $log[] = 'Super Admin patch error: ' . $e->getMessage();
 }
 
+// 13. Ensure Support Conversations & Live Messages tables exist
+try {
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS `support_conversations` (
+            `id` INT AUTO_INCREMENT PRIMARY KEY,
+            `customer_id` INT NULL,
+            `guest_name` VARCHAR(150) NULL,
+            `guest_email` VARCHAR(150) NULL,
+            `guest_phone` VARCHAR(30) NULL,
+            `subject` VARCHAR(255) DEFAULT 'Customer Optical Inquiry',
+            `status` ENUM('open', 'in_progress', 'resolved', 'closed') DEFAULT 'open',
+            `priority` ENUM('low', 'medium', 'high', 'urgent') DEFAULT 'medium',
+            `unread_admin_count` INT DEFAULT 0,
+            `unread_customer_count` INT DEFAULT 0,
+            `last_message_text` TEXT NULL,
+            `last_message_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+            `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+            `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            INDEX (`customer_id`),
+            INDEX (`status`),
+            INDEX (`last_message_at`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    ");
+
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS `support_messages` (
+            `id` INT AUTO_INCREMENT PRIMARY KEY,
+            `conversation_id` INT NOT NULL,
+            `sender_type` ENUM('customer', 'admin', 'bot') NOT NULL,
+            `sender_id` INT NULL,
+            `sender_name` VARCHAR(150) NOT NULL,
+            `message` TEXT NOT NULL,
+            `attachment_url` VARCHAR(500) NULL,
+            `attachment_type` VARCHAR(50) NULL,
+            `is_read` TINYINT(1) DEFAULT 0,
+            `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+            INDEX (`conversation_id`),
+            INDEX (`is_read`),
+            INDEX (`created_at`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    ");
+    $log[] = "Support conversations and live messages tables verified.";
+} catch (Exception $e) {
+    $log[] = "Support tables error: " . $e->getMessage();
+}
+
 Response::json(['status' => 'completed', 'log' => $log]);

@@ -21,6 +21,10 @@ $pendingHomeEyeVisits = (int)$pdo->query("SELECT COUNT(*) FROM home_eye_appointm
 $pendingBookingsTotal = $pendingDoctorAppointments + $pendingHomeEyeVisits;
 $pendingRefunds = (int)$pdo->query("SELECT COUNT(*) FROM refunds WHERE status = 'Pending'")->fetchColumn();
 $returnRequests = (int)$pdo->query("SELECT COUNT(*) FROM returns WHERE status = 'Requested'")->fetchColumn();
+$unreadMessages = 0;
+try {
+    $unreadMessages = (int)$pdo->query("SELECT COALESCE(SUM(unread_admin_count), 0) FROM support_conversations")->fetchColumn();
+} catch (Exception $e) {}
 
 // 2. Recent 7 Days Sales Trend
 $trendStmt = $pdo->query("
@@ -117,7 +121,8 @@ Response::success([
         'pending_home_visits'        => $pendingHomeEyeVisits,
         'pending_bookings_total'     => $pendingBookingsTotal,
         'pending_refunds'            => $pendingRefunds,
-        'return_requests'            => $returnRequests
+        'return_requests'            => $returnRequests,
+        'unread_messages'            => $unreadMessages
     ],
     'sales_trend'            => $salesTrend,
     'payment_breakdown'      => $paymentBreakdown,

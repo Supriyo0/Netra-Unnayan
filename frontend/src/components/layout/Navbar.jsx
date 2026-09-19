@@ -6,7 +6,8 @@ import {
   Menu, X, Calendar, Home as HomeIcon, Eye, ShieldCheck,
   ChevronDown, Sun, Moon, Sparkles, MapPin, Clock, Truck,
   Glasses, Stethoscope, Compass, ArrowRight, Activity, Heart,
-  ShoppingCart, Shield, LogOut, TrendingUp, ArrowUpRight, Loader2, Tag
+  ShoppingCart, Shield, LogOut, TrendingUp, ArrowUpRight, Loader2, Tag,
+  Mail, MessageSquare, HelpCircle, Bot
 } from 'lucide-react';
 import api from '../../api/client';
 import { useCart } from '../../context/CartContext';
@@ -15,6 +16,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { useWishlist } from '../../context/WishlistContext';
 import { BrandLogo } from '../common/BrandLogo';
 import { SeasonalLogoWrapper } from '../theme/SeasonalLogoWrapper';
+import { SupportChatWidget } from '../support/SupportChatWidget';
 
 export const Navbar = () => {
   const navigate = useNavigate();
@@ -33,6 +35,7 @@ export const Navbar = () => {
   const [scrolled, setScrolled] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
+  const [supportChatOpen, setSupportChatOpen] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -436,6 +439,55 @@ export const Navbar = () => {
                           </Link>
                         </div>
                       )}
+
+                      {/* DEDICATED SUPPORT & DIRECT CONTACT SECTION UNDER PROFILE BUTTON */}
+                      <div className="border-t border-slate-100 dark:border-white/10 my-2 pt-2 space-y-1.5">
+                        <div className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400 px-2 flex items-center gap-1">
+                          <HelpCircle className="w-3 h-3 text-brand-cyan" />
+                          <span>Customer Support &amp; Care</span>
+                        </div>
+
+                        {/* Direct WhatsApp Button */}
+                        <a
+                          href="https://wa.me/919382293614?text=Hi%20Netra%20Unnayan%20Team,%20I%20need%20assistance%20with%20an%20eyewear%20order%20or%20eye%20care."
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={() => setUserDropdownOpen(false)}
+                          className="flex items-center justify-between p-2 rounded-xl text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-500/15 transition-colors"
+                        >
+                          <div className="flex items-center gap-2">
+                            <MessageCircle className="w-4 h-4 fill-emerald-500 text-emerald-500" />
+                            <span>Direct WhatsApp</span>
+                          </div>
+                          <span className="text-[10px] bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 px-1.5 py-0.5 rounded font-mono">1-Tap</span>
+                        </a>
+
+                        {/* Direct Email Button */}
+                        <a
+                          href="mailto:netraunnayan@gmail.com?subject=Netra%20Unnayan%20Support%20Inquiry"
+                          onClick={() => setUserDropdownOpen(false)}
+                          className="flex items-center justify-between p-2 rounded-xl text-xs font-bold text-cyan-700 dark:text-brand-cyan hover:bg-cyan-50 dark:hover:bg-cyan-500/15 transition-colors"
+                        >
+                          <div className="flex items-center gap-2">
+                            <Mail className="w-4 h-4 text-cyan-600 dark:text-brand-cyan" />
+                            <span>Direct Email</span>
+                          </div>
+                          <span className="text-[10px] bg-brand-cyan/15 text-brand-cyan px-1.5 py-0.5 rounded font-mono">Mail</span>
+                        </a>
+
+                        {/* Smart AI Chatbot & Helpdesk Widget Trigger */}
+                        <button
+                          type="button"
+                          onClick={() => { setSupportChatOpen(true); setUserDropdownOpen(false); }}
+                          className="w-full flex items-center justify-between p-2 rounded-xl text-xs font-bold text-slate-800 dark:text-slate-200 hover:bg-brand-cyan/15 hover:text-brand-cyan transition-colors text-left cursor-pointer"
+                        >
+                          <div className="flex items-center gap-2">
+                            <Bot className="w-4 h-4 text-brand-cyan" />
+                            <span>AI Chatbot &amp; Live Desk</span>
+                          </div>
+                          <span className="text-[10px] bg-brand-cyan text-slate-950 font-black px-1.5 py-0.5 rounded">Chat</span>
+                        </button>
+                      </div>
 
                       <div className="border-t border-slate-100 dark:border-white/10 my-1.5" />
                       <button
@@ -980,6 +1032,30 @@ export const Navbar = () => {
           })}
         </nav>
       </div>
+
+      {/* Floating Support Chat Launch Button (Desktop & Tablet) */}
+      {!supportChatOpen && (
+        <button
+          type="button"
+          onClick={() => setSupportChatOpen(true)}
+          className="fixed bottom-20 sm:bottom-6 right-5 z-40 p-3 sm:px-4 sm:py-3 rounded-2xl bg-gradient-to-r from-brand-cyan to-teal-400 text-slate-950 font-black shadow-2xl hover:scale-105 active:scale-95 transition-all flex items-center gap-2 group cursor-pointer shadow-cyan-500/25"
+          title="Open Netra Live Optical Support & Chatbot"
+        >
+          <div className="relative">
+            <MessageSquare className="w-5 h-5 fill-slate-950 stroke-none" />
+            <span className="w-2 h-2 rounded-full bg-emerald-700 absolute -top-0.5 -right-0.5 ring-2 ring-white animate-pulse" />
+          </div>
+          <span className="hidden sm:inline text-xs">Help &amp; Live Chat</span>
+        </button>
+      )}
+
+      {/* Support Chat Widget Component */}
+      {supportChatOpen && (
+        <SupportChatWidget
+          isOpen={supportChatOpen}
+          onClose={() => setSupportChatOpen(false)}
+        />
+      )}
     </>
   );
 };

@@ -54,6 +54,7 @@ import { AdminCustomersPage } from './pages/admin/AdminCustomersPage';
 import { AdminAppointmentsPage } from './pages/admin/AdminAppointmentsPage';
 import { AdminDoctorsPage } from './pages/admin/AdminDoctorsPage';
 import { AdminThemeManagerPage } from './pages/admin/AdminThemeManagerPage';
+import { AdminMessagesPage } from './pages/admin/AdminMessagesPage';
 
 function NotFoundPage() {
   return (
@@ -132,6 +133,7 @@ export default function App() {
                   <Route path="payments" element={<AdminPaymentsPage />} />
                   <Route path="coupons" element={<AdminCouponsPage />} />
                   <Route path="customers" element={<AdminCustomersPage />} />
+                  <Route path="messages" element={<AdminMessagesPage />} />
                   <Route path="pos" element={<AdminPosPage />} />
                   <Route path="inventory" element={<AdminInventoryPage />} />
                   <Route path="labels" element={<AdminLabelsPage />} />
