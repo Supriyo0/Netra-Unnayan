@@ -89,63 +89,60 @@ export const CartProvider = ({ children }) => {
     recalculateCart(items, couponCode);
   }, [items, couponCode, recalculateCart]);
 
+  const isInCart = useCallback((productId) => {
+    if (!productId) return false;
+    return items.some((i) => String(i.product_id) === String(productId) || String(i.id) === String(productId));
+  }, [items]);
+
   const addToCart = (product, quantity = 1, lensOptions = null, prescription = null, options = {}) => {
     if (!user) {
       setTargetProductName(product?.name || '');
       setAuthModalOpen(true);
-      return false;
+      return { success: false, reason: 'auth_required' };
     }
 
-    setItems((prev) => {
-      const regularPrice = Number(product.price);
-      const unitPrice = product.discount_price !== null && product.discount_price !== undefined 
-        ? Number(product.discount_price) 
-        : regularPrice;
+    if (!product || !product.id) return { success: false };
 
-      const lensType = lensOptions?.lens_type || '';
-      const lensPrice = lensOptions?.lens_price ? Number(lensOptions.lens_price) : 0;
-      const selectedSize = options?.selected_size || options?.size || product.frame_size || 'Medium';
-      const selectedColor = options?.selected_color || options?.color || product.frame_color || 'Matte Black';
+    // Prevent adding 1 product multiple times
+    const alreadyExists = items.some((i) => String(i.product_id) === String(product.id));
+    if (alreadyExists) {
+      return { success: false, alreadyInCart: true, message: 'This eyewear is already in your cart!' };
+    }
 
-      // Match item by product_id, lens_type, size, and color
-      const existingIdx = prev.findIndex(
-        (i) => i.product_id === product.id && 
-               (i.lens_type || '') === lensType &&
-               (i.selected_size || i.frame_size || '') === selectedSize &&
-               (i.selected_color || '') === selectedColor
-      );
+    const regularPrice = Number(product.price);
+    const unitPrice = product.discount_price !== null && product.discount_price !== undefined 
+      ? Number(product.discount_price) 
+      : regularPrice;
 
-      if (existingIdx > -1) {
-        const updated = [...prev];
-        updated[existingIdx].quantity += quantity;
-        if (prescription) updated[existingIdx].prescription = prescription;
-        return updated;
+    const lensType = lensOptions?.lens_type || '';
+    const lensPrice = lensOptions?.lens_price ? Number(lensOptions.lens_price) : 0;
+    const selectedSize = options?.selected_size || options?.size || product.frame_size || 'Medium';
+    const selectedColor = options?.selected_color || options?.color || product.frame_color || 'Matte Black';
+    const primaryImg = product.primary_image || (product.images?.[0]?.image_url) || product.image_url || '';
+
+    setItems((prev) => [
+      ...prev,
+      {
+        product_id: product.id,
+        name: product.name,
+        sku: product.sku,
+        unit_price: unitPrice,
+        regular_price: regularPrice,
+        image_url: primaryImg,
+        quantity: 1,
+        lens_type: lensType,
+        lens_price: lensPrice,
+        prescription: prescription || null,
+        frame_size: selectedSize,
+        selected_size: selectedSize,
+        frame_color: selectedColor,
+        selected_color: selectedColor,
+        frame_shape: product.frame_shape,
+        dimensions_label: product.dimensions_label
       }
+    ]);
 
-      const primaryImg = product.primary_image || (product.images?.[0]?.image_url) || '';
-
-      return [
-        ...prev,
-        {
-          product_id: product.id,
-          name: product.name,
-          sku: product.sku,
-          unit_price: unitPrice,
-          regular_price: regularPrice,
-          image_url: primaryImg,
-          quantity,
-          lens_type: lensType,
-          lens_price: lensPrice,
-          prescription: prescription || null,
-          frame_size: selectedSize,
-          selected_size: selectedSize,
-          frame_color: selectedColor,
-          selected_color: selectedColor,
-          frame_shape: product.frame_shape,
-          dimensions_label: product.dimensions_label
-        }
-      ];
-    });
+    return { success: true, alreadyInCart: false };
   };
 
   const removeFromCart = (index) => {
@@ -157,10 +154,11 @@ export const CartProvider = ({ children }) => {
       removeFromCart(index);
       return;
     }
+    // Limit to 1 unit per item as requested
     setItems((prev) => {
       const updated = [...prev];
       if (updated[index]) {
-        updated[index].quantity = newQty;
+        updated[index].quantity = Math.min(1, newQty);
       }
       return updated;
     });
@@ -201,6 +199,7 @@ export const CartProvider = ({ children }) => {
       couponCode,
       couponFeedback,
       isCalculating,
+      isInCart,
       addToCart,
       removeFromCart,
       updateQuantity,

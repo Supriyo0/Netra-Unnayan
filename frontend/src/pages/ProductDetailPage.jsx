@@ -17,7 +17,7 @@ export const ProductDetailPage = () => {
   const params = useParams();
   const identifier = String(params.identifier || params.id || params.slug || '');
   const navigate = useNavigate();
-  const { addToCart } = useCart();
+  const { addToCart, isInCart } = useCart();
   const { isInWishlist, toggleWishlist } = useWishlist();
   const { isDark } = useTheme();
 
@@ -632,15 +632,25 @@ export const ProductDetailPage = () => {
               </div>
 
               {/* Add to Cart */}
-              <button
-                type="button"
-                onClick={handleAddToCart}
-                disabled={product.stock_quantity <= 0}
-                className="flex-1 py-3.5 px-4 rounded-xl bg-brand-cyan hover:bg-cyan-400 text-slate-950 font-black text-sm flex items-center justify-center gap-2 shadow-cyan-glow transition-all duration-200 hover:scale-[1.02] active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-              >
-                <ShoppingBag className="w-4 h-4 text-slate-950 stroke-[2.5]" />
-                <span className="text-slate-950 font-black">Add to Cart</span>
-              </button>
+              {isInCart(product?.id) ? (
+                <Link
+                  to="/cart"
+                  className="flex-1 py-3.5 px-4 rounded-xl bg-gradient-to-r from-teal-700 to-cyan-800 dark:from-teal-600 dark:to-cyan-700 text-white font-black text-sm flex items-center justify-center gap-2 shadow-lg transition-all duration-200 hover:scale-[1.02] active:scale-95 border border-teal-500/40"
+                >
+                  <Check className="w-4 h-4 text-white stroke-[2.5]" />
+                  <span className="text-white font-black">View in Cart</span>
+                </Link>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleAddToCart}
+                  disabled={product.stock_quantity <= 0}
+                  className="flex-1 py-3.5 px-4 rounded-xl bg-brand-cyan/15 hover:bg-brand-cyan/30 active:bg-brand-cyan text-teal-900 dark:text-brand-cyan active:text-slate-950 hover:text-teal-950 dark:hover:text-white border border-brand-cyan/40 hover:border-brand-cyan font-black text-sm flex items-center justify-center gap-2 shadow-sm hover:shadow-cyan-glow transition-all duration-200 hover:scale-[1.02] active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                >
+                  <ShoppingBag className="w-4 h-4 text-current stroke-[2.5]" />
+                  <span className="font-black">Add to Cart</span>
+                </button>
+              )}
             </div>
 
             {/* Buy Now */}

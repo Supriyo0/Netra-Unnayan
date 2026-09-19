@@ -2702,27 +2702,72 @@ html.light .btn-primary:hover {
 
 .add-to-cart-btn {
   width: 100%;
-  background: #00B4D8;
-  color: #060D17;
-  border: none;
-  padding: 0.75rem;
-  border-radius: 10px;
-  font-size: 0.82rem;
-  font-weight: 900;
-  letter-spacing: 0.6px;
+  background: rgba(0, 180, 216, 0.12);
+  color: #0284C7;
+  border: 1.5px solid rgba(0, 180, 216, 0.4);
+  padding: 0.68rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.5px;
   text-transform: uppercase;
   cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: 0 4px 14px rgba(0, 180, 216, 0.35);
+  transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 8px rgba(0, 180, 216, 0.1);
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 0.4rem;
 }
+
+.dark .add-to-cart-btn {
+  background: rgba(0, 180, 216, 0.15);
+  color: #38BDF8;
+  border: 1.5px solid rgba(0, 180, 216, 0.45);
+}
+
 .add-to-cart-btn:hover {
-  background: #00F5D4;
-  transform: translateY(-2px);
-  box-shadow: 0 6px 18px rgba(0, 245, 212, 0.4);
+  background: rgba(0, 180, 216, 0.25);
+  color: #0369A1;
+  border-color: #00B4D8;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(0, 180, 216, 0.25);
+}
+
+.dark .add-to-cart-btn:hover {
+  background: rgba(0, 180, 216, 0.3);
+  color: #E0F2FE;
+  border-color: #38BDF8;
+}
+
+.add-to-cart-btn:active {
+  background: #0284C7 !important;
+  color: #FFFFFF !important;
+  border-color: #0284C7 !important;
+  transform: scale(0.97);
+  box-shadow: 0 2px 10px rgba(2, 132, 199, 0.5) !important;
+}
+
+.dark .add-to-cart-btn:active {
+  background: #00B4D8 !important;
+  color: #060D17 !important;
+  border-color: #00B4D8 !important;
+  box-shadow: 0 2px 12px rgba(0, 180, 216, 0.6) !important;
+}
+
+/* In-Cart deeper state */
+.add-to-cart-btn.in-cart {
+  background: linear-gradient(135deg, #0F766E 0%, #0369A1 100%) !important;
+  color: #FFFFFF !important;
+  border: 1.5px solid #0D9488 !important;
+  box-shadow: 0 4px 16px rgba(15, 118, 110, 0.4) !important;
+}
+
+.dark .add-to-cart-btn.in-cart {
+  background: linear-gradient(135deg, #115E59 0%, #075985 100%) !important;
+  color: #F0FDFA !important;
+  border: 1.5px solid #14B8A6 !important;
+  box-shadow: 0 4px 16px rgba(20, 184, 166, 0.35) !important;
 }
 
 /* 5. SPECIAL PROMO OFFER BANNER */

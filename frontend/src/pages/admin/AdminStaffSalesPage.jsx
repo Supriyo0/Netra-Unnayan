@@ -66,6 +66,8 @@ export const AdminStaffSalesPage = () => {
     fetchStaffReports();
   };
 
+  const [selectedStaffId, setSelectedStaffId] = useState('all');
+
   const staffPerformance = reportData?.staff_performance || [];
   const grossRevenue = reportData?.stats?.grossRevenue || reportData?.summary?.gross_revenue || 0;
 
@@ -79,8 +81,29 @@ export const AdminStaffSalesPage = () => {
       st.phone?.toLowerCase().includes(q) ||
       st.role_name?.toLowerCase().includes(q);
 
-    const matchesRole = roleFilter === 'all' || st.role_slug === roleFilter || st.role_name?.toLowerCase() === roleFilter.toLowerCase();
-    return matchesSearch && matchesRole;
+    // Role matching
+    let matchesRole = true;
+    if (roleFilter !== 'all') {
+      const sSlug = (st.role_slug || '').toLowerCase();
+      const sName = (st.role_name || '').toLowerCase();
+      const f = roleFilter.toLowerCase();
+      if (f === 'super_admin') {
+        matchesRole = sSlug.includes('super') || sSlug.includes('admin') || sName.includes('super') || sName.includes('admin');
+      } else if (f === 'manager') {
+        matchesRole = sSlug.includes('manager') || sName.includes('manager');
+      } else if (f === 'staff') {
+        matchesRole = sSlug.includes('staff') || sSlug.includes('cashier') || sName.includes('staff') || sName.includes('cashier') || sName.includes('counter');
+      } else if (f === 'optometrist') {
+        matchesRole = sSlug.includes('optometrist') || sSlug.includes('doctor') || sName.includes('optometrist') || sName.includes('doctor') || sName.includes('dr');
+      } else {
+        matchesRole = sSlug.includes(f) || sName.includes(f);
+      }
+    }
+
+    // Specific User matching
+    const matchesUser = selectedStaffId === 'all' || String(st.staff_id) === String(selectedStaffId);
+
+    return matchesSearch && matchesRole && matchesUser;
   });
 
   // Calculate Aggregates for Staff
@@ -378,29 +401,46 @@ export const AdminStaffSalesPage = () => {
           </form>
         )}
 
-        {/* Search & Role Filter */}
-        <div className="flex items-center gap-2">
+        {/* Search, User Dropdown & Role Filter */}
+        <div className="flex flex-wrap items-center gap-2">
           <div className="relative">
             <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
-              placeholder="Search staff name, email, role..."
+              placeholder="Search name, phone, role..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-8 pr-3 py-1.5 rounded-xl bg-slate-50 dark:bg-[#060D17] border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white text-xs placeholder:text-slate-500 focus:border-teal-500 dark:focus:border-brand-cyan focus:outline-none w-52 sm:w-64"
+              className="pl-8 pr-3 py-1.5 rounded-xl bg-slate-50 dark:bg-[#060D17] border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white text-xs placeholder:text-slate-500 focus:border-teal-500 dark:focus:border-brand-cyan focus:outline-none w-44 sm:w-56"
             />
           </div>
 
+          {/* User Select Dropdown */}
+          <select
+            value={selectedStaffId}
+            onChange={(e) => setSelectedStaffId(e.target.value)}
+            className="px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-[#060D17] border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white text-xs font-semibold focus:border-teal-500 dark:focus:border-brand-cyan focus:outline-none max-w-[200px]"
+            title="Select Specific Staff Member"
+          >
+            <option value="all">👤 All Staff Users ({staffPerformance.length})</option>
+            {staffPerformance.map((st) => (
+              <option key={st.staff_id} value={st.staff_id}>
+                {st.full_name || st.username} ({st.role_name || 'Staff'})
+              </option>
+            ))}
+          </select>
+
+          {/* Role Filter Dropdown */}
           <select
             value={roleFilter}
             onChange={(e) => setRoleFilter(e.target.value)}
-            className="px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-[#060D17] border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white text-xs focus:border-teal-500 dark:focus:border-brand-cyan focus:outline-none"
+            className="px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-[#060D17] border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white text-xs font-semibold focus:border-teal-500 dark:focus:border-brand-cyan focus:outline-none"
+            title="Filter by Staff Role"
           >
             <option value="all">All Roles</option>
             <option value="super_admin">Super Admin</option>
             <option value="manager">Manager</option>
             <option value="staff">Staff / Cashier</option>
-            <option value="optometrist">Optometrist</option>
+            <option value="optometrist">Optometrist / Doctor</option>
           </select>
         </div>
       </div>

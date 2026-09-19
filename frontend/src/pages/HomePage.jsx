@@ -29,7 +29,7 @@ export const HomePage = () => {
     offers_slider_enabled: '1'
   });
 
-  const { addToCart } = useCart();
+  const { addToCart, isInCart } = useCart();
   const { isInWishlist, toggleWishlist } = useWishlist();
   const { isDark, content, seasonalTheme } = useTheme();
 
@@ -714,13 +714,23 @@ export const HomePage = () => {
                   </div>
 
                   <div className="flex items-center gap-2 mt-2">
-                    <button 
-                      onClick={() => addToCart(p, 1)}
-                      className="add-to-cart-btn flex-1"
-                    >
-                      <ShoppingBag className="w-3.5 h-3.5" />
-                      <span>ADD TO CART</span>
-                    </button>
+                    {isInCart(p.id) ? (
+                      <Link 
+                        to="/cart"
+                        className="add-to-cart-btn in-cart flex-1"
+                      >
+                        <Check className="w-3.5 h-3.5" />
+                        <span>IN CART</span>
+                      </Link>
+                    ) : (
+                      <button 
+                        onClick={() => addToCart(p, 1)}
+                        className="add-to-cart-btn flex-1"
+                      >
+                        <ShoppingBag className="w-3.5 h-3.5" />
+                        <span>ADD TO CART</span>
+                      </button>
+                    )}
                     <Link
                       to={`/product/${p.slug || p.sku || p.id}`}
                       className={`p-2.5 rounded-xl text-brand-cyan font-extrabold text-xs transition-colors border ${

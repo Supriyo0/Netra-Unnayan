@@ -16,7 +16,7 @@ export const WishlistPage = () => {
   }, [user, authLoading, navigate]);
 
   const { wishlistItems, removeFromWishlist } = useWishlist();
-  const { addToCart } = useCart();
+  const { addToCart, isInCart } = useCart();
 
   const handleAddToCart = (product) => {
     addToCart({
@@ -127,13 +127,23 @@ export const WishlistPage = () => {
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => handleAddToCart(product)}
-                      className="btn-primary py-2 px-4 text-xs font-bold rounded-xl flex items-center gap-1.5 shadow-sm"
-                    >
-                      <ShoppingBag className="w-3.5 h-3.5" />
-                      <span>Add to Cart</span>
-                    </button>
+                    {isInCart(product.id) ? (
+                      <Link
+                        to="/cart"
+                        className="py-2 px-4 text-xs font-bold rounded-xl flex items-center gap-1.5 shadow-md bg-gradient-to-r from-teal-700 to-cyan-800 text-white border border-teal-500/40"
+                      >
+                        <ShoppingBag className="w-3.5 h-3.5" />
+                        <span>In Cart</span>
+                      </Link>
+                    ) : (
+                      <button
+                        onClick={() => handleAddToCart(product)}
+                        className="py-2 px-4 text-xs font-bold rounded-xl flex items-center gap-1.5 shadow-sm bg-brand-cyan/15 hover:bg-brand-cyan active:bg-cyan-600 text-teal-900 dark:text-brand-cyan active:text-slate-950 hover:text-slate-950 border border-brand-cyan/40 hover:border-brand-cyan transition-all"
+                      >
+                        <ShoppingBag className="w-3.5 h-3.5" />
+                        <span>Add to Cart</span>
+                      </button>
+                    )}
 
                     <button
                       onClick={() => removeFromWishlist(product.id)}
