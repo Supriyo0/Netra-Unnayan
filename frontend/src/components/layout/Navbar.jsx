@@ -1033,47 +1033,56 @@ export const Navbar = () => {
         </nav>
       </div>
 
-      {/* Floating Draggable Ultra-Premium Support Chat Launcher (Compact & Sleek) */}
+      {/* Floating Draggable Luxury Support Chat Launcher (Balanced & Premium Capsule) */}
       {!supportChatOpen && (
         <motion.div
           drag
           dragConstraints={{
             top: -550,
             bottom: 60,
-            left: -window.innerWidth + 80,
+            left: -window.innerWidth + 180,
             right: 20
           }}
           dragElastic={0.1}
           dragMomentum={false}
-          whileDrag={{ scale: 1.12, cursor: 'grabbing' }}
-          whileHover={{ scale: 1.08 }}
+          whileDrag={{ scale: 1.06, cursor: 'grabbing' }}
+          whileHover={{ scale: 1.04, y: -2 }}
           className="fixed bottom-20 sm:bottom-6 right-4 sm:right-6 z-50 cursor-grab select-none touch-none"
         >
           <button
             type="button"
             onClick={() => setSupportChatOpen(true)}
-            className="relative w-13 h-13 sm:w-14 sm:h-14 rounded-full bg-gradient-to-tr from-cyan-500 via-teal-400 to-emerald-400 text-slate-950 flex items-center justify-center shadow-[0_8px_25px_rgba(0,180,216,0.40)] border-2 border-white/90 hover:shadow-[0_12px_30px_rgba(0,180,216,0.60)] transition-all duration-300 backdrop-blur-md group"
-            title="Netra Live Support — Drag to reposition or click to chat"
+            className="relative flex items-center gap-2.5 pl-2 pr-4 py-2 rounded-full bg-white/95 dark:bg-slate-900/95 text-slate-900 dark:text-white border border-slate-300 dark:border-cyan-500/40 shadow-[0_8px_30px_rgba(0,0,0,0.14)] dark:shadow-[0_10px_30px_rgba(0,180,216,0.25)] hover:shadow-[0_12px_35px_rgba(0,180,216,0.35)] transition-all duration-300 backdrop-blur-md group cursor-pointer"
+            title="Netra Live Support — Click to chat or drag to reposition"
             aria-label="Open Live Chat Support"
           >
-            {/* Top Gloss Reflection */}
-            <div className="absolute top-1 left-2 right-2 h-[2px] rounded-full bg-white/70 blur-[0.5px] pointer-events-none" />
+            {/* Gloss Highlight */}
+            <div className="absolute top-0.5 left-4 right-4 h-[1px] rounded-full bg-gradient-to-r from-transparent via-cyan-400/50 to-transparent pointer-events-none" />
             
-            {/* Chat Icon */}
-            <div className="relative flex items-center justify-center">
-              <MessageSquare className="w-5.5 h-5.5 sm:w-6 sm:h-6 fill-slate-950 stroke-slate-950 group-hover:scale-110 transition-transform duration-200" />
+            {/* Circular Icon Orb with Pulse */}
+            <div className="relative w-9 h-9 rounded-full bg-gradient-to-tr from-cyan-600 via-teal-500 to-cyan-500 text-white flex items-center justify-center shadow-md shrink-0 group-hover:scale-105 transition-transform">
+              <MessageSquare className="w-4.5 h-4.5 fill-white stroke-none" />
+              
+              {/* Pulsing Emerald Dot */}
+              <span className="absolute -top-0.5 -right-0.5 flex h-3 w-3">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-80"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500 border-2 border-white dark:border-slate-900"></span>
+              </span>
             </div>
 
-            {/* Live Online Glowing Pulse Indicator */}
-            <span className="absolute -top-0.5 -right-0.5 flex h-3.5 w-3.5">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-emerald-500 border-2 border-white"></span>
-            </span>
-
-            {/* Mini Hover Tooltip */}
-            <span className="absolute right-full mr-2.5 px-2.5 py-1 rounded-xl bg-slate-900/90 text-white text-[10px] font-bold tracking-wide shadow-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none border border-white/10 hidden sm:block">
-              Live Support &bull; Chat
-            </span>
+            {/* Typography */}
+            <div className="flex flex-col text-left pr-0.5">
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs font-black tracking-tight text-slate-900 dark:text-white leading-tight">
+                  Live Support
+                </span>
+                <Sparkles className="w-3 h-3 text-cyan-600 dark:text-brand-cyan animate-pulse" />
+              </div>
+              <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 leading-tight flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block animate-pulse"></span>
+                Online &bull; Chat with us
+              </span>
+            </div>
           </button>
         </motion.div>
       )}
