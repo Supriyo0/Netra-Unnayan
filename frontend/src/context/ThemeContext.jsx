@@ -757,28 +757,43 @@ export const ThemeProvider = ({ children }) => {
     }
   });
 
-  // Sync with remote active theme on mount
+  // Sync with remote active theme on mount & across all devices
   const syncThemeFromServer = useCallback(async () => {
     try {
       const res = await api.get('/themes.php');
       if (res.success && res.data) {
         setServerThemeData(res.data);
-        if (res.data.theme?.slug && BUILT_IN_THEMES[res.data.theme.slug]) {
-          setActiveThemeSlug(res.data.theme.slug);
-          try { localStorage.setItem('nu_seasonal_theme', res.data.theme.slug); } catch {}
+        const serverSlug = res.data.active_theme || res.data.theme?.slug;
+        if (serverSlug) {
+          setActiveThemeSlug(serverSlug);
+          try { localStorage.setItem('nu_seasonal_theme', serverSlug); } catch {}
         }
         if (res.data.safe_mode !== undefined) {
           setSafeMode(Boolean(res.data.safe_mode));
         }
       }
     } catch (err) {
-      // Offline fallback: continue using built-in theme
-      console.warn('ThemeEngine: operating in offline fallback mode.');
+      // Secondary fallback: read from public settings
+      try {
+        const sRes = await api.get('/settings.php');
+        if (sRes.success && sRes.data?.active_theme) {
+          setActiveThemeSlug(sRes.data.active_theme);
+          try { localStorage.setItem('nu_seasonal_theme', sRes.data.active_theme); } catch {}
+        }
+      } catch {}
     }
   }, []);
 
   useEffect(() => {
     syncThemeFromServer();
+    // Auto re-sync theme every 30 seconds and on window focus so all visitor devices update live
+    const interval = setInterval(syncThemeFromServer, 30000);
+    const handleFocus = () => syncThemeFromServer();
+    window.addEventListener('focus', handleFocus);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', handleFocus);
+    };
   }, [syncThemeFromServer]);
 
   // Determine current effective theme slug & base config
