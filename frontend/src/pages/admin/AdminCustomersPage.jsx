@@ -285,23 +285,28 @@ export const AdminCustomersPage = () => {
               ) : (
                 users.map((user) => {
                   const isStaff = user.is_staff == 1;
-                  const roleLabel = user.role_name || (isStaff ? 'Staff' : 'Customer');
+                  const isSuperAdmin = user.email?.toLowerCase() === 'netraunnayan@gmail.com' || user.role_slug === 'super_admin';
+                  const roleLabel = isSuperAdmin ? 'Super Admin' : (user.role_name || (isStaff ? 'Staff' : 'Customer'));
 
                   return (
-                    <tr key={user.id} className="hover:bg-white/[0.02] transition-colors">
+                    <tr key={user.id} className="hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors">
                       
                       {/* Name & Email */}
                       <td className="px-5 py-4">
-                        <div className="font-bold text-white text-sm flex items-center gap-1.5">
+                        <div className="font-bold text-slate-900 dark:text-white text-sm flex items-center gap-1.5">
                           {user.full_name}
-                          {isStaff && (
+                          {isSuperAdmin ? (
+                            <span title="Primary Super Admin (Master Account)">
+                              <ShieldCheck className="w-4 h-4 text-amber-500 dark:text-amber-400 shrink-0" />
+                            </span>
+                          ) : isStaff ? (
                             <span title="Staff Account">
                               <ShieldCheck className="w-4 h-4 text-brand-cyan shrink-0" />
                             </span>
-                          )}
+                          ) : null}
                         </div>
-                        <div className="text-slate-400 text-[11px] flex items-center gap-1 mt-0.5">
-                          <Mail className="w-3 h-3 text-slate-500" />
+                        <div className="text-slate-500 dark:text-slate-400 text-[11px] flex items-center gap-1 mt-0.5">
+                          <Mail className="w-3 h-3 text-slate-400" />
                           <span>{user.email}</span>
                         </div>
                       </td>
@@ -309,11 +314,11 @@ export const AdminCustomersPage = () => {
                       {/* Role Badge */}
                       <td className="px-5 py-4">
                         <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full font-bold text-[10px] uppercase tracking-wider ${
-                          user.role_slug === 'super_admin'
-                            ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
+                          isSuperAdmin
+                            ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 font-extrabold'
                             : isStaff
                             ? 'bg-brand-cyan/20 text-brand-cyan border border-brand-cyan/30'
-                            : 'bg-slate-800 text-slate-400 border border-white/5'
+                            : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-white/5'
                         }`}>
                           <Shield className="w-3 h-3" />
                           <span>{roleLabel}</span>
@@ -321,14 +326,14 @@ export const AdminCustomersPage = () => {
                       </td>
 
                       {/* Phone */}
-                      <td className="px-5 py-4 font-mono text-slate-300">
+                      <td className="px-5 py-4 font-mono text-slate-700 dark:text-slate-300">
                         {user.phone ? (
                           <div className="flex items-center gap-1">
-                            <Phone className="w-3 h-3 text-slate-500" />
+                            <Phone className="w-3 h-3 text-slate-400" />
                             <span>{user.phone}</span>
                           </div>
                         ) : (
-                          <span className="text-slate-600">—</span>
+                          <span className="text-slate-400 dark:text-slate-600">—</span>
                         )}
                       </td>
 
@@ -339,8 +344,8 @@ export const AdminCustomersPage = () => {
                           onClick={() => handleOpenPrescriptions(user)}
                           className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold transition-all border ${
                             user.prescriptions_count > 0
-                              ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 hover:bg-emerald-500/30 shadow-sm'
-                              : 'bg-white/5 text-slate-400 border-white/10 hover:bg-white/10 hover:text-white'
+                              ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30 hover:bg-emerald-500/25 shadow-xs'
+                              : 'bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-white/10 hover:bg-slate-200 dark:hover:bg-white/10 hover:text-slate-900 dark:hover:text-white'
                           }`}
                           title="Click to view customer prescriptions"
                         >
@@ -351,27 +356,33 @@ export const AdminCustomersPage = () => {
 
                       {/* Orders & Total Spent */}
                       <td className="px-5 py-4 text-right font-mono">
-                        <div className="text-white font-bold">
+                        <div className="text-slate-900 dark:text-white font-bold">
                           ₹{parseFloat(user.total_spent || 0).toLocaleString('en-IN')}
                         </div>
-                        <div className="text-[10px] text-slate-400">
+                        <div className="text-[10px] text-slate-500 dark:text-slate-400">
                           {user.total_orders || 0} orders
                         </div>
                       </td>
 
                       {/* Status */}
                       <td className="px-5 py-4 text-center">
-                        <button
-                          type="button"
-                          onClick={() => handleToggleActive(user)}
-                          className={`px-2 py-0.5 rounded text-[10px] font-bold transition-all ${
-                            user.is_active == 1
-                              ? 'bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30'
-                              : 'bg-rose-500/20 text-rose-300 hover:bg-rose-500/30'
-                          }`}
-                        >
-                          {user.is_active == 1 ? 'ACTIVE' : 'SUSPENDED'}
-                        </button>
+                        {isSuperAdmin ? (
+                          <span className="px-2.5 py-0.5 rounded text-[10px] font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
+                            ACTIVE (MASTER)
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => handleToggleActive(user)}
+                            className={`px-2 py-0.5 rounded text-[10px] font-bold transition-all ${
+                              user.is_active == 1
+                                ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/30'
+                                : 'bg-rose-500/20 text-rose-700 dark:text-rose-300 hover:bg-rose-500/30'
+                            }`}
+                          >
+                            {user.is_active == 1 ? 'ACTIVE' : 'SUSPENDED'}
+                          </button>
+                        )}
                       </td>
 
                       {/* Action */}
@@ -380,26 +391,30 @@ export const AdminCustomersPage = () => {
                           <button
                             type="button"
                             onClick={() => handleOpenPrescriptions(user)}
-                            className="px-2.5 py-1 rounded-lg bg-teal-500/15 hover:bg-teal-500/25 text-teal-300 border border-teal-500/30 text-[11px] font-semibold transition-all flex items-center gap-1"
+                            className="px-2.5 py-1 rounded-lg bg-teal-500/15 hover:bg-teal-500/25 text-teal-700 dark:text-teal-300 border border-teal-500/30 text-[11px] font-semibold transition-all flex items-center gap-1"
                             title="Inspect Prescriptions"
                           >
                             <Eye className="w-3 h-3" />
                             <span>View Rx</span>
                           </button>
 
-                          {isStaff ? (
+                          {isSuperAdmin ? (
+                            <span className="px-2.5 py-1 rounded-lg bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 text-[11px] font-bold">
+                              Master Super Admin
+                            </span>
+                          ) : isStaff ? (
                             <>
                               <button
                                 type="button"
                                 onClick={() => { setRoleModalUser(user); setSelectedRoleId(String(user.role_id || 2)); }}
-                                className="px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-white text-[11px] font-semibold transition-all"
+                                className="px-2.5 py-1 rounded-lg bg-slate-200 dark:bg-white/10 hover:bg-slate-300 dark:hover:bg-white/20 text-slate-800 dark:text-white text-[11px] font-semibold transition-all"
                               >
                                 Edit Role
                               </button>
                               <button
                                 type="button"
                                 onClick={() => handleDemote(user)}
-                                className="px-2.5 py-1 rounded-lg bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 border border-rose-500/30 text-[11px] font-semibold transition-all"
+                                className="px-2.5 py-1 rounded-lg bg-rose-500/15 hover:bg-rose-500/25 text-rose-600 dark:text-rose-300 border border-rose-500/30 text-[11px] font-semibold transition-all"
                                 title="Demote to standard customer"
                               >
                                 Demote
@@ -416,15 +431,17 @@ export const AdminCustomersPage = () => {
                             </button>
                           )}
 
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteUser(user)}
-                            className="px-2.5 py-1.5 rounded-xl bg-rose-500/15 hover:bg-rose-600 text-rose-600 dark:text-rose-300 hover:text-white dark:hover:text-white border border-rose-500/40 text-xs font-bold transition-all flex items-center gap-1.5 shadow-xs cursor-pointer"
-                            title="Delete User (Removes and prevents login)"
-                          >
-                            <Trash2 className="w-3.5 h-3.5 stroke-[2.2]" />
-                            <span>Delete</span>
-                          </button>
+                          {!isSuperAdmin && (
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteUser(user)}
+                              className="px-2.5 py-1.5 rounded-xl bg-rose-500/15 hover:bg-rose-600 text-rose-600 dark:text-rose-300 hover:text-white dark:hover:text-white border border-rose-500/40 text-xs font-bold transition-all flex items-center gap-1.5 shadow-xs cursor-pointer"
+                              title="Delete User (Removes and prevents login)"
+                            >
+                              <Trash2 className="w-3.5 h-3.5 stroke-[2.2]" />
+                              <span>Delete</span>
+                            </button>
+                          )}
                         </div>
                       </td>
 
@@ -440,68 +457,76 @@ export const AdminCustomersPage = () => {
       {/* ROLE PROMOTION / CHANGE ROLE MODAL */}
       {roleModalUser && (
         <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="max-w-md w-full glass-card rounded-3xl overflow-hidden border border-white/20 shadow-2xl p-6 space-y-5">
+          <div className="max-w-md w-full glass-card bg-white dark:bg-slate-900 rounded-3xl overflow-hidden border border-slate-200 dark:border-white/20 shadow-2xl p-6 space-y-5">
             
-            <div className="flex items-center justify-between border-b border-white/10 pb-3">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/10 pb-3">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-xl bg-brand-cyan/20 text-brand-cyan flex items-center justify-center">
                   <ShieldCheck className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-white">Assign Staff Role</h3>
-                  <p className="text-[11px] text-slate-400">{roleModalUser.full_name}</p>
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-white">Assign Staff Role</h3>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">{roleModalUser.full_name}</p>
                 </div>
               </div>
               <button
                 onClick={() => setRoleModalUser(null)}
-                className="p-1.5 rounded-xl text-slate-400 hover:text-white"
+                className="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-white"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             <form onSubmit={handlePromoteSubmit} className="space-y-4">
-              <div className="p-3 rounded-xl bg-white/5 border border-white/10 text-xs text-slate-300 space-y-1">
+              <div className="p-3 rounded-xl bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-xs text-slate-700 dark:text-slate-300 space-y-1">
                 <div><strong>Email:</strong> {roleModalUser.email}</div>
                 <div><strong>Current Account:</strong> {roleModalUser.is_staff == 1 ? 'Optical Staff' : 'Customer'}</div>
               </div>
 
               <div>
-                <label className="block text-xs text-slate-300 mb-1.5 font-semibold">
+                <label className="block text-xs text-slate-700 dark:text-slate-300 mb-1.5 font-semibold">
                   Select Staff Role / Permission Level:
                 </label>
                 <div className="space-y-2">
-                  {roles.map((r) => (
-                    <label
-                      key={r.id}
-                      className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
-                        String(selectedRoleId) === String(r.id)
-                          ? 'bg-brand-cyan/15 border-brand-cyan text-white'
-                          : 'bg-white/5 border-white/10 text-slate-400 hover:text-white'
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        name="role_id"
-                        value={r.id}
-                        checked={String(selectedRoleId) === String(r.id)}
-                        onChange={(e) => setSelectedRoleId(e.target.value)}
-                        className="accent-brand-cyan mt-0.5"
-                      />
-                      <div>
-                        <div className="text-xs font-bold text-white">{r.name}</div>
-                        <div className="text-[10px] text-slate-400 mt-0.5">{r.description}</div>
-                      </div>
-                    </label>
-                  ))}
+                  {roles
+                    .filter((r) => {
+                      const isTargetSuperAdmin = roleModalUser.email?.toLowerCase() === 'netraunnayan@gmail.com';
+                      if (r.slug === 'super_admin' || r.id === 1 || r.id === '1') {
+                        return isTargetSuperAdmin;
+                      }
+                      return true;
+                    })
+                    .map((r) => (
+                      <label
+                        key={r.id}
+                        className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
+                          String(selectedRoleId) === String(r.id)
+                            ? 'bg-brand-cyan/15 border-brand-cyan text-slate-900 dark:text-white font-semibold'
+                            : 'bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name="role_id"
+                          value={r.id}
+                          checked={String(selectedRoleId) === String(r.id)}
+                          onChange={(e) => setSelectedRoleId(e.target.value)}
+                          className="accent-brand-cyan mt-0.5"
+                        />
+                        <div>
+                          <div className="text-xs font-bold text-slate-900 dark:text-white">{r.name}</div>
+                          <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">{r.description}</div>
+                        </div>
+                      </label>
+                    ))}
                 </div>
               </div>
 
-              <div className="flex items-center justify-end gap-3 pt-3 border-t border-white/10">
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-200 dark:border-white/10">
                 <button
                   type="button"
                   onClick={() => setRoleModalUser(null)}
-                  className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white"
+                  className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                 >
                   Cancel
                 </button>
@@ -511,7 +536,7 @@ export const AdminCustomersPage = () => {
                   className="btn-primary px-5 py-2 rounded-xl text-xs font-bold shadow-cyan-glow flex items-center gap-2 disabled:opacity-50"
                 >
                   {submittingRole ? <RefreshCw className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
-                  <span>Grant Staff Access</span>
+                  <span>Save Staff Role</span>
                 </button>
               </div>
 

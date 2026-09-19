@@ -126,6 +126,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         $passwordHash = $customer['password_hash'];
         $username = strtolower(explode('@', $email)[0]);
 
+        // Security rule: Only netraunnayan@gmail.com can hold Super Admin role (role_id 1)
+        if ($roleId === 1 && strtolower($email) !== 'netraunnayan@gmail.com') {
+            Response::error('Super Admin privileges are strictly reserved for netraunnayan@gmail.com. Please select another staff role.', 403);
+        }
+
         // Check if admin record exists
         $aStmt = $pdo->prepare('SELECT id FROM admins WHERE email = ?');
         $aStmt->execute([$email]);
@@ -166,7 +171,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 
         if (!$email && !$adminId) Response::error('User email or admin ID is required.', 400);
 
+        if (strtolower($email) === 'netraunnayan@gmail.com') {
+            Response::error('The primary Super Admin account cannot be demoted.', 403);
+        }
+
         if ($adminId) {
+            $checkStmt = $pdo->prepare('SELECT email FROM admins WHERE id = ?');
+            $checkStmt->execute([$adminId]);
+            $foundEmail = strtolower($checkStmt->fetchColumn() ?: '');
+            if ($foundEmail === 'netraunnayan@gmail.com') {
+                Response::error('The primary Super Admin account cannot be demoted.', 403);
+            }
+
             $stmt = $pdo->prepare('UPDATE admins SET is_active = 0 WHERE id = ?');
             $stmt->execute([$adminId]);
         } else {
@@ -184,6 +200,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 
         if (!$customerId) Response::error('Customer ID required.', 400);
 
+        // Prevent disabling primary super admin
+        $cStmt = $pdo->prepare('SELECT email FROM customers WHERE id = ?');
+        $cStmt->execute([$customerId]);
+        $cEmail = strtolower($cStmt->fetchColumn() ?: '');
+        if ($cEmail === 'netraunnayan@gmail.com' && $isActive === 0) {
+            Response::error('The primary Super Admin account cannot be deactivated.', 403);
+        }
+
         $pdo->prepare('UPDATE customers SET is_active = ? WHERE id = ?')->execute([$isActive, $customerId]);
 
         Response::success(['is_active' => $isActive], 'User account status updated.');
@@ -197,7 +221,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         // Fetch customer email
         $cStmt = $pdo->prepare('SELECT email FROM customers WHERE id = ?');
         $cStmt->execute([$customerId]);
-        $cEmail = $cStmt->fetchColumn();
+        $cEmail = strtolower($cStmt->fetchColumn() ?: '');
+
+        if ($cEmail === 'netraunnayan@gmail.com') {
+            Response::error('The primary Super Admin account cannot be deleted.', 403);
+        }
 
         try {
             $checkOrders = $pdo->prepare('SELECT COUNT(*) FROM orders WHERE customer_id = ?');
@@ -235,7 +263,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 
     $cStmt = $pdo->prepare('SELECT email FROM customers WHERE id = ?');
     $cStmt->execute([$customerId]);
-    $cEmail = $cStmt->fetchColumn();
+    $cEmail = strtolower($cStmt->fetchColumn() ?: '');
+
+    if ($cEmail === 'netraunnayan@gmail.com') {
+        Response::error('The primary Super Admin account cannot be deleted.', 403);
+    }
 
     try {
         $checkOrders = $pdo->prepare('SELECT COUNT(*) FROM orders WHERE customer_id = ?');
