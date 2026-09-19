@@ -172,8 +172,44 @@ try {
 try {
     $pdo->exec("ALTER TABLE `invoices` ADD COLUMN `is_gst_invoice` TINYINT(1) DEFAULT 0");
     $log[] = 'Added is_gst_invoice to invoices.';
+// 12. Ensure netraunnayan@gmail.com is the ONLY Super Admin
+try {
+    // 1. Ensure Super Admin role exists
+    $pdo->exec("UPDATE `admin_roles` SET `name` = 'Super Admin', `slug` = 'super_admin' WHERE `id` = 1");
+
+    // 2. Assign netraunnayan@gmail.com as primary Super Admin
+    $checkSuper = $pdo->prepare("SELECT id FROM `admins` WHERE `email` = 'netraunnayan@gmail.com' OR `username` = 'admin' LIMIT 1");
+    $checkSuper->execute();
+    $superId = $checkSuper->fetchColumn();
+
+    if ($superId) {
+        $pdo->prepare("
+            UPDATE `admins` 
+            SET `email` = 'netraunnayan@gmail.com', 
+                `full_name` = 'Netra Unnayan Super Admin', 
+                `role_id` = 1, 
+                `is_active` = 1 
+            WHERE `id` = ?
+        ")->execute([$superId]);
+        $log[] = "Updated Admin ID $superId to netraunnayan@gmail.com (Super Admin).";
+    } else {
+        $pdo->exec("
+            INSERT INTO `admins` (`role_id`, `username`, `email`, `password_hash`, `full_name`, `phone`, `is_active`)
+            VALUES (1, 'admin', 'netraunnayan@gmail.com', '$2y$10$4amYquQoEI0wMnPmadv9J.reAlDcuTvk6ovoMHVsRhKpECZCO9xrq', 'Netra Unnayan Super Admin', '9382293614', 1)
+        ");
+        $log[] = "Created netraunnayan@gmail.com as Super Admin.";
+    }
+
+    // 3. Demote/remove SK Mahapatra from Super Admin role if present
+    $pdo->exec("
+        UPDATE `admins` 
+        SET `role_id` = 2, `full_name` = 'Dr. S. K. Mahapatra (Consulting Doctor)' 
+        WHERE (`full_name` LIKE '%Mahapatra%' OR `email` = 'admin@netraunnayan.com') 
+          AND `email` != 'netraunnayan@gmail.com'
+    ");
+    $log[] = "Super Admin role strictly assigned to netraunnayan@gmail.com only.";
 } catch (Exception $e) {
-    $log[] = 'invoices.is_gst_invoice already exists.';
+    $log[] = 'Super Admin patch error: ' . $e->getMessage();
 }
 
 Response::json(['status' => 'completed', 'log' => $log]);

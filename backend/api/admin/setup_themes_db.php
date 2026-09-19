@@ -762,6 +762,37 @@ try {
         ")->execute([$key, $val]);
     }
 
+    // 3. Ensure netraunnayan@gmail.com is strictly the ONLY Super Admin
+    try {
+        $pdo->exec("UPDATE `admin_roles` SET `name` = 'Super Admin', `slug` = 'super_admin' WHERE `id` = 1");
+        $checkSuper = $pdo->prepare("SELECT id FROM `admins` WHERE `email` = 'netraunnayan@gmail.com' OR `username` = 'admin' LIMIT 1");
+        $checkSuper->execute();
+        $superId = $checkSuper->fetchColumn();
+
+        if ($superId) {
+            $pdo->prepare("
+                UPDATE `admins` 
+                SET `email` = 'netraunnayan@gmail.com', 
+                    `full_name` = 'Netra Unnayan Super Admin', 
+                    `role_id` = 1, 
+                    `is_active` = 1 
+                WHERE `id` = ?
+            ")->execute([$superId]);
+        } else {
+            $pdo->exec("
+                INSERT INTO `admins` (`role_id`, `username`, `email`, `password_hash`, `full_name`, `phone`, `is_active`)
+                VALUES (1, 'admin', 'netraunnayan@gmail.com', '$2y$10$4amYquQoEI0wMnPmadv9J.reAlDcuTvk6ovoMHVsRhKpECZCO9xrq', 'Netra Unnayan Super Admin', '9382293614', 1)
+            ");
+        }
+
+        $pdo->exec("
+            UPDATE `admins` 
+            SET `role_id` = 2, `full_name` = 'Dr. S. K. Mahapatra (Consulting Doctor)' 
+            WHERE (`full_name` LIKE '%Mahapatra%' OR `email` = 'admin@netraunnayan.com') 
+              AND `email` != 'netraunnayan@gmail.com'
+        ");
+    } catch (Exception $e) {}
+
     Response::success(['seeded_themes' => count($builtInThemes)], 'Theme tables initialized and built-in themes seeded successfully');
 
 } catch (Exception $e) {

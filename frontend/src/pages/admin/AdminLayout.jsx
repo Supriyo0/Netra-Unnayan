@@ -82,7 +82,7 @@ export const AdminLayout = () => {
 
   const handleDevLogin = async () => {
     try {
-      await login('admin', 'admin123');
+      await login('netraunnayan@gmail.com', 'admin123');
     } catch (err) {
       navigate('/login', { state: { tab: 'admin', from: location } });
     }

@@ -34,7 +34,7 @@ INSERT INTO `admin_roles` (`id`, `name`, `slug`, `description`, `permissions`) V
 -- admin / admin123 ($2y$10$4amYquQoEI0wMnPmadv9J.reAlDcuTvk6ovoMHVsRhKpECZCO9xrq)
 -- billing / billing123
 INSERT INTO `admins` (`id`, `role_id`, `username`, `email`, `password_hash`, `full_name`, `phone`, `is_active`) VALUES
-(1, 1, 'admin', 'admin@netraunnayan.com', '$2y$10$4amYquQoEI0wMnPmadv9J.reAlDcuTvk6ovoMHVsRhKpECZCO9xrq', 'Dr. S. K. Mahapatra (Super Admin)', '9382293614', 1),
+(1, 1, 'admin', 'netraunnayan@gmail.com', '$2y$10$4amYquQoEI0wMnPmadv9J.reAlDcuTvk6ovoMHVsRhKpECZCO9xrq', 'Netra Unnayan Super Admin', '9382293614', 1),
 (2, 3, 'billing', 'billing@netraunnayan.com', '$2y$10$4amYquQoEI0wMnPmadv9J.reAlDcuTvk6ovoMHVsRhKpECZCO9xrq', 'Subrata Das (POS Desk)', '9382293615', 1),
 (3, 5, 'desk', 'desk@netraunnayan.com', '$2y$10$4amYquQoEI0wMnPmadv9J.reAlDcuTvk6ovoMHVsRhKpECZCO9xrq', 'Ananya Roy (Appointment Coordinator)', '9382293616', 1);
 
