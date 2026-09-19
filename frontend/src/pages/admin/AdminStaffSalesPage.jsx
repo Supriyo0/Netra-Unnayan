@@ -106,17 +106,18 @@ export const AdminStaffSalesPage = () => {
     return matchesSearch && matchesRole && matchesUser;
   });
 
-  // Calculate Aggregates for Staff
-  const totalStaffSales = staffPerformance.reduce((acc, s) => acc + (s.total_sales || 0), 0);
-  const totalStaffBills = staffPerformance.reduce((acc, s) => acc + (s.total_bills || 0), 0);
-  const totalStaffUnits = staffPerformance.reduce((acc, s) => acc + (s.total_units || 0), 0);
-  const topPerformer = [...staffPerformance].sort((a, b) => (b.total_sales || 0) - (a.total_sales || 0))[0];
+  // Calculate Aggregates for Staff dynamically based on active filter / selected staff
+  const totalStaffSales = filteredStaff.reduce((acc, s) => acc + (s.total_sales || 0), 0);
+  const totalStaffBills = filteredStaff.reduce((acc, s) => acc + (s.total_bills || 0), 0);
+  const totalStaffUnits = filteredStaff.reduce((acc, s) => acc + (s.total_units || 0), 0);
+  const topPerformer = [...filteredStaff].sort((a, b) => (b.total_sales || 0) - (a.total_sales || 0))[0];
 
   // --------------------------------------------------------------------------
   // EXCEL & CSV EXPORT HANDLERS
   // --------------------------------------------------------------------------
   const handleExportStaffSummaryExcel = () => {
     if (!reportData) return;
+    const targetStaff = filteredStaff.length > 0 ? filteredStaff : staffPerformance;
     const headers = [
       { key: 'rank', label: 'Rank' },
       { key: 'name', label: 'Staff Full Name' },
@@ -134,7 +135,7 @@ export const AdminStaffSalesPage = () => {
       { key: 'cod', label: 'COD Sales (₹)' }
     ];
 
-    const rows = staffPerformance.map((st, idx) => {
+    const rows = targetStaff.map((st, idx) => {
       const p = st.payment_breakdown || {};
       const share = totalStaffSales > 0 ? ((st.total_sales / totalStaffSales) * 100).toFixed(1) : '0';
       const avg = st.total_bills > 0 ? Math.round(st.total_sales / st.total_bills) : 0;
@@ -163,6 +164,7 @@ export const AdminStaffSalesPage = () => {
 
   const handleExportStaffSummaryCSV = () => {
     if (!reportData) return;
+    const targetStaff = filteredStaff.length > 0 ? filteredStaff : staffPerformance;
     const headers = [
       { key: 'name', label: 'Staff Name' },
       { key: 'email', label: 'Email' },
@@ -176,7 +178,7 @@ export const AdminStaffSalesPage = () => {
       { key: 'cod', label: 'COD (INR)' }
     ];
 
-    const rows = staffPerformance.map((st) => {
+    const rows = targetStaff.map((st) => {
       const p = st.payment_breakdown || {};
       return {
         name: st.full_name || st.username,
