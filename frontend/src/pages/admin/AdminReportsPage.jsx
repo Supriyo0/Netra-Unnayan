@@ -64,7 +64,7 @@ export const AdminReportsPage = () => {
   const handleExportSummaryExcel = () => {
     if (!reportData) return;
     const stats = reportData.stats || {};
-    const projects = reportData.projects_overview || {};
+    const opticalOrders = reportData.optical_orders_overview || reportData.projects_overview || {};
     const billing = reportData.billing_overview || {};
     const margins = reportData.financial_margins || {};
 
@@ -81,10 +81,10 @@ export const AdminReportsPage = () => {
       { metric: 'Total Eyewear Units Sold', value: stats.totalUnitsSold || 0, classification: 'Frames, Sunglasses & Lenses' },
       { metric: 'Average Order Value (AOV)', value: `₹${Number(stats.avgOrderValue || 0).toLocaleString('en-IN')}`, classification: 'Per Customer Ticket' },
       { metric: 'In-Store POS Revenue', value: `₹${Number(stats.posRevenue || 0).toLocaleString('en-IN')}`, classification: `${stats.posOrders || 0} POS Receipts` },
-      { metric: 'Projects In Progress', value: projects.in_progress || 0, classification: 'Lab Cutting & Fitting' },
-      { metric: 'Projects Completed', value: projects.completed || 0, classification: 'Delivered / Dispatched' },
-      { metric: 'Projects On Hold', value: projects.on_hold || 0, classification: 'Prescription Review' },
-      { metric: 'Average Workflow Progression', value: `${projects.avg_progression || 0}%`, classification: 'Lab Lifecycle Speed' },
+      { metric: 'Eyewear In Lab Glazing / Fitting', value: opticalOrders.in_progress || 0, classification: 'Lab Cutting & Lens Fitting' },
+      { metric: 'Eyewear Completed & Delivered', value: opticalOrders.completed || 0, classification: 'Delivered / Ready for Pickup' },
+      { metric: 'Eyewear On Hold / Rx Review', value: opticalOrders.on_hold || 0, classification: 'Prescription Verification' },
+      { metric: 'Lab Fulfillment Progression Rate', value: `${opticalOrders.avg_progression || 0}%`, classification: 'Lab Order Lifecycle Progression' },
       { metric: 'Fully Paid Invoices', value: `₹${Number(billing.fully_paid?.amount || 0).toLocaleString('en-IN')}`, classification: `${billing.fully_paid?.count || 0} Invoices` },
       { metric: 'Outstanding Due Invoices', value: `₹${Number(billing.outstanding_due?.amount || 0).toLocaleString('en-IN')}`, classification: `${billing.outstanding_due?.count || 0} Invoices` },
       { metric: 'Total Revenue Collected', value: `₹${Number(margins.total_revenue_collected || 0).toLocaleString('en-IN')}`, classification: 'Realized Collections' },
@@ -140,13 +140,13 @@ export const AdminReportsPage = () => {
     posOrders: 0
   };
 
-  const projects = reportData?.projects_overview || {
+  const opticalOrders = reportData?.optical_orders_overview || reportData?.projects_overview || {
     in_progress: 0,
     completed: 0,
     on_hold: 0,
     avg_progression: 0,
     total_company_orders: stats.totalOrders || 0,
-    sales_orders: stats.totalOrders || 0
+    sales_orders: stats.posOrders || 0
   };
 
   const billing = reportData?.billing_overview || {
@@ -323,37 +323,37 @@ export const AdminReportsPage = () => {
       {/* ========================================================================= */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         
-        {/* CARD 1: Projects / Optical Orders Overview */}
+        {/* CARD 1: Optical Orders & Lab Glazing Pipeline */}
         <div className="bg-white dark:bg-[#0A192F] rounded-2xl p-6 border border-slate-200 dark:border-white/10 shadow-sm dark:shadow-2xl relative overflow-hidden flex flex-col justify-between hover:border-slate-300 dark:hover:border-slate-700 transition-all">
           {/* Header */}
           <div className="flex items-center gap-3 mb-6">
-            <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-500/15 border border-blue-200 dark:border-blue-500/30 flex items-center justify-center text-blue-600 dark:text-blue-400 shadow-sm">
-              <LayoutGrid className="w-4 h-4" />
+            <div className="w-9 h-9 rounded-xl bg-teal-50 dark:bg-teal-500/15 border border-teal-200 dark:border-teal-500/30 flex items-center justify-center text-teal-600 dark:text-teal-400 shadow-sm">
+              <Package className="w-4 h-4" />
             </div>
             <h3 className="font-extrabold text-slate-900 dark:text-white text-base tracking-wide">
-              Projects Overview
+              Optical Orders &amp; Lab Pipeline
             </h3>
           </div>
 
           {/* 3 Metric Columns */}
           <div className="grid grid-cols-3 gap-2 text-center my-2">
             <div>
-              <div className="text-3xl sm:text-4xl font-black text-emerald-600 dark:text-emerald-400 font-mono tracking-tight">
-                {projects.in_progress}
+              <div className="text-3xl sm:text-4xl font-black text-amber-600 dark:text-amber-400 font-mono tracking-tight">
+                {opticalOrders.in_progress}
               </div>
-              <div className="text-xs text-slate-500 dark:text-slate-400 font-semibold mt-1">In Progress</div>
+              <div className="text-xs text-slate-500 dark:text-slate-400 font-semibold mt-1">Lab Glazing</div>
+            </div>
+            <div>
+              <div className="text-3xl sm:text-4xl font-black text-emerald-600 dark:text-emerald-400 font-mono tracking-tight">
+                {opticalOrders.completed}
+              </div>
+              <div className="text-xs text-slate-500 dark:text-slate-400 font-semibold mt-1">Delivered</div>
             </div>
             <div>
               <div className="text-3xl sm:text-4xl font-black text-sky-600 dark:text-sky-400 font-mono tracking-tight">
-                {projects.completed}
+                {opticalOrders.on_hold}
               </div>
-              <div className="text-xs text-slate-500 dark:text-slate-400 font-semibold mt-1">Completed</div>
-            </div>
-            <div>
-              <div className="text-3xl sm:text-4xl font-black text-amber-600 dark:text-amber-400 font-mono tracking-tight">
-                {projects.on_hold}
-              </div>
-              <div className="text-xs text-slate-500 dark:text-slate-400 font-semibold mt-1">On Hold</div>
+              <div className="text-xs text-slate-500 dark:text-slate-400 font-semibold mt-1">Rx Review</div>
             </div>
           </div>
 
@@ -362,10 +362,10 @@ export const AdminReportsPage = () => {
             <div className="border border-emerald-300 dark:border-emerald-500/40 bg-emerald-50 dark:bg-emerald-950/40 rounded-full py-2.5 px-4 relative overflow-hidden flex items-center justify-center shadow-inner">
               <div 
                 className="absolute left-0 top-0 bottom-0 bg-emerald-200 dark:bg-emerald-500/25 rounded-full transition-all duration-700"
-                style={{ width: `${Math.min(100, Math.max(0, projects.avg_progression))}%` }}
+                style={{ width: `${Math.min(100, Math.max(0, opticalOrders.avg_progression))}%` }}
               />
               <span className="text-xs font-extrabold text-emerald-800 dark:text-emerald-400 relative z-10 tracking-wide">
-                Average Progression: {projects.avg_progression}%
+                Lab Glazing Completion Rate: {opticalOrders.avg_progression}%
               </span>
             </div>
           </div>
@@ -374,15 +374,15 @@ export const AdminReportsPage = () => {
           <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-100 dark:border-slate-800/80 text-center">
             <div>
               <div className="text-xl font-extrabold text-slate-900 dark:text-white font-mono">
-                {projects.total_company_orders}
+                {opticalOrders.total_company_orders || stats.totalOrders || 0}
               </div>
-              <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Total Company Projects</div>
+              <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Total Eyewear Orders</div>
             </div>
             <div>
               <div className="text-xl font-extrabold text-slate-900 dark:text-white font-mono">
-                {projects.sales_orders}
+                {stats.posOrders || opticalOrders.sales_orders || 0}
               </div>
-              <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Sales Orders</div>
+              <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">In-Store POS Orders</div>
             </div>
           </div>
         </div>
