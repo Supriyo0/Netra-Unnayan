@@ -1,14 +1,17 @@
 import React, { useState } from 'react';
-import { Sparkles, X, Gift, Flame, Sun, Snowflake, Flag, Heart } from 'lucide-react';
+import { Sparkles, X, Gift, Flame, Sun, Snowflake, Flag, CloudRain, Flower2 } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 
 export const FestiveBanner = () => {
-  const { seasonalTheme, activeThemeDetails, festiveBannerEnabled, festiveBannerCustomText } = useTheme();
+  const { seasonalTheme, content, safeMode } = useTheme();
   const [dismissed, setDismissed] = useState(false);
 
-  if (dismissed || !festiveBannerEnabled) return null;
+  if (dismissed || safeMode) return null;
 
-  const bannerMessage = festiveBannerCustomText || activeThemeDetails?.bannerText;
+  const bannerMessage = content.announcementText;
+  const bannerBadge = content.announcementBadge;
+  const greeting = content.festivalGreeting;
+
   if (!bannerMessage) return null;
 
   // Seasonal theme visual styling
@@ -24,8 +27,14 @@ export const FestiveBanner = () => {
         return 'bg-gradient-to-r from-sky-800 via-indigo-900 to-cyan-900 text-cyan-50 border-b border-cyan-400/30';
       case 'independence':
         return 'bg-gradient-to-r from-orange-600 via-slate-900 to-emerald-700 text-white border-b border-amber-400/40';
+      case 'republic':
+        return 'bg-gradient-to-r from-blue-700 via-orange-600 to-emerald-700 text-white border-b border-blue-400/40';
       case 'diwali':
         return 'bg-gradient-to-r from-purple-900 via-amber-700 to-purple-950 text-amber-100 border-b border-amber-300/40';
+      case 'spring':
+        return 'bg-gradient-to-r from-amber-600 via-pink-600 to-amber-700 text-white border-b border-amber-300/40';
+      case 'monsoon':
+        return 'bg-gradient-to-r from-teal-800 via-sky-800 to-teal-900 text-teal-50 border-b border-teal-400/30';
       default:
         return 'bg-gradient-to-r from-slate-900 via-sky-950 to-slate-900 text-slate-200 border-b border-cyan-500/30';
     }
@@ -42,9 +51,14 @@ export const FestiveBanner = () => {
       case 'winter':
         return <Snowflake className="w-3.5 h-3.5 text-cyan-200" />;
       case 'independence':
+      case 'republic':
         return <Flag className="w-3.5 h-3.5 text-orange-300" />;
       case 'diwali':
         return <Flame className="w-3.5 h-3.5 text-amber-300 animate-pulse" />;
+      case 'spring':
+        return <Flower2 className="w-3.5 h-3.5 text-pink-200" />;
+      case 'monsoon':
+        return <CloudRain className="w-3.5 h-3.5 text-teal-200" />;
       default:
         return <Sparkles className="w-3.5 h-3.5 text-cyan-400" />;
     }
@@ -55,18 +69,26 @@ export const FestiveBanner = () => {
       <div className="max-w-7xl mx-auto flex items-center justify-center gap-2 sm:gap-3 flex-wrap pr-6">
         <div className="flex items-center gap-1.5 shrink-0">
           {getThemeIcon()}
-          <span className="px-2 py-0.5 rounded-full bg-black/30 backdrop-blur-sm text-[10px] font-black uppercase tracking-wider text-amber-300">
-            {activeThemeDetails?.badge || 'OFFER'}
+          <span className="px-2 py-0.5 rounded-full bg-black/30 backdrop-blur-sm text-[10px] font-black uppercase tracking-wider text-amber-200">
+            {bannerBadge || 'SPECIAL'}
           </span>
         </div>
 
-        <span className="truncate max-w-[90vw] sm:max-w-none text-xs">
+        <span
+          className="truncate max-w-[90vw] sm:max-w-none text-xs font-semibold"
+          style={{ textShadow: '0 1px 3px rgba(0,0,0,0.5)' }}
+        >
           {bannerMessage}
         </span>
 
-        <span className="hidden md:inline-block opacity-80 text-[11px] font-normal italic">
-          — {activeThemeDetails?.greetingBengali}
-        </span>
+        {greeting && (
+          <span
+            className="hidden md:inline-block opacity-85 text-[11px] font-normal italic"
+            style={{ textShadow: '0 1px 2px rgba(0,0,0,0.4)' }}
+          >
+            — {greeting}
+          </span>
+        )}
       </div>
 
       <button

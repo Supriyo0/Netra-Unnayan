@@ -3,7 +3,7 @@ import { useSearchParams, Link } from 'react-router-dom';
 import { 
   Search, Package, Clock, CheckCircle2, AlertCircle, 
   ShieldCheck, XCircle, ArrowRight, Truck, FileText, Printer,
-  MessageCircle, Upload 
+  MessageCircle, Upload, Mail, Share2, Copy, Check 
 } from 'lucide-react';
 import api from '../api/client';
 import { useAuth } from '../context/AuthContext';
@@ -89,6 +89,54 @@ export const OrderTrackingPage = () => {
     } finally {
       setCancelLoading(false);
     }
+  };
+
+  const [copiedLink, setCopiedLink] = useState(false);
+
+  const handleShareWhatsApp = () => {
+    if (!order) return;
+    const invUrl = `https://netraunnayan.com/order-tracking?order=${encodeURIComponent(order.order_number)}&view=invoice`;
+    let msg = `👓 *NETRA UNNAYAN — Order & Invoice Verification*\n`;
+    msg += `━━━━━━━━━━━━━━━━━━━━━\n`;
+    msg += `Hello *${order.customer_name || 'Valued Customer'}*,\n`;
+    msg += `Here is your optical order & invoice summary:\n\n`;
+    msg += `📦 *Order No:* ${order.order_number}\n`;
+    msg += `💵 *Total Amount:* ₹${order.total_amount} (${order.payment_mode || 'COD'})\n`;
+    msg += `📊 *Status:* ${order.status || 'Processing'}\n\n`;
+    msg += `🔗 *View Official Invoice & Live Tracking:*\n${invUrl}\n\n`;
+    msg += `📍 Netra Unnayan Eyewear, Digha Bypass Rd, WB\n`;
+    msg += `📞 Support: +91 9382293614 / +91 6294553897`;
+    const cleanPhone = (order.customer_phone || '').replace(/[^0-9]/g, '');
+    const phoneParam = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;
+    const waUrl = phoneParam 
+      ? `https://api.whatsapp.com/send?phone=${phoneParam}&text=${encodeURIComponent(msg)}`
+      : `https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`;
+    window.open(waUrl, '_blank', 'noopener,noreferrer');
+  };
+
+  const handleShareEmail = () => {
+    if (!order) return;
+    const invUrl = `https://netraunnayan.com/order-tracking?order=${encodeURIComponent(order.order_number)}&view=invoice`;
+    const subject = encodeURIComponent(`Netra Unnayan Eyewear Invoice #${order.order_number}`);
+    const body = encodeURIComponent(
+      `Dear ${order.customer_name || 'Customer'},\n\n` +
+      `Thank you for choosing Netra Unnayan Eyewear.\n\n` +
+      `Order Reference: ${order.order_number}\n` +
+      `Total Amount: ₹${order.total_amount} (${order.payment_mode || 'COD'})\n` +
+      `Order Status: ${order.status || 'Processing'}\n\n` +
+      `You can view and print your verified official invoice anytime using this secure link:\n` +
+      `${invUrl}\n\n` +
+      `Best regards,\nNetra Unnayan Eyewear\nSupport: +91 9382293614`
+    );
+    window.location.href = `mailto:${order.customer_email || ''}?subject=${subject}&body=${body}`;
+  };
+
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      setCopiedLink(true);
+      setTimeout(() => setCopiedLink(false), 2500);
+    } catch {}
   };
 
   const defaultStages = [
@@ -421,9 +469,47 @@ export const OrderTrackingPage = () => {
                 <span className="text-cyan-700 dark:text-brand-cyan font-mono">₹{order.total_amount} ({order.payment_mode})</span>
               </div>
             </div>
-
           </div>
+        </div>
+      )}
 
+      {/* FLOATING QUICK ACTIONS BAR (QR SCAN / INVOICE SHARE) */}
+      {order && (
+        <div className="fixed bottom-5 left-1/2 -translate-x-1/2 z-40 w-[95%] max-w-lg bg-slate-900/95 border border-cyan-500/30 backdrop-blur-xl rounded-2xl shadow-2xl p-2.5 sm:px-4 sm:py-3 flex items-center justify-between gap-2 text-white animate-fade-in">
+          <button
+            onClick={() => setInvoiceModalOpen(true)}
+            className="flex-1 min-w-0 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold px-3 py-2 rounded-xl flex items-center justify-center gap-1.5 shadow transition-all truncate"
+            title="View & Print Official Invoice"
+          >
+            <FileText className="w-4 h-4 shrink-0 text-cyan-200" />
+            <span className="truncate">View Invoice</span>
+          </button>
+
+          <button
+            onClick={handleShareWhatsApp}
+            className="bg-[#25D366] hover:bg-[#20bd5a] text-white text-xs font-bold px-3 py-2 rounded-xl flex items-center justify-center gap-1.5 shadow transition-all shrink-0"
+            title="Send Invoice Details to WhatsApp"
+          >
+            <MessageCircle className="w-4 h-4 shrink-0" />
+            <span className="hidden xs:inline">WhatsApp</span>
+          </button>
+
+          <button
+            onClick={handleShareEmail}
+            className="bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold px-3 py-2 rounded-xl flex items-center justify-center gap-1.5 shadow transition-all shrink-0"
+            title="Email Invoice Copy"
+          >
+            <Mail className="w-4 h-4 shrink-0" />
+            <span className="hidden xs:inline">Email</span>
+          </button>
+
+          <button
+            onClick={handleCopyLink}
+            className="bg-white/10 hover:bg-white/20 text-slate-300 hover:text-white text-xs font-medium px-2.5 py-2 rounded-xl flex items-center justify-center gap-1 transition-all shrink-0"
+            title="Copy Tracking & Invoice Link"
+          >
+            {copiedLink ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+          </button>
         </div>
       )}
 

@@ -5,7 +5,7 @@ import {
   QrCode, Image as ImageIcon, Settings, LogOut, 
   ChevronRight, Bell, Shield, Store, User, Tag, 
   BarChart3, Sliders, CreditCard, Users, ExternalLink, Menu, X, Calendar,
-  Stethoscope, Sun, Moon, UserCheck
+  Stethoscope, Sun, Moon, UserCheck, Palette
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
@@ -182,7 +182,8 @@ export const AdminLayout = () => {
         },
         { label: 'Barcode & QR Labels', path: '/admin/labels', icon: QrCode },
         { label: 'Categories & Roundels', path: '/admin/categories', icon: Layers },
-        { label: 'Hero Banners & Slider', path: '/admin/banners', icon: Sliders }
+        { label: 'Hero Banners & Slider', path: '/admin/banners', icon: Sliders },
+        { label: 'Appearance & Themes', path: '/admin/themes', icon: Palette }
       ]
     },
     {

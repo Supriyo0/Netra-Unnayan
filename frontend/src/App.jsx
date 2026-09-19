@@ -53,6 +53,7 @@ import { AdminCouponsPage } from './pages/admin/AdminCouponsPage';
 import { AdminCustomersPage } from './pages/admin/AdminCustomersPage';
 import { AdminAppointmentsPage } from './pages/admin/AdminAppointmentsPage';
 import { AdminDoctorsPage } from './pages/admin/AdminDoctorsPage';
+import { AdminThemeManagerPage } from './pages/admin/AdminThemeManagerPage';
 
 function NotFoundPage() {
   return (
@@ -119,6 +120,7 @@ export default function App() {
                 {/* Admin & POS Suite Routes */}
                 <Route path="/admin" element={<AdminLayout />}>
                   <Route index element={<AdminDashboardPage />} />
+                  <Route path="themes" element={<AdminThemeManagerPage />} />
                   <Route path="banners" element={<AdminBannersPage />} />
                   <Route path="products" element={<AdminProductsPage />} />
                   <Route path="products/new" element={<AdminAddProductPage />} />

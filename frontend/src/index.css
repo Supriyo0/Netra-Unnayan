@@ -10,6 +10,210 @@
   --color-brand-teal: #00F5D4;
   --font-heading: 'Outfit', sans-serif;
   --font-body: 'Plus Jakarta Sans', sans-serif;
+
+  /* Semantic Centralized Theme Tokens */
+  --theme-bg: #FFFFFF;
+  --theme-bg-secondary: #F8FAFC;
+  --theme-surface: #FFFFFF;
+  --theme-surface-glass: rgba(255, 255, 255, 0.88);
+  --theme-text-primary: #0F172A;
+  --theme-text-secondary: #334155;
+  --theme-text-muted: #64748B;
+  --theme-heading: #0A192F;
+  --theme-border: #E2E8F0;
+  --theme-button: #00B4D8;
+  --theme-button-text: #FFFFFF;
+  --theme-button-hover: #0284C7;
+  --theme-accent: #00B4D8;
+  --theme-accent-secondary: #0A2540;
+  --theme-shadow: 0 8px 30px rgba(0, 0, 0, 0.06);
+  --theme-overlay: rgba(15, 23, 42, 0.5);
+  --theme-badge-bg: #00B4D8;
+  --theme-badge-text: #FFFFFF;
+}
+
+/* =========================================================================
+   SEASONAL THEME ENGINE KEYFRAME ANIMATIONS
+   ========================================================================= */
+@keyframes kash-sway {
+  0%, 100% {
+    transform: rotate(0deg);
+  }
+  30% {
+    transform: rotate(4.5deg) skewX(2deg);
+  }
+  70% {
+    transform: rotate(-3.5deg) skewX(-1.5deg);
+  }
+}
+
+@keyframes diya-flicker {
+  0%, 100% {
+    transform: scale(1) rotate(0deg);
+    opacity: 0.95;
+    filter: drop-shadow(0 0 8px rgba(245, 158, 11, 0.7));
+  }
+  25% {
+    transform: scale(1.06, 0.94) rotate(1.5deg);
+    opacity: 1;
+    filter: drop-shadow(0 0 14px rgba(251, 191, 36, 0.9));
+  }
+  50% {
+    transform: scale(0.95, 1.05) rotate(-1deg);
+    opacity: 0.88;
+    filter: drop-shadow(0 0 6px rgba(220, 38, 38, 0.6));
+  }
+  75% {
+    transform: scale(1.03, 0.97) rotate(1deg);
+    opacity: 0.98;
+    filter: drop-shadow(0 0 12px rgba(245, 158, 11, 0.8));
+  }
+}
+
+@keyframes gentle-snowfall {
+  0% {
+    transform: translateY(-20px) translateX(0) rotate(0deg);
+    opacity: 0;
+  }
+  15% {
+    opacity: 0.85;
+  }
+  85% {
+    opacity: 0.75;
+  }
+  100% {
+    transform: translateY(105vh) translateX(30px) rotate(360deg);
+    opacity: 0;
+  }
+}
+
+@keyframes petal-drift {
+  0% {
+    transform: translateY(-20px) translateX(0) rotate(0deg);
+    opacity: 0;
+  }
+  20% {
+    opacity: 0.85;
+  }
+  50% {
+    transform: translateY(50vh) translateX(40px) rotate(180deg);
+  }
+  85% {
+    opacity: 0.7;
+  }
+  100% {
+    transform: translateY(105vh) translateX(-20px) rotate(360deg);
+    opacity: 0;
+  }
+}
+
+@keyframes rain-drizzle {
+  0% {
+    transform: translateY(-40px) scaleY(1);
+    opacity: 0;
+  }
+  20% {
+    opacity: 0.7;
+  }
+  90% {
+    opacity: 0.6;
+  }
+  100% {
+    transform: translateY(105vh) scaleY(1.3);
+    opacity: 0;
+  }
+}
+
+@keyframes santa-glide {
+  0% {
+    transform: translate(-120%, -50%) rotate(-3deg);
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+    transform: translate(-40%, -50%) rotate(0deg);
+  }
+  75% {
+    opacity: 1;
+    transform: translate(60%, -50%) rotate(2deg);
+  }
+  100% {
+    transform: translate(140%, -50%) rotate(-2deg);
+    opacity: 0;
+  }
+}
+
+@keyframes chakra-slow-spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes sunlight-sweep {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* =========================================================================
+   UNIVERSAL THEME UTILITY CLASSES
+   ========================================================================= */
+.bg-theme-bg {
+  background-color: var(--theme-bg, #FFFFFF) !important;
+}
+
+.bg-theme-surface {
+  background-color: var(--theme-surface, #FFFFFF) !important;
+}
+
+.bg-theme-surface-glass {
+  background: var(--theme-surface-glass, rgba(255, 255, 255, 0.92)) !important;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+.text-theme-primary {
+  color: var(--theme-text-primary, #0F172A) !important;
+}
+
+.text-theme-secondary {
+  color: var(--theme-text-secondary, #334155) !important;
+}
+
+.text-theme-muted {
+  color: var(--theme-text-muted, #64748B) !important;
+}
+
+.text-theme-heading {
+  color: var(--theme-heading, #0A192F) !important;
+}
+
+.border-theme {
+  border-color: var(--theme-border, #E2E8F0) !important;
+}
+
+.btn-theme-primary {
+  background: var(--theme-button, #00B4D8) !important;
+  color: var(--theme-button-text, #FFFFFF) !important;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+
+.btn-theme-primary:hover {
+  background: var(--theme-button-hover, #0284C7) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px var(--theme-primary, rgba(0, 180, 216, 0.3));
+}
+
+.badge-theme {
+  background: var(--theme-badge-bg, var(--theme-primary, #00B4D8)) !important;
+  color: var(--theme-badge-text, #FFFFFF) !important;
 }
 
 html {
@@ -2113,20 +2317,20 @@ html.light .btn-primary:hover {
   width: 78px;
   height: 78px;
   border-radius: 50%;
-  background: #0A192F;
-  border: 2.5px solid rgba(0, 180, 216, 0.4);
+  background: var(--theme-surface, #0A192F);
+  border: 2.5px solid var(--theme-border, rgba(0, 180, 216, 0.4));
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
   margin-bottom: 0.65rem;
   transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+  box-shadow: var(--theme-shadow, 0 8px 20px rgba(0, 0, 0, 0.25));
 }
 .light .category-roundel-avatar {
-  background: #FFFFFF;
-  border: 2.5px solid #94A3B8;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
+  background: var(--theme-surface, #FFFFFF);
+  border: 2.5px solid var(--theme-border, #CBD5E1);
+  box-shadow: var(--theme-shadow, 0 8px 20px rgba(0, 0, 0, 0.06));
 }
 
 @media (min-width: 768px) {
@@ -2138,8 +2342,8 @@ html.light .btn-primary:hover {
 
 .category-roundel-avatar.active,
 .category-roundel-item:hover .category-roundel-avatar {
-  border-color: #00B4D8 !important;
-  box-shadow: 0 0 25px rgba(0, 180, 216, 0.55);
+  border-color: var(--theme-accent, #00B4D8) !important;
+  box-shadow: 0 0 25px var(--theme-primary, rgba(0, 180, 216, 0.55));
 }
 
 .category-roundel-avatar img {
@@ -2159,9 +2363,9 @@ html.light .btn-primary:hover {
   width: 24px;
   height: 24px;
   border-radius: 50%;
-  background: #00B4D8;
-  color: #060D17;
-  border: 2px solid #060D17;
+  background: var(--theme-badge-bg, var(--theme-primary, #00B4D8));
+  color: var(--theme-badge-text, #FFFFFF);
+  border: 2px solid var(--theme-surface, #FFFFFF);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2169,24 +2373,24 @@ html.light .btn-primary:hover {
   z-index: 3;
 }
 .light .category-badge-icon {
-  border-color: #FFFFFF;
+  border-color: var(--theme-surface, #FFFFFF);
 }
 
 .category-roundel-name {
   font-size: 0.86rem;
   font-weight: 800;
-  color: #FFFFFF;
+  color: var(--theme-heading, #FFFFFF);
   margin-bottom: 0.15rem;
   line-height: 1.2;
 }
 .light .category-roundel-name {
-  color: #0F172A;
+  color: var(--theme-heading, #0F172A);
 }
 
 .category-roundel-sub {
   font-size: 0.7rem;
   font-weight: 600;
-  color: #94A3B8;
+  color: var(--theme-text-muted, #94A3B8);
   display: none;
 }
 @media (min-width: 768px) {
@@ -2207,11 +2411,11 @@ html.light .btn-primary:hover {
   overflow-x: auto;
   gap: 1.2rem;
   padding: 1.25rem 1.5rem;
-  background: rgba(10, 25, 47, 0.85);
+  background: var(--theme-surface-glass, rgba(10, 25, 47, 0.85));
   backdrop-filter: blur(20px);
   border-radius: 20px;
-  border: 1.5px solid rgba(0, 180, 216, 0.25);
-  box-shadow: 0 14px 35px rgba(0, 0, 0, 0.35);
+  border: 1.5px solid var(--theme-border, rgba(0, 180, 216, 0.25));
+  box-shadow: var(--theme-shadow, 0 14px 35px rgba(0, 0, 0, 0.25));
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
@@ -2219,9 +2423,9 @@ html.light .btn-primary:hover {
   display: none;
 }
 .light .trust-bar-grid {
-  background: rgba(255, 255, 255, 0.95);
-  border: 1.5px solid #CBD5E1;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+  background: var(--theme-surface-glass, rgba(255, 255, 255, 0.95));
+  border: 1.5px solid var(--theme-border, #CBD5E1);
+  box-shadow: var(--theme-shadow, 0 10px 30px rgba(0, 0, 0, 0.05));
 }
 
 @media (min-width: 992px) {
@@ -2296,16 +2500,16 @@ html.light .btn-primary:hover {
   font-weight: 900;
   letter-spacing: 0.5px;
   text-transform: uppercase;
-  color: #FFFFFF;
+  color: var(--theme-heading, #FFFFFF);
   margin-bottom: 0.2rem;
 }
 .light .bestsellers-title {
-  color: #0F172A;
+  color: var(--theme-heading, #0F172A);
 }
 
 .bestsellers-sub {
   font-size: 0.85rem;
-  color: #94A3B8;
+  color: var(--theme-text-muted, #94A3B8);
   font-weight: 600;
 }
 
@@ -2328,28 +2532,28 @@ html.light .btn-primary:hover {
 }
 
 .product-card {
-  background: rgba(10, 25, 47, 0.85);
+  background: var(--theme-surface, rgba(10, 25, 47, 0.85));
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1.5px solid rgba(255, 255, 255, 0.16);
+  border: 1.5px solid var(--theme-border, rgba(255, 255, 255, 0.16));
   border-radius: 20px;
   overflow: hidden;
   display: flex;
   flex-direction: column;
   transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
+  box-shadow: var(--theme-shadow, 0 12px 30px rgba(0, 0, 0, 0.35));
   position: relative;
 }
 .light .product-card {
-  background: #FFFFFF;
-  border: 1.5px solid #CBD5E1;
-  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+  background: var(--theme-surface, #FFFFFF);
+  border: 1.5px solid var(--theme-border, #CBD5E1);
+  box-shadow: var(--theme-shadow, 0 8px 24px rgba(15, 23, 42, 0.06));
 }
 
 .product-card:hover {
   transform: translateY(-6px);
-  border-color: #00B4D8 !important;
-  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.6), 0 0 25px rgba(0, 180, 216, 0.25);
+  border-color: var(--theme-accent, #00B4D8) !important;
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.4), 0 0 25px var(--theme-primary, rgba(0, 180, 216, 0.25));
 }
 
 .product-media {
@@ -2361,11 +2565,11 @@ html.light .btn-primary:hover {
   align-items: center;
   justify-content: center;
   padding: 1rem;
-  border-bottom: 1.5px solid rgba(255, 255, 255, 0.12);
+  border-bottom: 1.5px solid var(--theme-border, rgba(255, 255, 255, 0.12));
 }
 .light .product-media {
-  background: #F8FAFC;
-  border-bottom: 1.5px solid #E2E8F0;
+  background: var(--theme-bg-secondary, #F8FAFC);
+  border-bottom: 1.5px solid var(--theme-border, #E2E8F0);
 }
 
 .product-media img {
@@ -2383,8 +2587,8 @@ html.light .btn-primary:hover {
   position: absolute;
   top: 12px;
   left: 12px;
-  background: rgba(0, 180, 216, 0.9);
-  color: #060D17;
+  background: var(--theme-badge-bg, var(--theme-primary, #00B4D8));
+  color: var(--theme-badge-text, #FFFFFF);
   font-size: 0.65rem;
   font-weight: 900;
   letter-spacing: 0.8px;
@@ -2392,7 +2596,7 @@ html.light .btn-primary:hover {
   border-radius: 9999px;
   z-index: 2;
   text-transform: uppercase;
-  box-shadow: 0 4px 12px rgba(0, 180, 216, 0.35);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
 .wishlist-toggle-btn {
@@ -2401,22 +2605,22 @@ html.light .btn-primary:hover {
   right: 12px;
   width: 34px;
   height: 34px;
-  background: rgba(10, 25, 47, 0.8);
+  background: var(--theme-surface-glass, rgba(10, 25, 47, 0.8));
   backdrop-filter: blur(12px);
   border-radius: 50%;
-  border: 1.5px solid rgba(255, 255, 255, 0.15);
+  border: 1.5px solid var(--theme-border, rgba(255, 255, 255, 0.15));
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #94A3B8;
+  color: var(--theme-text-muted, #94A3B8);
   z-index: 2;
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .light .wishlist-toggle-btn {
-  background: rgba(255, 255, 255, 0.9);
-  border: 1px solid #E2E8F0;
-  color: #64748B;
+  background: var(--theme-surface-glass, rgba(255, 255, 255, 0.9));
+  border: 1px solid var(--theme-border, #E2E8F0);
+  color: var(--theme-text-muted, #64748B);
 }
 .wishlist-toggle-btn:hover, .wishlist-toggle-btn.active {
   color: #EF4444;
@@ -2434,7 +2638,7 @@ html.light .btn-primary:hover {
   font-size: 0.68rem;
   font-family: monospace;
   font-weight: 700;
-  color: #00B4D8;
+  color: var(--theme-primary, #00B4D8);
   margin-bottom: 0.25rem;
 }
 
@@ -2443,10 +2647,10 @@ html.light .btn-primary:hover {
   font-weight: 800;
   line-height: 1.3;
   margin-bottom: 0.6rem;
-  color: #FFFFFF;
+  color: var(--theme-heading, #FFFFFF);
 }
 .light .product-name {
-  color: #0F172A;
+  color: var(--theme-heading, #0F172A);
 }
 
 .product-pricing {
@@ -2461,10 +2665,10 @@ html.light .btn-primary:hover {
   font-size: 1.25rem;
   font-weight: 900;
   font-family: var(--font-heading);
-  color: #FFFFFF;
+  color: var(--theme-text-primary, #FFFFFF);
 }
 .light .price-current {
-  color: #0F172A;
+  color: var(--theme-text-primary, #0F172A);
 }
 
 .price-mrp {
@@ -3176,18 +3380,39 @@ html.light .btn-primary:hover {
 }
 
 /* ========================================================
-   FESTIVE & SEASONAL THEMES SUITE (Screen 24 & All Pages)
+   NETRA UNNAYAN — PRODUCTION SEASONAL THEME ENGINE SUITE
    ======================================================== */
+
+/* Global Theme Transition */
+body, main, nav, header, footer {
+  transition: background-color 0.4s ease, border-color 0.4s ease, color 0.3s ease;
+}
 
 /* 1. DURGA PUJA / SHARODOTSAV THEME */
 [data-season-theme="durga_puja"] {
-  --theme-accent-festive: #DC2626;
-  --theme-gold-festive: #F59E0B;
+  --theme-bg: #FFFDF7;
+  --theme-bg-secondary: #FEF8EB;
+  --theme-surface: #FFFFFF;
+  --theme-surface-glass: rgba(255, 253, 247, 0.92);
+  --theme-text-primary: #1C1917;
+  --theme-text-secondary: #44403C;
+  --theme-text-muted: #78716C;
+  --theme-heading: #7F1D1D;
+  --theme-border: #FDE68A;
+  --theme-button: #DC2626;
+  --theme-button-text: #FFFFFF;
+  --theme-button-hover: #B91C1C;
+  --theme-accent: #DC2626;
+  --theme-accent-secondary: #F59E0B;
+  --theme-shadow: 0 10px 30px -5px rgba(220, 38, 38, 0.12);
+  --theme-badge-bg: linear-gradient(135deg, #DC2626, #F59E0B);
+  --theme-badge-text: #FFFFFF;
 }
 [data-season-theme="durga_puja"] .btn-primary {
   background: linear-gradient(135deg, #DC2626 0%, #B91C1C 50%, #991B1B 100%) !important;
   border-color: #F59E0B !important;
-  box-shadow: 0 4px 20px -2px rgba(220, 38, 38, 0.5) !important;
+  box-shadow: 0 4px 20px -2px rgba(220, 38, 38, 0.45) !important;
+  color: #FFFFFF !important;
 }
 [data-season-theme="durga_puja"] .text-brand-cyan {
   color: #DC2626 !important;
@@ -3196,89 +3421,310 @@ html.light .btn-primary:hover {
 [data-season-theme="durga_puja"] .dark .text-brand-cyan {
   color: #F87171 !important;
 }
-[data-season-theme="durga_puja"] .badge-festive {
-  background: linear-gradient(90deg, #DC2626, #F59E0B);
-  color: #FFFFFF;
+
+/* 2. DIWALI / FESTIVAL OF LIGHTS THEME */
+[data-season-theme="diwali"] {
+  --theme-bg: #0B1329;
+  --theme-bg-secondary: #060B18;
+  --theme-surface: #0F1E3D;
+  --theme-surface-glass: rgba(15, 30, 61, 0.90);
+  --theme-text-primary: #FFFBEB;
+  --theme-text-secondary: #FDE68A;
+  --theme-text-muted: #CBD5E1;
+  --theme-heading: #FBBF24;
+  --theme-border: rgba(245, 158, 11, 0.35);
+  --theme-button: #D97706;
+  --theme-button-text: #0F172A;
+  --theme-button-hover: #B45309;
+  --theme-accent: #D97706;
+  --theme-accent-secondary: #F59E0B;
+  --theme-shadow: 0 10px 35px -5px rgba(245, 158, 11, 0.25);
+  --theme-badge-bg: linear-gradient(135deg, #F59E0B, #D97706);
+  --theme-badge-text: #0F172A;
+}
+[data-season-theme="diwali"] .btn-primary {
+  background: linear-gradient(135deg, #F59E0B 0%, #D97706 60%, #B45309 100%) !important;
+  border-color: #FDE68A !important;
+  box-shadow: 0 4px 22px -2px rgba(245, 158, 11, 0.55) !important;
+  color: #0F172A !important;
+  font-weight: 800 !important;
+}
+[data-season-theme="diwali"] .text-brand-cyan {
+  color: #FBBF24 !important;
+}
+.dark[data-season-theme="diwali"] .text-brand-cyan,
+[data-season-theme="diwali"] .dark .text-brand-cyan {
+  color: #FDE68A !important;
 }
 
-/* 2. CHRISTMAS & NEW YEAR THEME */
+/* 3. CHRISTMAS & NEW YEAR THEME */
 [data-season-theme="christmas"] {
-  --theme-accent-festive: #059669;
-  --theme-red-festive: #E11D48;
+  --theme-bg: #F0FDF4;
+  --theme-bg-secondary: #EFF6FF;
+  --theme-surface: #FFFFFF;
+  --theme-surface-glass: rgba(255, 255, 255, 0.92);
+  --theme-text-primary: #0F172A;
+  --theme-text-secondary: #334155;
+  --theme-text-muted: #64748B;
+  --theme-heading: #064E3B;
+  --theme-border: #CBD5E1;
+  --theme-button: #E11D48;
+  --theme-button-text: #FFFFFF;
+  --theme-button-hover: #BE123C;
+  --theme-accent: #E11D48;
+  --theme-accent-secondary: #059669;
+  --theme-shadow: 0 10px 30px -5px rgba(225, 29, 72, 0.15);
+  --theme-badge-bg: linear-gradient(135deg, #059669, #E11D48);
+  --theme-badge-text: #FFFFFF;
 }
 [data-season-theme="christmas"] .btn-primary {
-  background: linear-gradient(135deg, #059669 0%, #047857 50%, #E11D48 100%) !important;
+  background: linear-gradient(135deg, #E11D48 0%, #BE123C 60%, #064E3B 100%) !important;
   border-color: rgba(255, 255, 255, 0.4) !important;
-  box-shadow: 0 4px 20px -2px rgba(5, 150, 105, 0.45) !important;
+  box-shadow: 0 4px 20px -2px rgba(225, 29, 72, 0.45) !important;
+  color: #FFFFFF !important;
 }
 [data-season-theme="christmas"] .text-brand-cyan {
-  color: #059669 !important;
+  color: #E11D48 !important;
 }
 .dark[data-season-theme="christmas"] .text-brand-cyan,
 [data-season-theme="christmas"] .dark .text-brand-cyan {
-  color: #34D399 !important;
+  color: #FB7185 !important;
 }
 
-/* 3. SUMMER SUNSHINE THEME */
+/* 4. SUMMER SUNSHINE THEME */
 [data-season-theme="summer"] {
-  --theme-accent-festive: #F59E0B;
-  --theme-sky-festive: #0284C7;
+  --theme-bg: #F0F9FF;
+  --theme-bg-secondary: #E0F2FE;
+  --theme-surface: #FFFFFF;
+  --theme-surface-glass: rgba(255, 255, 255, 0.92);
+  --theme-text-primary: #0C4A6E;
+  --theme-text-secondary: #0369A1;
+  --theme-text-muted: #0284C7;
+  --theme-heading: #0369A1;
+  --theme-border: #BAE6FD;
+  --theme-button: #0284C7;
+  --theme-button-text: #FFFFFF;
+  --theme-button-hover: #0369A1;
+  --theme-accent: #0284C7;
+  --theme-accent-secondary: #F59E0B;
+  --theme-shadow: 0 10px 30px -5px rgba(2, 132, 199, 0.15);
+  --theme-badge-bg: linear-gradient(135deg, #0284C7, #F59E0B);
+  --theme-badge-text: #FFFFFF;
 }
 [data-season-theme="summer"] .btn-primary {
-  background: linear-gradient(135deg, #F59E0B 0%, #EA580C 50%, #0284C7 100%) !important;
-  box-shadow: 0 4px 20px -2px rgba(245, 158, 11, 0.45) !important;
+  background: linear-gradient(135deg, #0284C7 0%, #0369A1 60%, #F59E0B 100%) !important;
+  box-shadow: 0 4px 20px -2px rgba(2, 132, 199, 0.45) !important;
+  color: #FFFFFF !important;
 }
 [data-season-theme="summer"] .text-brand-cyan {
-  color: #D97706 !important;
+  color: #0284C7 !important;
 }
 .dark[data-season-theme="summer"] .text-brand-cyan,
 [data-season-theme="summer"] .dark .text-brand-cyan {
-  color: #FBBF24 !important;
+  color: #38BDF8 !important;
 }
 
-/* 4. WINTER FROST THEME */
+/* 5. WINTER FROST THEME */
 [data-season-theme="winter"] {
-  --theme-accent-festive: #0284C7;
-  --theme-frost-festive: #38BDF8;
+  --theme-bg: #F8FAFC;
+  --theme-bg-secondary: #EFF6FF;
+  --theme-surface: #FFFFFF;
+  --theme-surface-glass: rgba(255, 255, 255, 0.90);
+  --theme-text-primary: #0F172A;
+  --theme-text-secondary: #334155;
+  --theme-text-muted: #64748B;
+  --theme-heading: #0C4A6E;
+  --theme-border: #E0F2FE;
+  --theme-button: #0284C7;
+  --theme-button-text: #FFFFFF;
+  --theme-button-hover: #0369A1;
+  --theme-accent: #0284C7;
+  --theme-accent-secondary: #38BDF8;
+  --theme-shadow: 0 10px 30px -5px rgba(2, 132, 199, 0.12);
+  --theme-badge-bg: linear-gradient(135deg, #0284C7, #38BDF8);
+  --theme-badge-text: #FFFFFF;
 }
 [data-season-theme="winter"] .btn-primary {
   background: linear-gradient(135deg, #0284C7 0%, #0369A1 50%, #0C4A6E 100%) !important;
-  box-shadow: 0 4px 20px -2px rgba(2, 132, 199, 0.5) !important;
+  box-shadow: 0 4px 20px -2px rgba(2, 132, 199, 0.45) !important;
+  color: #FFFFFF !important;
 }
 
-/* 5. INDEPENDENCE & REPUBLIC DAY THEME (TIRANGA) */
+/* 6. INDEPENDENCE DAY (TIRANGA) */
 [data-season-theme="independence"] {
-  --theme-saffron: #EA580C;
-  --theme-green: #16A34A;
+  --theme-bg: #FFFDF8;
+  --theme-bg-secondary: #F0FDF4;
+  --theme-surface: #FFFFFF;
+  --theme-surface-glass: rgba(255, 255, 255, 0.92);
+  --theme-text-primary: #0F172A;
+  --theme-text-secondary: #334155;
+  --theme-text-muted: #64748B;
+  --theme-heading: #C2410C;
+  --theme-border: #FED7AA;
+  --theme-button: #EA580C;
+  --theme-button-text: #FFFFFF;
+  --theme-button-hover: #C2410C;
+  --theme-accent: #EA580C;
+  --theme-accent-secondary: #16A34A;
+  --theme-shadow: 0 10px 30px -5px rgba(234, 88, 12, 0.15);
+  --theme-badge-bg: linear-gradient(135deg, #EA580C, #16A34A);
+  --theme-badge-text: #FFFFFF;
 }
 [data-season-theme="independence"] .btn-primary {
   background: linear-gradient(135deg, #EA580C 0%, #C2410C 50%, #16A34A 100%) !important;
   border-color: rgba(255, 255, 255, 0.3) !important;
   box-shadow: 0 4px 20px -2px rgba(234, 88, 12, 0.45) !important;
+  color: #FFFFFF !important;
 }
 [data-season-theme="independence"] .text-brand-cyan {
   color: #EA580C !important;
 }
-.dark[data-season-theme="independence"] .text-brand-cyan,
-[data-season-theme="independence"] .dark .text-brand-cyan {
-  color: #FB923C !important;
+
+/* 7. REPUBLIC DAY THEME */
+[data-season-theme="republic"] {
+  --theme-bg: #F8FAFC;
+  --theme-bg-secondary: #EFF6FF;
+  --theme-surface: #FFFFFF;
+  --theme-surface-glass: rgba(255, 255, 255, 0.92);
+  --theme-text-primary: #0F172A;
+  --theme-text-secondary: #334155;
+  --theme-text-muted: #64748B;
+  --theme-heading: #1E3A8A;
+  --theme-border: #BFDBFE;
+  --theme-button: #1D4ED8;
+  --theme-button-text: #FFFFFF;
+  --theme-button-hover: #1E40AF;
+  --theme-accent: #1D4ED8;
+  --theme-accent-secondary: #EA580C;
+  --theme-shadow: 0 10px 30px -5px rgba(29, 78, 216, 0.15);
+  --theme-badge-bg: linear-gradient(135deg, #1D4ED8, #EA580C);
+  --theme-badge-text: #FFFFFF;
+}
+[data-season-theme="republic"] .btn-primary {
+  background: linear-gradient(135deg, #1D4ED8 0%, #1E40AF 50%, #EA580C 100%) !important;
+  box-shadow: 0 4px 20px -2px rgba(29, 78, 216, 0.45) !important;
+  color: #FFFFFF !important;
+}
+[data-season-theme="republic"] .text-brand-cyan {
+  color: #1D4ED8 !important;
 }
 
-/* 6. DIWALI / FESTIVAL OF LIGHTS THEME */
-[data-season-theme="diwali"] {
-  --theme-purple: #9333EA;
-  --theme-gold: #F59E0B;
+/* 8. SPRING / BASANTA UTSAV THEME */
+[data-season-theme="spring"] {
+  --theme-bg: #FEFCE8;
+  --theme-bg-secondary: #FFF7ED;
+  --theme-surface: #FFFFFF;
+  --theme-surface-glass: rgba(255, 255, 255, 0.92);
+  --theme-text-primary: #1C1917;
+  --theme-text-secondary: #44403C;
+  --theme-text-muted: #78716C;
+  --theme-heading: #B45309;
+  --theme-border: #FEF08A;
+  --theme-button: #D97706;
+  --theme-button-text: #FFFFFF;
+  --theme-button-hover: #B45309;
+  --theme-accent: #EAB308;
+  --theme-accent-secondary: #EC4899;
+  --theme-shadow: 0 10px 30px -5px rgba(234, 179, 8, 0.15);
+  --theme-badge-bg: linear-gradient(135deg, #EAB308, #EC4899);
+  --theme-badge-text: #FFFFFF;
 }
-[data-season-theme="diwali"] .btn-primary {
-  background: linear-gradient(135deg, #9333EA 0%, #7E22CE 50%, #F59E0B 100%) !important;
-  box-shadow: 0 4px 20px -2px rgba(147, 51, 234, 0.5) !important;
+[data-season-theme="spring"] .btn-primary {
+  background: linear-gradient(135deg, #EAB308 0%, #D97706 50%, #EC4899 100%) !important;
+  box-shadow: 0 4px 20px -2px rgba(217, 119, 6, 0.45) !important;
+  color: #FFFFFF !important;
 }
-[data-season-theme="diwali"] .text-brand-cyan {
-  color: #9333EA !important;
+[data-season-theme="spring"] .text-brand-cyan {
+  color: #D97706 !important;
 }
-.dark[data-season-theme="diwali"] .text-brand-cyan,
-[data-season-theme="diwali"] .dark .text-brand-cyan {
-  color: #C084FC !important;
+
+/* 9. MONSOON THEME */
+[data-season-theme="monsoon"] {
+  --theme-bg: #F0FDFA;
+  --theme-bg-secondary: #F1F5F9;
+  --theme-surface: #FFFFFF;
+  --theme-surface-glass: rgba(255, 255, 255, 0.92);
+  --theme-text-primary: #0F172A;
+  --theme-text-secondary: #334155;
+  --theme-text-muted: #64748B;
+  --theme-heading: #115E59;
+  --theme-border: #99F6E4;
+  --theme-button: #0D9488;
+  --theme-button-text: #FFFFFF;
+  --theme-button-hover: #0F766E;
+  --theme-accent: #0D9488;
+  --theme-accent-secondary: #0284C7;
+  --theme-shadow: 0 10px 30px -5px rgba(13, 148, 136, 0.15);
+  --theme-badge-bg: linear-gradient(135deg, #0D9488, #0284C7);
+  --theme-badge-text: #FFFFFF;
 }
+[data-season-theme="monsoon"] .btn-primary {
+  background: linear-gradient(135deg, #0D9488 0%, #0F766E 50%, #0284C7 100%) !important;
+  box-shadow: 0 4px 20px -2px rgba(13, 148, 136, 0.45) !important;
+  color: #FFFFFF !important;
+}
+[data-season-theme="monsoon"] .text-brand-cyan {
+  color: #0D9488 !important;
+}
+
+/* ========================================================
+   KEYFRAME ANIMATIONS FOR THEME DECORATIONS
+   ======================================================== */
+
+@keyframes kash-sway {
+  0%, 100% { transform: rotate(0deg) translateY(0); }
+  35%      { transform: rotate(4.5deg) translateY(-3px); }
+  70%      { transform: rotate(-3deg) translateY(-1px); }
+}
+
+@keyframes diya-flicker {
+  0%, 100% { transform: scale(1); opacity: 0.95; filter: drop-shadow(0 0 6px rgba(245, 158, 11, 0.7)); }
+  25%      { transform: scale(1.08) skewX(2deg); opacity: 1; filter: drop-shadow(0 0 10px rgba(251, 191, 36, 0.9)); }
+  50%      { transform: scale(0.96) skewX(-1.5deg); opacity: 0.88; filter: drop-shadow(0 0 5px rgba(245, 158, 11, 0.6)); }
+  75%      { transform: scale(1.04) skewX(1deg); opacity: 0.98; filter: drop-shadow(0 0 8px rgba(251, 191, 36, 0.85)); }
+}
+
+@keyframes gentle-snowfall {
+  0%   { transform: translateY(-10px) translateX(0); opacity: 0; }
+  15%  { opacity: 0.8; }
+  85%  { opacity: 0.8; }
+  100% { transform: translateY(105vh) translateX(30px); opacity: 0; }
+}
+
+@keyframes petal-drift {
+  0%   { transform: translateY(-15px) rotate(0deg) translateX(0); opacity: 0; }
+  20%  { opacity: 0.85; }
+  60%  { transform: translateY(50vh) rotate(180deg) translateX(40px); }
+  100% { transform: translateY(105vh) rotate(360deg) translateX(-25px); opacity: 0; }
+}
+
+@keyframes rain-drizzle {
+  0%   { transform: translateY(-30px) translateX(0); opacity: 0; }
+  20%  { opacity: 0.7; }
+  100% { transform: translateY(105vh) translateX(-15px); opacity: 0.1; }
+}
+
+@keyframes chakra-slow-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+@keyframes santa-glide {
+  0%   { transform: translateX(-120%) translateY(0); }
+  35%  { transform: translateX(20%) translateY(-10px); }
+  65%  { transform: translateX(65%) translateY(6px); }
+  100% { transform: translateX(220%) translateY(-4px); }
+}
+
+/* Accessibility: prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 
 

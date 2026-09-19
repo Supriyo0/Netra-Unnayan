@@ -14,6 +14,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useWishlist } from '../../context/WishlistContext';
 import { BrandLogo } from '../common/BrandLogo';
+import { SeasonalLogoWrapper } from '../theme/SeasonalLogoWrapper';
 
 export const Navbar = () => {
   const navigate = useNavigate();
@@ -127,7 +128,9 @@ export const Navbar = () => {
             {/* 1. Left: Brand Identity Logo (Bigger & Animated with Natural Eye Blinking) */}
             <Link to="/" className="flex items-center group shrink min-w-0 focus:outline-none py-0.5">
               <div className="nav-logo-animated-wrapper">
-                <BrandLogo isDark={isDark} size="default" />
+                <SeasonalLogoWrapper>
+                  <BrandLogo isDark={isDark} size="default" />
+                </SeasonalLogoWrapper>
               </div>
             </Link>
 

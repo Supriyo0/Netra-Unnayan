@@ -9,7 +9,7 @@ import api from '../../api/client';
 import { useTheme, THEME_CONFIGS } from '../../context/ThemeContext';
 
 export default function AdminSettingsPage() {
-  const { setSeasonalTheme: setLiveSeasonalTheme } = useTheme();
+  const { setSeasonalTheme: setLiveSeasonalTheme, setThemeTextOverrides } = useTheme();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [testingSmtp, setTestingSmtp] = useState(false);
@@ -63,8 +63,15 @@ export default function AdminSettingsPage() {
     festive_effects_enabled: '1',
     // ImgBB Cloud Storage
     imgbb_api_key: '',
-    // Payment QR Image (uploaded to ImgBB)
-    upi_qr_image: ''
+    // Payment QR Image (uploaded to server)
+    upi_qr_image: '',
+    // GSTIN — only shown on invoices if set. Leave blank to hide.
+    gstin: '',
+    // Per-theme text overrides (override the hardcoded THEME_CONFIGS defaults)
+    theme_badge_text: '',
+    theme_greeting_bengali: '',
+    theme_greeting_english: '',
+    theme_loading_tagline: ''
   });
 
   const defaultTrustFeatures = [
@@ -134,6 +141,17 @@ export default function AdminSettingsPage() {
       setFeedback({ type: '', message: '' });
       const res = await api.post('/admin/settings.php', settings);
       if (res.success) {
+        if (setThemeTextOverrides) {
+          setThemeTextOverrides({
+            badge: settings.theme_badge_text || '',
+            greetingBengali: settings.theme_greeting_bengali || '',
+            greetingEnglish: settings.theme_greeting_english || '',
+            loadingTagline: settings.theme_loading_tagline || ''
+          });
+        }
+        if (setLiveSeasonalTheme && settings.active_theme) {
+          setLiveSeasonalTheme(settings.active_theme);
+        }
         setFeedback({ type: 'success', message: 'Settings & service controls saved successfully!' });
         setTimeout(() => setFeedback({ type: '', message: '' }), 4000);
       } else {
@@ -156,21 +174,20 @@ export default function AdminSettingsPage() {
     setUploadingQr(true);
     setFeedback({ type: '', message: '' });
     try {
-      const apiKey = settings.imgbb_api_key || '';
       const formData = new FormData();
-      formData.append('image', file);
-      const url = `https://api.imgbb.com/1/upload?key=${apiKey || '6e4d42a55c7c49e54fc28ef59e56f6b3'}`;
-      const res = await fetch(url, { method: 'POST', body: formData });
-      const json = await res.json();
-      if (json.success && json.data?.url) {
-        setSettings(prev => ({ ...prev, upi_qr_image: json.data.url }));
-        setFeedback({ type: 'success', message: 'Payment QR image uploaded successfully! Save settings to apply.' });
+      formData.append('file', file);
+      formData.append('prefix', 'qr');
+      // Upload to our own server — no external API key needed
+      const res = await api.post('/admin/upload.php', formData);
+      if (res.success && res.data?.url) {
+        setSettings(prev => ({ ...prev, upi_qr_image: res.data.url }));
+        setFeedback({ type: 'success', message: 'Payment QR image uploaded successfully! Click Save Settings to apply.' });
         setTimeout(() => setFeedback({ type: '', message: '' }), 4000);
       } else {
-        setFeedback({ type: 'error', message: 'ImgBB upload failed. Check your API key in settings.' });
+        setFeedback({ type: 'error', message: res.message || 'Upload failed. Please try again.' });
       }
     } catch (err) {
-      setFeedback({ type: 'error', message: 'Failed to upload QR image: ' + err.message });
+      setFeedback({ type: 'error', message: 'Failed to upload QR image: ' + (err.message || 'Server error') });
     } finally {
       setUploadingQr(false);
       e.target.value = '';
@@ -424,6 +441,49 @@ export default function AdminSettingsPage() {
               className="w-full glass-input rounded-xl px-3.5 py-2.5 text-xs text-white"
             />
           </div>
+
+          {/* Per-Theme Text Overrides — editable by admin */}
+          <div className="p-4 rounded-xl bg-white/[0.02] border border-amber-500/20 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                <span className="text-[11px] font-bold text-white">Per-Theme Text Overrides</span>
+              </div>
+              <span className="text-[10px] text-slate-400">Leave blank to use theme's built-in defaults</span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-300 mb-1">Badge / Subtitle Label</label>
+                <input type="text" name="theme_badge_text" value={settings.theme_badge_text || ''} onChange={handleChange}
+                  placeholder={THEME_CONFIGS[settings.active_theme || 'default']?.badge || 'e.g. PUJA SPECIAL'}
+                  className="w-full glass-input rounded-xl px-3.5 py-2 text-xs" />
+              </div>
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-300 mb-1">Bengali Greeting (Banner Ribbon)</label>
+                <input type="text" name="theme_greeting_bengali" value={settings.theme_greeting_bengali || ''} onChange={handleChange}
+                  placeholder={THEME_CONFIGS[settings.active_theme || 'default']?.greetingBengali || ''}
+                  className="w-full glass-input rounded-xl px-3.5 py-2 text-xs" />
+              </div>
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-300 mb-1">English Greeting (Loading Screen)</label>
+                <input type="text" name="theme_greeting_english" value={settings.theme_greeting_english || ''} onChange={handleChange}
+                  placeholder={THEME_CONFIGS[settings.active_theme || 'default']?.greetingEnglish || ''}
+                  className="w-full glass-input rounded-xl px-3.5 py-2 text-xs" />
+              </div>
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-300 mb-1">Loading Screen Tagline</label>
+                <input type="text" name="theme_loading_tagline" value={settings.theme_loading_tagline || ''} onChange={handleChange}
+                  placeholder={THEME_CONFIGS[settings.active_theme || 'default']?.loadingTagline || ''}
+                  className="w-full glass-input rounded-xl px-3.5 py-2 text-xs font-mono" />
+              </div>
+            </div>
+            <button type="button"
+              onClick={() => setSettings(prev => ({ ...prev, theme_badge_text: '', theme_greeting_bengali: '', theme_greeting_english: '', theme_loading_tagline: '' }))}
+              className="text-[10px] text-rose-400 hover:underline">
+              Clear all overrides (revert to theme defaults)
+            </button>
+          </div>
+
         </div>
       </div>
 
@@ -869,6 +929,7 @@ export default function AdminSettingsPage() {
               type="number"
               name="free_shipping_threshold"
               value={settings.free_shipping_threshold || '999'}
+
               onChange={handleChange}
               className="w-full glass-input rounded-xl px-3.5 py-2 text-xs font-mono"
             />
@@ -884,6 +945,27 @@ export default function AdminSettingsPage() {
               className="w-full glass-input rounded-xl px-3.5 py-2 text-xs font-mono"
             />
           </div>
+        </div>
+
+        {/* GSTIN — shown on invoices only if admin has set it */}
+        <div className="mt-2 p-3.5 rounded-xl bg-amber-500/5 border border-amber-500/20 space-y-2">
+          <div className="flex items-center gap-2">
+            <ShieldCheck className="w-4 h-4 text-amber-400" />
+            <span className="text-xs font-bold text-white">GSTIN (GST Registration Number)</span>
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 font-mono font-bold">OPTIONAL</span>
+          </div>
+          <input
+            type="text"
+            name="gstin"
+            value={settings.gstin || ''}
+            onChange={handleChange}
+            placeholder="Leave blank to hide GSTIN on all invoices (e.g. 19ABCDE1234F1Z5)"
+            className="w-full glass-input rounded-xl px-3.5 py-2 text-xs font-mono tracking-widest"
+            maxLength={15}
+          />
+          <span className="text-[10px] text-amber-300/70 block leading-relaxed">
+            ⚠️ Enter only your real, government-registered GSTIN. If left blank, <strong className="text-amber-300">no GSTIN will appear</strong> on any invoice — no fake placeholder is ever used.
+          </span>
         </div>
 
         {/* UPI Payment QR Image Upload */}
@@ -921,7 +1003,7 @@ export default function AdminSettingsPage() {
               {uploadingQr ? (
                 <>
                   <RefreshCw className="w-6 h-6 text-brand-cyan animate-spin" />
-                  <span className="text-[11px] text-brand-cyan font-semibold">Uploading to ImgBB...</span>
+                  <span className="text-[11px] text-brand-cyan font-semibold">Uploading to server...</span>
                 </>
               ) : (
                 <>

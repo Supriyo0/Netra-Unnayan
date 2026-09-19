@@ -49,7 +49,8 @@ try {
             'smtp_encryption', 'smtp_from_email', 'smtp_from_name',
             'trust_features', 'imgbb_api_key', 'upi_qr_image',
             'active_theme', 'festive_banner_enabled', 'festive_banner_text', 'festive_effects_enabled',
-            'curated_categories'
+            'curated_categories', 'gstin',
+            'theme_badge_text', 'theme_greeting_bengali', 'theme_greeting_english', 'theme_loading_tagline'
         ];
 
         // Safe prepared statement with positional placeholders avoiding duplicate named parameter issue

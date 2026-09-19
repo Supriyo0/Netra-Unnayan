@@ -4,7 +4,7 @@ import { MapPin, Phone, Mail, MessageCircle, ShieldCheck, Clock, Award, External
 import { useTheme } from '../../context/ThemeContext';
 
 export const Footer = () => {
-  const { isDark } = useTheme();
+  const { isDark, content } = useTheme();
 
   return (
     <footer className={`border-t text-sm mt-6 sm:mt-10 pb-20 md:pb-6 transition-colors ${
@@ -116,8 +116,17 @@ export const Footer = () => {
           </div>
         </div>
 
+        {/* Seasonal Theme Greeting */}
+        {content?.footerMessage && (
+          <div className="mt-4 pt-4 border-t border-slate-200/60 dark:border-white/5 text-center">
+            <p className="text-xs font-semibold italic text-slate-500 dark:text-slate-400">
+              {content.footerMessage}
+            </p>
+          </div>
+        )}
+
         {/* Legal Policies & Jurisdiction Bar */}
-        <div className="border-t border-slate-200 dark:border-white/10 mt-6 sm:mt-8 pt-4 sm:pt-6 flex flex-col md:flex-row items-center justify-between gap-3 text-xs">
+        <div className="border-t border-slate-200 dark:border-white/10 mt-4 sm:mt-6 pt-4 sm:pt-6 flex flex-col md:flex-row items-center justify-between gap-3 text-xs">
           <div className="flex flex-wrap items-center justify-center md:justify-start gap-x-3 gap-y-1 text-slate-600 dark:text-slate-400 text-[11px] sm:text-xs">
             <Link to="/terms" className="hover:text-slate-900 dark:hover:text-slate-200">Terms of Service</Link>
             <span>&bull;</span>

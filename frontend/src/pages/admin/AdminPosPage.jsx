@@ -3,7 +3,7 @@ import {
   Barcode, Search, Plus, Minus, Trash2, Printer, 
   CheckCircle2, AlertCircle, ShoppingCart, User, CreditCard, 
   DollarSign, X, Check, Camera, Video, ShieldCheck, History, 
-  FileText, Sparkles, RefreshCw, Eye
+  FileText, Sparkles, RefreshCw, Eye, Tag, PenLine
 } from 'lucide-react';
 import api from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
@@ -281,7 +281,64 @@ export const AdminPosPage = () => {
   };
 
   // =========================================================================
-  // CAMERA SCANNER ENGINE (Using BarcodeDetector / MediaStream)
+  // CUSTOM ITEM FORM — for non-catalog items (repairs, lens charges, etc.)
+  // =========================================================================
+  const [customItemForm, setCustomItemForm] = useState({
+    name: '',
+    sku: '',
+    unit_price: '',
+    quantity: 1,
+    addon_label: '',   // Optional add-on label (e.g. "Lens Fitting Charge")
+    addon_price: 0     // Optional add-on price per unit
+  });
+  const [showCustomItemForm, setShowCustomItemForm] = useState(false);
+
+  const addCustomItemToBill = () => {
+    const name = customItemForm.name.trim();
+    const price = parseFloat(customItemForm.unit_price);
+    const qty = Math.max(1, parseInt(customItemForm.quantity) || 1);
+    const addonPrice = Math.max(0, parseFloat(customItemForm.addon_price) || 0);
+    const addonLabel = customItemForm.addon_label.trim();
+
+    if (!name) {
+      setErrorMessage('Custom item name is required.');
+      return;
+    }
+    if (isNaN(price) || price <= 0) {
+      setErrorMessage('Custom item price must be a positive number.');
+      return;
+    }
+
+    playBeep();
+    setErrorMessage('');
+
+    const customSku = customItemForm.sku.trim() || `CUSTOM-${Date.now()}`;
+    const effectiveName = addonLabel ? `${name} (+${addonLabel})` : name;
+
+    setPosItems(prev => [
+      ...prev,
+      {
+        product_id: 0,           // 0 = custom item, no DB product
+        is_custom: true,
+        name: effectiveName,
+        sku: customSku,
+        unit_price: price,
+        stock_quantity: 9999,    // unlimited virtual stock
+        quantity: qty,
+        frame_size: '',
+        frame_color: '',
+        available_sizes: [],
+        available_colors: [],
+        lens_type: addonLabel || '',
+        lens_price: addonPrice
+      }
+    ]);
+
+    // Reset form
+    setCustomItemForm({ name: '', sku: '', unit_price: '', quantity: 1, addon_label: '', addon_price: 0 });
+    setShowCustomItemForm(false);
+  };
+
   // =========================================================================
   const startCamera = async () => {
     setCameraModalOpen(true);
@@ -372,12 +429,15 @@ export const AdminPosPage = () => {
         notes: [billNotes.trim(), `Warranty: ${warrantyNote}`].filter(Boolean).join(' | '),
         items: posItems.map(item => ({
           product_id: item.product_id,
+          is_custom: item.is_custom || false,
+          product_name: item.name,
+          product_sku: item.sku,
           unit_price: item.unit_price,
           quantity: item.quantity,
           lens_type: item.lens_type,
           lens_price: item.lens_price,
-          frame_size: item.frame_size || 'Medium',
-          frame_color: item.frame_color || 'Matte Black'
+          frame_size: item.frame_size || '',
+          frame_color: item.frame_color || ''
         }))
       };
 
@@ -753,6 +813,158 @@ export const AdminPosPage = () => {
               )}
             </div>
 
+            {/* ========== CUSTOM ITEM PANEL ========== */}
+            <div className="glass-card rounded-2xl border border-purple-500/30 shadow-sm overflow-hidden">
+              {/* Header Toggle */}
+              <button
+                type="button"
+                onClick={() => setShowCustomItemForm(prev => !prev)}
+                className="w-full flex items-center justify-between px-5 py-3.5 hover:bg-purple-500/5 transition-colors group"
+              >
+                <div className="flex items-center gap-2.5">
+                  <div className="w-7 h-7 rounded-lg bg-purple-500/15 border border-purple-500/30 flex items-center justify-center">
+                    <PenLine className="w-3.5 h-3.5 text-purple-400" />
+                  </div>
+                  <div className="text-left">
+                    <span className="text-xs font-bold text-white block">Add Custom / Unlisted Item</span>
+                    <span className="text-[10px] text-slate-400">Repairs, services, lens charges, or any item not in catalog</span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-300 font-mono font-bold">NO STOCK DEDUCTED</span>
+                  <span className={`text-purple-400 transition-transform duration-200 ${showCustomItemForm ? 'rotate-180' : ''}`}>▼</span>
+                </div>
+              </button>
+
+              {/* Collapsible Form Body */}
+              {showCustomItemForm && (
+                <div className="px-5 pb-5 pt-1 border-t border-purple-500/20 space-y-3 bg-purple-500/[0.03]">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+                    {/* Item Name */}
+                    <div className="sm:col-span-2">
+                      <label className="block text-[11px] font-semibold text-slate-300 mb-1 flex items-center gap-1">
+                        <Tag className="w-3 h-3 text-purple-400" /> Item / Service Name *
+                      </label>
+                      <input
+                        type="text"
+                        value={customItemForm.name}
+                        onChange={e => setCustomItemForm(p => ({ ...p, name: e.target.value }))}
+                        placeholder="e.g. Progressive Lens Fitting, Frame Repair, Cleaning Kit, Consultation Charge..."
+                        className="w-full glass-input rounded-xl px-3.5 py-2 text-xs"
+                        onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addCustomItemToBill(); } }}
+                      />
+                    </div>
+
+                    {/* Price */}
+                    <div>
+                      <label className="block text-[11px] font-semibold text-slate-300 mb-1">Unit Price (₹) *</label>
+                      <input
+                        type="number"
+                        min="1"
+                        value={customItemForm.unit_price}
+                        onChange={e => setCustomItemForm(p => ({ ...p, unit_price: e.target.value }))}
+                        placeholder="e.g. 350"
+                        className="w-full glass-input rounded-xl px-3.5 py-2 text-xs font-mono"
+                      />
+                    </div>
+
+                    {/* Quantity */}
+                    <div>
+                      <label className="block text-[11px] font-semibold text-slate-300 mb-1">Quantity</label>
+                      <div className="flex items-center gap-2">
+                        <button type="button" onClick={() => setCustomItemForm(p => ({ ...p, quantity: Math.max(1, (p.quantity || 1) - 1) }))}
+                          className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 text-white font-bold text-sm flex items-center justify-center transition-colors">−</button>
+                        <input
+                          type="number"
+                          min="1"
+                          value={customItemForm.quantity}
+                          onChange={e => setCustomItemForm(p => ({ ...p, quantity: Math.max(1, parseInt(e.target.value) || 1) }))}
+                          className="flex-1 glass-input rounded-xl px-3 py-2 text-xs font-mono text-center"
+                        />
+                        <button type="button" onClick={() => setCustomItemForm(p => ({ ...p, quantity: (p.quantity || 1) + 1 }))}
+                          className="w-8 h-8 rounded-lg bg-brand-cyan/20 hover:bg-brand-cyan/30 text-brand-cyan font-bold text-sm flex items-center justify-center transition-colors">+</button>
+                      </div>
+                    </div>
+
+                    {/* Optional Add-on Label */}
+                    <div>
+                      <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                        Add-on Charge Label <span className="text-slate-500 font-normal">(optional)</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={customItemForm.addon_label}
+                        onChange={e => setCustomItemForm(p => ({ ...p, addon_label: e.target.value }))}
+                        placeholder="e.g. Anti-Glare Coating, Lens Fitting"
+                        className="w-full glass-input rounded-xl px-3.5 py-2 text-xs"
+                      />
+                    </div>
+
+                    {/* Optional Add-on Price */}
+                    <div>
+                      <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                        Add-on Price (₹) <span className="text-slate-500 font-normal">(optional)</span>
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={customItemForm.addon_price || ''}
+                        onChange={e => setCustomItemForm(p => ({ ...p, addon_price: parseFloat(e.target.value) || 0 }))}
+                        placeholder="0"
+                        className="w-full glass-input rounded-xl px-3.5 py-2 text-xs font-mono"
+                      />
+                    </div>
+
+                    {/* Custom SKU — optional */}
+                    <div className="sm:col-span-2">
+                      <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                        Custom SKU / Code <span className="text-slate-500 font-normal">(optional — auto-generated if blank)</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={customItemForm.sku}
+                        onChange={e => setCustomItemForm(p => ({ ...p, sku: e.target.value }))}
+                        placeholder="e.g. SRV-LENS-01 (leave blank to auto-generate)"
+                        className="w-full glass-input rounded-xl px-3.5 py-2 text-xs font-mono"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Preview & Add Button */}
+                  {customItemForm.name && customItemForm.unit_price > 0 && (
+                    <div className="p-3 rounded-xl bg-purple-500/10 border border-purple-500/20 text-xs flex items-center justify-between gap-2">
+                      <div className="text-slate-300 leading-relaxed">
+                        <strong className="text-white">{customItemForm.name}</strong>
+                        {customItemForm.addon_label && <span className="text-purple-300"> + {customItemForm.addon_label}</span>}
+                        <span className="mx-2 text-slate-500">×{customItemForm.quantity || 1}</span>
+                        <span className="font-mono text-brand-cyan font-bold">
+                          = ₹{(((parseFloat(customItemForm.unit_price) || 0) + (parseFloat(customItemForm.addon_price) || 0)) * (parseInt(customItemForm.quantity) || 1)).toLocaleString('en-IN')}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex items-center gap-3 pt-1">
+                    <button
+                      type="button"
+                      onClick={addCustomItemToBill}
+                      className="flex-1 btn-primary py-2.5 rounded-xl text-xs font-black flex items-center justify-center gap-2 shadow-cyan-glow"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Add Custom Item to Bill
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setShowCustomItemForm(false); setCustomItemForm({ name: '', sku: '', unit_price: '', quantity: 1, addon_label: '', addon_price: 0 }); }}
+                      className="px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white text-xs font-bold transition-colors border border-white/10"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
             {/* POS Bill Items Table */}
             <div className="glass-card rounded-2xl p-5 space-y-4 overflow-x-auto border border-white/10">
               <div className="flex items-center justify-between border-b border-white/10 pb-3">
@@ -792,37 +1004,50 @@ export const AdminPosPage = () => {
                   </thead>
                   <tbody className="divide-y divide-white/5 font-mono">
                     {posItems.map((it, idx) => (
-                      <tr key={idx} className="hover:bg-white/[0.02]">
+                      <tr key={idx} className={`hover:bg-white/[0.02] ${it.is_custom ? 'bg-purple-500/[0.03]' : ''}`}>
                         <td className="py-3.5 font-sans">
-                          <strong className="text-white block font-bold text-sm">{it.name}</strong>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <strong className="text-white font-bold text-sm">{it.name}</strong>
+                            {it.is_custom && (
+                              <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-purple-500/20 border border-purple-500/30 text-purple-300 font-mono font-bold uppercase tracking-wider">CUSTOM</span>
+                            )}
+                          </div>
                           <div className="flex items-center gap-2.5 flex-wrap mt-1">
                             <span className="text-brand-cyan text-[10px] font-mono">{it.sku}</span>
-                            {/* Size Selector */}
-                            <div className="flex items-center gap-1">
-                              <span className="text-[10px] text-slate-400 font-medium">Size:</span>
-                              <select
-                                value={it.frame_size || 'Medium'}
-                                onChange={(e) => updateItemSize(idx, e.target.value)}
-                                className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-slate-900 border border-white/20 text-white focus:border-brand-cyan outline-none cursor-pointer"
-                              >
-                                {(it.available_sizes?.length > 0 ? it.available_sizes : ['Small', 'Medium', 'Large', 'Extra Large']).map(s => (
-                                  <option key={s} value={s}>{s}</option>
-                                ))}
-                              </select>
-                            </div>
-                            {/* Color Selector */}
-                            <div className="flex items-center gap-1">
-                              <span className="text-[10px] text-slate-400 font-medium">Color:</span>
-                              <select
-                                value={it.frame_color || 'Matte Black'}
-                                onChange={(e) => updateItemColor(idx, e.target.value)}
-                                className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-slate-900 border border-white/20 text-white focus:border-brand-cyan outline-none cursor-pointer"
-                              >
-                                {(it.available_colors?.length > 0 ? it.available_colors : ['Matte Black', 'Tortoise Amber', 'Gunmetal Grey', 'Rose Gold', 'Silver', 'Gold', 'Transparent Crystal']).map(c => (
-                                  <option key={c} value={c}>{c}</option>
-                                ))}
-                              </select>
-                            </div>
+                            {/* Only show size/color selectors for catalog items */}
+                            {!it.is_custom && (
+                              <>
+                                {/* Size Selector */}
+                                <div className="flex items-center gap-1">
+                                  <span className="text-[10px] text-slate-400 font-medium">Size:</span>
+                                  <select
+                                    value={it.frame_size || 'Medium'}
+                                    onChange={(e) => updateItemSize(idx, e.target.value)}
+                                    className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-slate-900 border border-white/20 text-white focus:border-brand-cyan outline-none cursor-pointer"
+                                  >
+                                    {(it.available_sizes?.length > 0 ? it.available_sizes : ['Small', 'Medium', 'Large', 'Extra Large']).map(s => (
+                                      <option key={s} value={s}>{s}</option>
+                                    ))}
+                                  </select>
+                                </div>
+                                {/* Color Selector */}
+                                <div className="flex items-center gap-1">
+                                  <span className="text-[10px] text-slate-400 font-medium">Color:</span>
+                                  <select
+                                    value={it.frame_color || 'Matte Black'}
+                                    onChange={(e) => updateItemColor(idx, e.target.value)}
+                                    className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-slate-900 border border-white/20 text-white focus:border-brand-cyan outline-none cursor-pointer"
+                                  >
+                                    {(it.available_colors?.length > 0 ? it.available_colors : ['Matte Black', 'Tortoise Amber', 'Gunmetal Grey', 'Rose Gold', 'Silver', 'Gold', 'Transparent Crystal']).map(c => (
+                                      <option key={c} value={c}>{c}</option>
+                                    ))}
+                                  </select>
+                                </div>
+                              </>
+                            )}
+                            {it.is_custom && it.lens_type && (
+                              <span className="text-[10px] text-purple-300 font-medium">+ {it.lens_type}</span>
+                            )}
                           </div>
                         </td>
                         <td className="py-3.5 text-slate-300">

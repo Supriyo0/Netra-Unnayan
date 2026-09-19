@@ -51,7 +51,36 @@ try {
         $sku = trim($item['product_sku'] ?? $item['sku'] ?? '');
         $qty = max(1, (int)($item['quantity'] ?? 1));
         $customPrice = isset($item['unit_price']) ? (float)$item['unit_price'] : null;
+        $isCustomItem = !empty($item['is_custom']); // Custom items bypass DB & stock
 
+        if ($isCustomItem) {
+            // ---- CUSTOM ITEM: no DB product, no stock deduction ----
+            $unitPrice = $customPrice > 0 ? $customPrice : 0.00;
+            $lensType = trim($item['lens_type'] ?? '');
+            $lensPrice = max(0.00, (float)($item['lens_price'] ?? 0.00));
+            $lineTotal = ($unitPrice + $lensPrice) * $qty;
+            $subtotal += $lineTotal;
+
+            $itemsToInsert[] = [
+                'product_id'   => 0,
+                'product_name' => trim($item['product_name'] ?? 'Custom Item'),
+                'product_sku'  => trim($item['product_sku'] ?? ('CUSTOM-' . time())),
+                'image_url'    => '',
+                'unit_price'   => $unitPrice,
+                'quantity'     => $qty,
+                'lens_type'    => $lensType ?: null,
+                'lens_price'   => $lensPrice,
+                'total_price'  => $lineTotal,
+                'frame_size'   => '',
+                'frame_color'  => '',
+                'prev_qty'     => 0,
+                'new_qty'      => 0,
+                'is_custom'    => true
+            ];
+            continue; // Skip all catalog-product logic below
+        }
+
+        // ---- CATALOG ITEM: DB lookup + stock check + deduction ----
         if ($productId > 0) {
             $stmt = $pdo->prepare('
                 SELECT p.id, p.name, p.sku, p.barcode, p.price, p.discount_price, p.stock_quantity,
@@ -116,7 +145,8 @@ try {
             'frame_size'   => $frameSize,
             'frame_color'  => $frameColor,
             'prev_qty'     => $prevQty,
-            'new_qty'      => $newQty
+            'new_qty'      => $newQty,
+            'is_custom'    => false
         ];
     }
 
@@ -157,7 +187,7 @@ try {
 
     foreach ($itemsToInsert as $oi) {
         $displayName = $oi['product_name'];
-        if (!empty($oi['frame_size']) || !empty($oi['frame_color'])) {
+        if (!$oi['is_custom'] && (!empty($oi['frame_size']) || !empty($oi['frame_color']))) {
             $displayName .= " [Size: {$oi['frame_size']} | Color: {$oi['frame_color']}]";
         }
 
@@ -170,10 +200,13 @@ try {
             $oi['unit_price'], $oi['quantity'], $oi['lens_type'], $oi['lens_price'], $oi['total_price']
         ]);
 
-        $invStmt->execute([
-            $oi['product_id'], -$oi['quantity'], $oi['prev_qty'], $oi['new_qty'],
-            $invoiceNumber, "Offline POS counter sale {$invoiceNumber} by {$adminName}", $adminId
-        ]);
+        // Only log inventory transactions for real catalog products
+        if (!$oi['is_custom'] && $oi['product_id'] > 0) {
+            $invStmt->execute([
+                $oi['product_id'], -$oi['quantity'], $oi['prev_qty'], $oi['new_qty'],
+                $invoiceNumber, "Offline POS counter sale {$invoiceNumber} by {$adminName}", $adminId
+            ]);
+        }
     }
 
     // Insert Invoice Record

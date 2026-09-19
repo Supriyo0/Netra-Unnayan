@@ -67,7 +67,7 @@ export const AdminStaffSalesPage = () => {
   };
 
   const staffPerformance = reportData?.staff_performance || [];
-  const grossRevenue = reportData?.summary?.gross_revenue || 0;
+  const grossRevenue = reportData?.stats?.grossRevenue || reportData?.summary?.gross_revenue || 0;
 
   // Filtered staff list
   const filteredStaff = staffPerformance.filter(st => {

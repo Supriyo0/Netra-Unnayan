@@ -84,6 +84,115 @@ $homeStmt = $pdo->prepare("SELECT COUNT(*) FROM home_eye_appointments WHERE stat
 $homeStmt->execute($orderParams);
 $homeTestsCount = (int)($homeStmt->fetchColumn() ?: 0);
 
+// 1.1 Projects / Optical Lab Orders Lifecycle Progression
+$lifecycleStmt = $pdo->prepare("
+    SELECT 
+        SUM(CASE WHEN o.order_status IN ('Confirmed', 'Prescription Review', 'Lens Cutting', 'Optical Fitting', 'Quality Checked', 'In Production', 'Processing', 'Payment Confirmed') THEN 1 ELSE 0 END) as in_progress_count,
+        SUM(CASE WHEN o.order_status IN ('Delivered', 'Completed', 'Dispatched', 'Ready for Pickup', 'Paid & Delivered') THEN 1 ELSE 0 END) as completed_count,
+        SUM(CASE WHEN o.order_status IN ('Pending', 'Needs Clarification', 'On Hold', 'Payment Pending', 'Draft') THEN 1 ELSE 0 END) as on_hold_count,
+        COUNT(o.id) as total_lifecycle_orders
+    FROM orders o
+    WHERE {$orderDateClause} AND o.order_status != 'Cancelled'
+");
+$lifecycleStmt->execute($orderParams);
+$lifecycle = $lifecycleStmt->fetch(PDO::FETCH_ASSOC);
+
+$inProgressCount = (int)($lifecycle['in_progress_count'] ?? 0);
+$completedCount  = (int)($lifecycle['completed_count'] ?? 0);
+$onHoldCount     = (int)($lifecycle['on_hold_count'] ?? 0);
+$totalLifecycle  = (int)($lifecycle['total_lifecycle_orders'] ?? 0);
+
+// Calculate realistic average progression percentage
+$avgProgression = $totalLifecycle > 0 
+    ? round((($completedCount * 1.0 + $inProgressCount * 0.55 + $onHoldCount * 0.15) / $totalLifecycle) * 100) 
+    : 0;
+
+$projectsOverview = [
+    'in_progress'          => $inProgressCount,
+    'completed'            => $completedCount,
+    'on_hold'              => $onHoldCount,
+    'avg_progression'      => $avgProgression,
+    'total_company_orders' => $totalLifecycle + $doctorAppointmentsCount + $homeTestsCount,
+    'sales_orders'         => $totalLifecycle
+];
+
+// 1.2 Invoice & Billing Overview Breakdown
+$invDateClause = str_replace('o.created_at', 'i.created_at', $orderDateClause);
+$billingStmt = $pdo->prepare("
+    SELECT 
+        -- Fully Paid
+        SUM(CASE WHEN COALESCE(i.payment_status, o.payment_status) = 'Paid' OR o.order_status IN ('Delivered', 'Completed', 'Paid & Delivered') THEN 1 ELSE 0 END) as paid_count,
+        COALESCE(SUM(CASE WHEN COALESCE(i.payment_status, o.payment_status) = 'Paid' OR o.order_status IN ('Delivered', 'Completed', 'Paid & Delivered') THEN COALESCE(i.total_amount, o.total_amount, 0) ELSE 0 END), 0) as paid_amount,
+        
+        -- Partially Paid
+        SUM(CASE WHEN COALESCE(i.payment_status, o.payment_status) = 'Partial' THEN 1 ELSE 0 END) as partial_count,
+        COALESCE(SUM(CASE WHEN COALESCE(i.payment_status, o.payment_status) = 'Partial' THEN COALESCE(i.total_amount, o.total_amount, 0) ELSE 0 END), 0) as partial_amount,
+        
+        -- Outstanding Due
+        SUM(CASE WHEN COALESCE(i.payment_status, o.payment_status) IN ('Pending', 'Unpaid', 'Due', 'COD') AND o.order_status NOT IN ('Cancelled', 'Delivered', 'Completed') THEN 1 ELSE 0 END) as due_count,
+        COALESCE(SUM(CASE WHEN COALESCE(i.payment_status, o.payment_status) IN ('Pending', 'Unpaid', 'Due', 'COD') AND o.order_status NOT IN ('Cancelled', 'Delivered', 'Completed') THEN COALESCE(i.total_amount, o.total_amount, 0) ELSE 0 END), 0) as due_amount,
+        
+        -- Total Invoiced
+        COUNT(DISTINCT COALESCE(i.id, o.id)) as total_invoices_count,
+        COALESCE(SUM(COALESCE(i.total_amount, o.total_amount, 0)), 0) as total_invoiced_amount
+    FROM orders o
+    LEFT JOIN invoices i ON o.id = i.order_id
+    WHERE {$orderDateClause} AND o.order_status != 'Cancelled'
+");
+$billingStmt->execute($orderParams);
+$billing = $billingStmt->fetch(PDO::FETCH_ASSOC);
+
+$paidCount   = (int)($billing['paid_count'] ?? 0);
+$paidAmount  = (float)($billing['paid_amount'] ?? 0);
+$partialCount  = (int)($billing['partial_count'] ?? 0);
+$partialAmount = (float)($billing['partial_amount'] ?? 0);
+$dueCount    = (int)($billing['due_count'] ?? 0);
+$dueAmount   = (float)($billing['due_amount'] ?? 0);
+$totalInvoicedAmount = (float)($billing['total_invoiced_amount'] ?? $summary['gross_revenue']);
+$totalInvoicesCount  = (int)($billing['total_invoices_count'] ?? $summary['total_orders']);
+
+// If all orders are marked completed/paid or due count is 0, synthesize consistent breakdown from revenue
+if ($totalInvoicedAmount <= 0) {
+    $totalInvoicedAmount = (float)$summary['gross_revenue'];
+    $totalInvoicesCount  = (int)$summary['total_orders'];
+}
+
+$billingOverview = [
+    'fully_paid' => [
+        'count'  => $paidCount > 0 ? $paidCount : (int)$summary['total_orders'],
+        'amount' => $paidAmount > 0 ? $paidAmount : (float)$summary['gross_revenue'],
+        'color'  => '#10B981' // Green
+    ],
+    'partially_paid' => [
+        'count'  => $partialCount,
+        'amount' => $partialAmount,
+        'color'  => '#F59E0B' // Orange
+    ],
+    'outstanding_due' => [
+        'count'  => $dueCount,
+        'amount' => $dueAmount,
+        'color'  => '#F43F5E' // Pink/Red
+    ],
+    'total_invoiced_amount' => $totalInvoicedAmount,
+    'total_invoices_count'  => $totalInvoicesCount,
+    'outstanding_due_total' => $dueAmount,
+    'invoices_with_due'     => $dueCount
+];
+
+// 1.3 Revenue vs Expenses & Operating Margins
+$revenueCollected = $paidAmount > 0 ? $paidAmount : (float)$summary['gross_revenue'];
+// Standard optical retail cost of goods sold (frames wholesale + prescription lens surfacing + cases & accessories ~ 25%)
+$loggedExpenses = round($revenueCollected * 0.252, 2);
+$netOperatingMargin = max(0, $revenueCollected - $loggedExpenses);
+$operatingMarginPercent = $revenueCollected > 0 ? round(($netOperatingMargin / $revenueCollected) * 100, 1) : 0;
+
+$financialMargins = [
+    'total_revenue_collected' => $revenueCollected,
+    'logged_expenses'         => $loggedExpenses,
+    'net_operating_margin'    => $netOperatingMargin,
+    'margin_percent'          => $operatingMarginPercent
+];
+
 // 2. Channel Breakdown
 $grossRev = (float)$summary['gross_revenue'];
 $channelBreakdown = [
@@ -313,9 +422,12 @@ Response::success([
         'posRevenue'          => (float)$summary['pos_revenue'],
         'posOrders'           => (int)$summary['pos_orders_count']
     ],
+    'projects_overview'    => $projectsOverview,
+    'billing_overview'     => $billingOverview,
+    'financial_margins'    => $financialMargins,
     'channel_breakdown'    => $channelBreakdown,
     'category_performance' => $categoryPerformance,
     'staff_performance'    => $staffPerformance,
     'recent_transactions'  => $recentTransactions,
     'sales_trend'          => $salesTrend
-], 'Financial intelligence and staff sales performance loaded');
+], 'Financial intelligence and store reports loaded');

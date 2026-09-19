@@ -88,6 +88,7 @@ export const InvoiceModal = ({ isOpen, onClose, invoiceData }) => {
   const upi_id = activeData.upi_id || activeData.payment_upi || '';
   const payment_qr = activeData.payment_qr || '';
   const payment_qr_image = activeData.payment_qr_image || '';
+  const gstin = (activeData.gstin || '').trim(); // Only show if admin configured it
 
   // Calculate items based on service type
   let activeItems = [];
@@ -201,7 +202,11 @@ export const InvoiceModal = ({ isOpen, onClose, invoiceData }) => {
   const verifyQrFallback = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&margin=1&data=${encodeURIComponent(invoiceVerifyUrl)}`;
 
   const configuredUpiId = (upi_id || activeData.payment_upi || (typeof window !== 'undefined' ? localStorage.getItem('nu_admin_upi_id') : '') || '').trim();
-  const configuredQrImage = (payment_qr || payment_qr_image || (typeof window !== 'undefined' ? localStorage.getItem('nu_admin_payment_qr') : '') || '').trim();
+  const _rawQrImage = (payment_qr || payment_qr_image || (typeof window !== 'undefined' ? localStorage.getItem('nu_admin_payment_qr') : '') || '').trim();
+  // Make relative paths absolute so they work in print context (iframe/popup)
+  const configuredQrImage = _rawQrImage && !_rawQrImage.startsWith('http')
+    ? `${window.location.origin}${_rawQrImage.startsWith('/') ? '' : '/'}${_rawQrImage}`
+    : _rawQrImage;
   const upiPayload = configuredUpiId ? `upi://pay?pa=${configuredUpiId}&pn=Netra%20Unnayan&am=${calculatedTotal}&tn=Invoice%20${invoiceNumber}` : '';
 
   useEffect(() => {
@@ -974,9 +979,10 @@ export const InvoiceModal = ({ isOpen, onClose, invoiceData }) => {
                     Phone: +91 6294 553 897 / 9382293614<br />
                     Web: www.netraunnayan.in
                   </p>
-                  {isGstInvoice && (
+                  {/* Only show GSTIN if admin has configured it in Store Settings */}
+                  {isGstInvoice && gstin && (
                     <p className="text-[9.5px] font-bold text-slate-900">
-                      GSTIN: 19ABCDE1234F1Z5
+                      GSTIN: {gstin}
                     </p>
                   )}
                 </div>

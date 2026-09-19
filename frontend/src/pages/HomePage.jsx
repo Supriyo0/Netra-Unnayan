@@ -31,7 +31,7 @@ export const HomePage = () => {
 
   const { addToCart } = useCart();
   const { isInWishlist, toggleWishlist } = useWishlist();
-  const { isDark } = useTheme();
+  const { isDark, content, seasonalTheme } = useTheme();
 
   const handleCopyCoupon = (code) => {
     if (!code) return;
@@ -445,28 +445,40 @@ export const HomePage = () => {
                     : 'bg-sky-100 border-sky-300 text-sky-800'
                 }`}>
                   <Sparkles className="w-2.5 h-2.5 sm:w-3.5 sm:h-3.5 shrink-0" />
-                  <span className="truncate">{slide.tag || 'CLARITY YOU CAN TRUST'}</span>
+                  <span className="truncate">
+                    {(currentSlide === 0 && seasonalTheme !== 'default' && content?.announcementBadge) 
+                      ? content.announcementBadge 
+                      : (slide.tag || 'CLARITY YOU CAN TRUST')}
+                  </span>
                 </div>
 
                 <h1 className={`hero-banner-title text-xs sm:text-2xl lg:text-5xl font-black tracking-tight leading-tight font-heading line-clamp-2 ${
                   isDark ? 'text-white' : 'text-slate-900'
                 }`}>
-                  {slide.title}
+                  {(currentSlide === 0 && seasonalTheme !== 'default' && content?.heroTitle) 
+                    ? content.heroTitle 
+                    : slide.title}
                 </h1>
 
                 <p className={`hero-banner-sub text-[10px] sm:text-xs lg:text-base max-w-xl font-normal leading-snug sm:leading-relaxed line-clamp-2 sm:line-clamp-3 ${
                   isDark ? 'text-slate-300' : 'text-slate-600'
                 }`}>
-                  {slide.subtitle}
+                  {(currentSlide === 0 && seasonalTheme !== 'default' && content?.heroSubtitle) 
+                    ? content.heroSubtitle 
+                    : slide.subtitle}
                 </p>
 
                 <div className="flex flex-wrap items-center justify-start gap-1.5 sm:gap-3 pt-0.5 sm:pt-1">
                   <Link 
-                    to={slide.button_url || '/catalog'} 
+                    to={(currentSlide === 0 && seasonalTheme !== 'default' && content?.heroCtaLink) ? content.heroCtaLink : (slide.button_url || '/catalog')} 
                     className="hero-banner-btn btn-primary text-[10px] sm:text-sm py-1.5 sm:py-3 px-2.5 sm:px-6 shadow-cyan-glow font-black uppercase tracking-wider flex items-center gap-1 sm:gap-1.5 rounded-lg sm:rounded-xl"
                   >
                     <Glasses className="w-3 h-3 sm:w-4 sm:h-4" />
-                    <span>{slide.button_text || 'EXPLORE'}</span>
+                    <span>
+                      {(currentSlide === 0 && seasonalTheme !== 'default' && content?.heroCtaText) 
+                        ? content.heroCtaText 
+                        : (slide.button_text || 'EXPLORE')}
+                    </span>
                   </Link>
 
                   <Link 

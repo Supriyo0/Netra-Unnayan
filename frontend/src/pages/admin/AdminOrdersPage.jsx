@@ -28,7 +28,7 @@ export default function AdminOrdersPage() {
   const [trackingNumber, setTrackingNumber] = useState('');
   const [trackingUrl, setTrackingUrl] = useState('');
   const [estimatedDeliveryDate, setEstimatedDeliveryDate] = useState('');
-  const [storeSettings, setStoreSettings] = useState({ upi_id: '', upi_qr_image: '' });
+  const [storeSettings, setStoreSettings] = useState({ upi_id: '', upi_qr_image: '', gstin: '' });
 
   const statusList = [
     { value: 'all', label: 'All Orders' },
@@ -48,7 +48,8 @@ export default function AdminOrdersPage() {
       if (res.success && res.data) {
         setStoreSettings({
           upi_id: res.data.upi_id || '',
-          upi_qr_image: res.data.upi_qr_image || ''
+          upi_qr_image: res.data.upi_qr_image || '',
+          gstin: res.data.gstin || ''
         });
       }
     }).catch(() => {});
@@ -1802,7 +1803,7 @@ export default function AdminOrdersPage() {
         isOpen={!!invoiceModalData}
         onClose={() => setInvoiceModalData(null)}
         invoiceData={invoiceModalData
-          ? { ...invoiceModalData, upi_id: storeSettings?.upi_id || '', payment_qr_image: storeSettings?.upi_qr_image || '' }
+          ? { ...invoiceModalData, upi_id: storeSettings?.upi_id || '', payment_qr_image: storeSettings?.upi_qr_image || '', gstin: storeSettings?.gstin || '' }
           : null
         }
       />
