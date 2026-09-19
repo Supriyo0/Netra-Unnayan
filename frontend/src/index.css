@@ -35,6 +35,19 @@
 /* =========================================================================
    SEASONAL THEME ENGINE KEYFRAME ANIMATIONS
    ========================================================================= */
+@keyframes luxury-float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-7px);
+  }
+}
+
+.animate-luxury-float {
+  animation: luxury-float 3.5s ease-in-out infinite;
+}
+
 @keyframes kash-sway {
   0%, 100% {
     transform: rotate(0deg);

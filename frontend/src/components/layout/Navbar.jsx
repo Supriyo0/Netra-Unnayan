@@ -1033,57 +1033,51 @@ export const Navbar = () => {
         </nav>
       </div>
 
-      {/* Floating Draggable Luxury Support Chat Launcher (Balanced & Premium Capsule) */}
+      {/* Floating 3D Draggable Support Chat Balloon (Sleek, Levitation Floating Animation) */}
       {!supportChatOpen && (
         <motion.div
           drag
           dragConstraints={{
-            top: -550,
+            top: -600,
             bottom: 60,
-            left: -window.innerWidth + 180,
+            left: -window.innerWidth + 80,
             right: 20
           }}
-          dragElastic={0.1}
+          dragElastic={0.12}
           dragMomentum={false}
-          whileDrag={{ scale: 1.06, cursor: 'grabbing' }}
-          whileHover={{ scale: 1.04, y: -2 }}
-          className="fixed bottom-20 sm:bottom-6 right-4 sm:right-6 z-50 cursor-grab select-none touch-none"
+          whileDrag={{ scale: 1.15, cursor: 'grabbing' }}
+          whileHover={{ scale: 1.1 }}
+          className="fixed bottom-20 sm:bottom-7 right-4 sm:right-7 z-[9999] cursor-grab select-none touch-none"
         >
-          <button
-            type="button"
-            onClick={() => setSupportChatOpen(true)}
-            className="relative flex items-center gap-2.5 pl-2 pr-4 py-2 rounded-full bg-white/95 dark:bg-slate-900/95 text-slate-900 dark:text-white border border-slate-300 dark:border-cyan-500/40 shadow-[0_8px_30px_rgba(0,0,0,0.14)] dark:shadow-[0_10px_30px_rgba(0,180,216,0.25)] hover:shadow-[0_12px_35px_rgba(0,180,216,0.35)] transition-all duration-300 backdrop-blur-md group cursor-pointer"
-            title="Netra Live Support — Click to chat or drag to reposition"
-            aria-label="Open Live Chat Support"
-          >
-            {/* Gloss Highlight */}
-            <div className="absolute top-0.5 left-4 right-4 h-[1px] rounded-full bg-gradient-to-r from-transparent via-cyan-400/50 to-transparent pointer-events-none" />
-            
-            {/* Circular Icon Orb with Pulse */}
-            <div className="relative w-9 h-9 rounded-full bg-gradient-to-tr from-cyan-600 via-teal-500 to-cyan-500 text-white flex items-center justify-center shadow-md shrink-0 group-hover:scale-105 transition-transform">
-              <MessageSquare className="w-4.5 h-4.5 fill-white stroke-none" />
+          <div className="animate-luxury-float">
+            <button
+              type="button"
+              onClick={() => setSupportChatOpen(true)}
+              className="relative w-13 h-13 sm:w-14 sm:h-14 rounded-full bg-gradient-to-tr from-cyan-600 via-teal-500 to-cyan-400 text-white flex items-center justify-center shadow-[0_10px_28px_rgba(0,180,216,0.45)] border-2 border-white/90 hover:shadow-[0_14px_35px_rgba(0,180,216,0.65)] transition-all duration-300 backdrop-blur-md group cursor-pointer"
+              title="Netra Live Optical Support — Click to chat or drag anywhere"
+              aria-label="Open Live Chat Support"
+            >
+              {/* 3D Top Specular Gloss Arc */}
+              <div className="absolute top-1 left-2.5 right-2.5 h-[2.5px] rounded-full bg-white/70 blur-[0.4px] pointer-events-none" />
               
-              {/* Pulsing Emerald Dot */}
-              <span className="absolute -top-0.5 -right-0.5 flex h-3 w-3">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-80"></span>
-                <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500 border-2 border-white dark:border-slate-900"></span>
-              </span>
-            </div>
-
-            {/* Typography */}
-            <div className="flex flex-col text-left pr-0.5">
-              <div className="flex items-center gap-1.5">
-                <span className="text-xs font-black tracking-tight text-slate-900 dark:text-white leading-tight">
-                  Live Support
-                </span>
-                <Sparkles className="w-3 h-3 text-cyan-600 dark:text-brand-cyan animate-pulse" />
+              {/* Inner Optical / Chat Icon */}
+              <div className="relative flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
+                <MessageSquare className="w-6 h-6 fill-white stroke-none drop-shadow-sm" />
               </div>
-              <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 leading-tight flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block animate-pulse"></span>
-                Online &bull; Chat with us
+
+              {/* Pulsing Emerald Online Indicator */}
+              <span className="absolute -top-0.5 -right-0.5 flex h-3.5 w-3.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-300 opacity-85"></span>
+                <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-emerald-400 border-2 border-slate-900 shadow-xs"></span>
               </span>
-            </div>
-          </button>
+
+              {/* Mini Hover Tooltip on Desktop */}
+              <span className="absolute right-full mr-3 px-3 py-1.5 rounded-2xl bg-slate-950/90 text-white text-[11px] font-black tracking-wide shadow-xl whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none border border-white/15 hidden sm:flex items-center gap-1.5">
+                <span>💬 Chat with us</span>
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+              </span>
+            </button>
+          </div>
         </motion.div>
       )}
 
