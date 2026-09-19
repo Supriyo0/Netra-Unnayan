@@ -22,7 +22,7 @@ export default function AdminPostersPage() {
     'Blue-Cut & Progressive Lenses Fitting'
   ]);
   const [contactNumber, setContactNumber] = useState('9382293614');
-  const [contactEmail, setContactEmail] = useState('netraunnayan7@gmail.com');
+  const [contactEmail, setContactEmail] = useState('netraunnayan@gmail.com');
 
   useEffect(() => {
     fetchDoctors();

@@ -106,7 +106,7 @@ export const Footer = () => {
               </p>
               <p className="flex items-center gap-2">
                 <Mail className="w-4 h-4 text-brand-cyan shrink-0" />
-                <span>netraunnayan7@gmail.com</span>
+                <span>netraunnayan@gmail.com</span>
               </p>
               <p className="flex items-center gap-2 text-slate-500 dark:text-slate-400">
                 <Clock className="w-4 h-4 text-slate-400 dark:text-slate-500 shrink-0" />

@@ -22,7 +22,7 @@ export default function AdminSettingsPage() {
     business_address: 'Digha Bypass Rd, Jatimati, Digha, West Bengal 721428',
     google_maps_url: 'https://maps.app.goo.gl/TBLLEac73RdPyqLq6?g_st=ac',
     contact_phone: '9382293614',
-    contact_email: 'netraunnayan7@gmail.com',
+    contact_email: 'netraunnayan@gmail.com',
     upi_id: '9382293614@upi',
     upi_merchant_name: 'NETRA UNNAYAN OPTICALS',
     cod_enabled: '1',
@@ -44,10 +44,10 @@ export default function AdminSettingsPage() {
     // SMTP Credentials
     smtp_host: 'smtp.gmail.com',
     smtp_port: '587',
-    smtp_user: 'netraunnayan7@gmail.com',
-    smtp_pass: '',
+    smtp_user: 'netraunnayan@gmail.com',
+    smtp_pass: 'bpvrmdbyjqfqbxxf',
     smtp_encryption: 'tls',
-    smtp_from_email: 'netraunnayan7@gmail.com',
+    smtp_from_email: 'netraunnayan@gmail.com',
     smtp_from_name: 'Netra Unnayan Eye Care',
     // Trust Features
     trust_features: JSON.stringify([
@@ -183,9 +183,9 @@ export default function AdminSettingsPage() {
     try {
       const res = await api.post('/admin/settings.php', {
         ...settings,
-        test_email: settings.contact_email || 'netraunnayan7@gmail.com'
+        test_email: settings.contact_email || 'netraunnayan@gmail.com'
       });
-      setFeedback({ type: 'success', message: 'SMTP configuration validated! Test notification dispatched.' });
+      setFeedback({ type: 'success', message: 'SMTP configuration validated! Test notification dispatched to netraunnayan@gmail.com.' });
     } catch (err) {
       setFeedback({ type: 'error', message: err.message || 'SMTP test failed. Please verify host, port, and App Password.' });
     } finally {
@@ -792,7 +792,7 @@ export default function AdminSettingsPage() {
               name="smtp_user"
               value={settings.smtp_user || ''}
               onChange={handleChange}
-              placeholder="netraunnayan7@gmail.com"
+              placeholder="netraunnayan@gmail.com"
               className="w-full glass-input rounded-xl px-3.5 py-2 text-xs font-mono"
             />
           </div>

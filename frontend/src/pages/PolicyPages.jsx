@@ -79,9 +79,9 @@ export const ContactPage = () => {
               <Phone className="w-4 h-4 text-brand-teal shrink-0" />
               <span>+91 9382293614</span>
             </div>
-            <div className="flex items-center gap-2 text-slate-300">
-              <Mail className="w-4 h-4 text-brand-cyan shrink-0" />
-              <span>netraunnayan7@gmail.com</span>
+            <div className="flex items-center gap-2">
+              <Mail className="w-4 h-4 text-brand-cyan" />
+              <span>netraunnayan@gmail.com</span>
             </div>
             <div className="flex items-center gap-2 text-slate-400">
               <Clock className="w-4 h-4 text-slate-500 shrink-0" />

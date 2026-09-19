@@ -44,6 +44,7 @@ import AdminOrdersPage from './pages/admin/AdminOrdersPage';
 import AdminInventoryPage from './pages/admin/AdminInventoryPage';
 import AdminLabelsPage from './pages/admin/AdminLabelsPage';
 import { AdminReportsPage } from './pages/admin/AdminReportsPage';
+import { AdminStaffSalesPage } from './pages/admin/AdminStaffSalesPage';
 import AdminPostersPage from './pages/admin/AdminPostersPage';
 import AdminSettingsPage from './pages/admin/AdminSettingsPage';
 import { AdminCategoriesPage } from './pages/admin/AdminCategoriesPage';
@@ -133,6 +134,7 @@ export default function App() {
                   <Route path="inventory" element={<AdminInventoryPage />} />
                   <Route path="labels" element={<AdminLabelsPage />} />
                   <Route path="reports" element={<AdminReportsPage />} />
+                  <Route path="staff-sales" element={<AdminStaffSalesPage />} />
                   <Route path="posters" element={<AdminPostersPage />} />
                   <Route path="settings" element={<AdminSettingsPage />} />
                 </Route>

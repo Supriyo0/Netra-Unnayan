@@ -263,14 +263,67 @@ export const HomePage = () => {
     }
   };
 
-  const roundelCategories = [
-    { name: 'Japanese Titanium', slug: 'eyeglasses', icon: Glasses, image: 'https://images.unsplash.com/photo-1591076482161-42ce6da69f67?w=400&auto=format&fit=crop&q=80', sub: '8g Ultralight' },
-    { name: 'UV400 Polarized', slug: 'sunglasses', icon: Compass, image: 'https://images.unsplash.com/photo-1511499767150-a48a237f0083?w=400&auto=format&fit=crop&q=80', sub: 'Ocean Glare Cut' },
-    { name: 'BluZero™ Screen', slug: 'computer-glasses', icon: Eye, image: 'https://images.unsplash.com/photo-1574258495973-f010dfbb5371?w=400&auto=format&fit=crop&q=80', sub: '98% Blue Block' },
-    { name: 'Reading & Bifocal', slug: 'reading-glasses', icon: Glasses, image: 'https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=400&auto=format&fit=crop&q=80', sub: 'CR-39 Optics' },
-    { name: 'Digha Eye Clinic', slug: 'doctors', isLink: '/doctors', icon: Stethoscope, image: 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=400&auto=format&fit=crop&q=80', sub: 'Senior Surgeons' },
-    { name: 'Free Home Test', slug: 'home-eye-checkup', isLink: '/home-eye-checkup', icon: HomeIcon, image: 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=400&auto=format&fit=crop&q=80', sub: 'Doorstep Checkup' }
+  const getRoundelIcon = (iconName) => {
+    switch ((iconName || '').toLowerCase()) {
+      case 'glasses':
+        return Glasses;
+      case 'compass':
+        return Compass;
+      case 'eye':
+        return Eye;
+      case 'stethoscope':
+        return Stethoscope;
+      case 'home':
+      case 'homeicon':
+        return HomeIcon;
+      case 'shield':
+        return Shield;
+      case 'sparkles':
+        return Sparkles;
+      case 'star':
+        return Star;
+      case 'award':
+        return Award;
+      case 'tag':
+        return Tag;
+      case 'camera':
+        return Camera;
+      case 'heart':
+        return Heart;
+      case 'truck':
+        return Truck;
+      case 'rotateccw':
+        return RotateCcw;
+      default:
+        return Glasses;
+    }
+  };
+
+  const defaultRoundelCategories = [
+    { id: 'cat_1', name: 'Japanese Titanium', slug: 'eyeglasses', isLink: '/catalog?category=eyeglasses', icon: 'Glasses', image: 'https://images.unsplash.com/photo-1591076482161-42ce6da69f67?w=400&auto=format&fit=crop&q=80', sub: '8g Ultralight', is_active: 1 },
+    { id: 'cat_2', name: 'UV400 Polarized', slug: 'sunglasses', isLink: '/catalog?category=sunglasses', icon: 'Compass', image: 'https://images.unsplash.com/photo-1511499767150-a48a237f0083?w=400&auto=format&fit=crop&q=80', sub: 'Ocean Glare Cut', is_active: 1 },
+    { id: 'cat_3', name: 'BluZero™ Screen', slug: 'computer-glasses', isLink: '/catalog?category=computer-glasses', icon: 'Eye', image: 'https://images.unsplash.com/photo-1574258495973-f010dfbb5371?w=400&auto=format&fit=crop&q=80', sub: '98% Blue Block', is_active: 1 },
+    { id: 'cat_4', name: 'Reading & Bifocal', slug: 'reading-glasses', isLink: '/catalog?category=reading-glasses', icon: 'Glasses', image: 'https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=400&auto=format&fit=crop&q=80', sub: 'CR-39 Optics', is_active: 1 },
+    { id: 'cat_5', name: 'Digha Eye Clinic', slug: 'doctors', isLink: '/doctors', icon: 'Stethoscope', image: 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=400&auto=format&fit=crop&q=80', sub: 'Senior Surgeons', is_active: 1 },
+    { id: 'cat_6', name: 'Free Home Test', slug: 'home-eye-checkup', isLink: '/home-eye-checkup', icon: 'Home', image: 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=400&auto=format&fit=crop&q=80', sub: 'Doorstep Checkup', is_active: 1 }
   ];
+
+  let activeRoundelCategories = defaultRoundelCategories;
+  if (storeSettings?.curated_categories) {
+    try {
+      const parsed = typeof storeSettings.curated_categories === 'string'
+        ? JSON.parse(storeSettings.curated_categories)
+        : storeSettings.curated_categories;
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        const filtered = parsed.filter(c => c.is_active !== 0 && c.is_active !== '0' && c.is_active !== false);
+        if (filtered.length > 0) {
+          activeRoundelCategories = filtered;
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to parse curated_categories setting:', e);
+    }
+  }
 
   const [touchStart, setTouchStart] = useState(null);
   const [touchEnd, setTouchEnd] = useState(null);
@@ -534,12 +587,15 @@ export const HomePage = () => {
         </div>
 
         <div className="categories-scroll-track">
-          {roundelCategories.map((cat, idx) => {
-            const Icon = cat.icon;
-            const targetUrl = cat.isLink || `/catalog?category=${cat.slug}`;
+          {activeRoundelCategories.map((cat, idx) => {
+            const Icon = typeof cat.icon === 'function' ? cat.icon : getRoundelIcon(cat.icon);
+            const targetUrl = cat.isLink || (cat.slug ? (cat.slug.startsWith('/') ? cat.slug : `/catalog?category=${cat.slug}`) : '/catalog');
+            const imageUrl = cat.image || cat.image_url || 'https://images.unsplash.com/photo-1591076482161-42ce6da69f67?w=400&auto=format&fit=crop&q=80';
+            const catName = cat.name || cat.title || 'Category';
+            const catSub = cat.sub || cat.subtitle || '';
             return (
               <Link 
-                key={idx} 
+                key={cat.id || idx} 
                 to={targetUrl}
                 className="category-roundel-item group"
               >
@@ -547,10 +603,15 @@ export const HomePage = () => {
                   <span className="category-badge-icon">
                     <Icon className="w-3.5 h-3.5 text-slate-950" />
                   </span>
-                  <img src={cat.image} alt={cat.name} loading="lazy" />
+                  <img 
+                    src={imageUrl} 
+                    alt={catName} 
+                    loading="lazy" 
+                    onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1591076482161-42ce6da69f67?w=400&auto=format&fit=crop&q=80'; }}
+                  />
                 </div>
-                <span className="category-roundel-name">{cat.name}</span>
-                <span className="category-roundel-sub">{cat.sub}</span>
+                <span className="category-roundel-name">{catName}</span>
+                {catSub && <span className="category-roundel-sub">{catSub}</span>}
               </Link>
             );
           })}

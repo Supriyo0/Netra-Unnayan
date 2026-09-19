@@ -7,7 +7,7 @@ INSERT INTO `settings` (`setting_key`, `setting_value`, `group_name`, `descripti
 ('tagline', 'Clarity You Can Trust', 'general', 'Official Tagline'),
 ('business_address', 'Digha Bypass Rd, Jatimati, Digha, West Bengal 721428', 'general', 'Physical Store & Clinic Address'),
 ('contact_phone', '9382293614', 'general', 'Official Phone & WhatsApp Number'),
-('contact_email', 'netraunnayan7@gmail.com', 'general', 'Customer Care Email'),
+('contact_email', 'netraunnayan@gmail.com', 'general', 'Customer Care Email'),
 ('google_maps_url', 'https://maps.app.goo.gl/TBLLEac73RdPyqLq6?g_st=ac', 'general', 'Google Maps Location Link'),
 ('upi_id', '9382293614@upi', 'payment', 'Primary UPI Merchant VPA'),
 ('upi_merchant_name', 'NETRA UNNAYAN OPTICALS', 'payment', 'UPI Payee Display Name'),

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import { 
   Sliders, Plus, Edit3, Trash2, CheckCircle2, 
   AlertCircle, Eye, RefreshCw, Sparkles, Move, 
@@ -220,6 +221,14 @@ export const AdminBannersPage = () => {
         </div>
 
         <div className="flex items-center gap-3">
+          <Link
+            to="/admin/categories?tab=roundels"
+            className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white transition-all text-xs flex items-center gap-1.5"
+            title="Manage Circular Category Roundels"
+          >
+            <Layers className="w-4 h-4 text-brand-cyan" />
+            <span className="hidden sm:inline">Curated Roundels</span>
+          </Link>
           <button
             onClick={fetchBannersAndProducts}
             className="p-2.5 rounded-xl bg-white/5 border border-white/10 text-slate-300 hover:text-white"
@@ -234,6 +243,22 @@ export const AdminBannersPage = () => {
             <Plus className="w-4 h-4" /> Add Hero Slide
           </button>
         </div>
+      </div>
+
+      {/* Banner Type Tabs */}
+      <div className="flex items-center gap-2 p-1.5 bg-[#060D17] border border-white/10 rounded-2xl w-fit">
+        <div className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-brand-cyan to-brand-teal text-slate-950 shadow-md">
+          <Sliders className="w-4 h-4" />
+          <span>Hero Carousel Slides ({banners.length})</span>
+        </div>
+
+        <Link
+          to="/admin/categories?tab=roundels"
+          className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white transition-all"
+        >
+          <Layers className="w-4 h-4 text-brand-cyan" />
+          <span>Curated Category Roundels Studio &rarr;</span>
+        </Link>
       </div>
 
       {/* Banners Grid */}

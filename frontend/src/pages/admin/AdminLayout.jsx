@@ -5,7 +5,7 @@ import {
   QrCode, Image as ImageIcon, Settings, LogOut, 
   ChevronRight, Bell, Shield, Store, User, Tag, 
   BarChart3, Sliders, CreditCard, Users, ExternalLink, Menu, X, Calendar,
-  Stethoscope, Sun, Moon
+  Stethoscope, Sun, Moon, UserCheck
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
@@ -133,47 +133,68 @@ export const AdminLayout = () => {
     );
   }
 
-  const navItems = [
-    { label: 'Executive Dashboard', path: '/admin', icon: LayoutDashboard, exact: true },
-    { label: 'Hero Banners & Slider', path: '/admin/banners', icon: Sliders },
-    { label: 'Products & 3D Frames', path: '/admin/products', icon: Tag },
-    { label: 'Categories & Roundels', path: '/admin/categories', icon: Layers },
-    { 
-      label: 'Orders & Prescriptions', 
-      path: '/admin/orders', 
-      icon: Package,
-      badge: counts.pendingOrders > 0 ? counts.pendingOrders : null,
-      badgeColor: 'bg-amber-500 text-slate-950'
+  const navGroups = [
+    {
+      title: 'CORE OPERATIONS',
+      items: [
+        { label: 'Executive Dashboard', path: '/admin', icon: LayoutDashboard, exact: true },
+        { label: 'POS Billing Counter', path: '/admin/pos', icon: ShoppingCart },
+        { 
+          label: 'Orders & Prescriptions', 
+          path: '/admin/orders', 
+          icon: Package,
+          badge: counts.pendingOrders > 0 ? counts.pendingOrders : null,
+          badgeColor: 'bg-amber-500 text-slate-950 font-black'
+        },
+        { label: 'Staff Sales & Billing', path: '/admin/staff-sales', icon: UserCheck }
+      ]
     },
-    { 
-      label: 'Appointments & Bookings', 
-      path: '/admin/appointments', 
-      icon: Calendar,
-      badge: counts.pendingAppointments > 0 ? counts.pendingAppointments : null,
-      badgeColor: 'bg-emerald-500 text-slate-950'
+    {
+      title: 'OPTICAL & CLINICAL',
+      items: [
+        { 
+          label: 'Appointments & Bookings', 
+          path: '/admin/appointments', 
+          icon: Calendar,
+          badge: counts.pendingAppointments > 0 ? counts.pendingAppointments : null,
+          badgeColor: 'bg-emerald-500 text-slate-950 font-black'
+        },
+        { label: 'Doctors & Specialists', path: '/admin/doctors', icon: Stethoscope },
+        { 
+          label: 'Payment Approval (UPI)', 
+          path: '/admin/payments', 
+          icon: CreditCard,
+          badge: counts.pendingPayments > 0 ? counts.pendingPayments : null,
+          badgeColor: 'bg-blue-600 text-white font-black'
+        }
+      ]
     },
-    { label: 'Doctors & Specialists', path: '/admin/doctors', icon: Stethoscope },
-    { 
-      label: 'Payment Approval (UPI)', 
-      path: '/admin/payments', 
-      icon: CreditCard,
-      badge: counts.pendingPayments > 0 ? counts.pendingPayments : null,
-      badgeColor: 'bg-blue-600 text-white'
+    {
+      title: 'CATALOG & MERCHANDISING',
+      items: [
+        { label: 'Products & 3D Frames', path: '/admin/products', icon: Tag },
+        { 
+          label: 'Inventory & Ledger', 
+          path: '/admin/inventory', 
+          icon: Layers,
+          badge: counts.lowStock > 0 ? `${counts.lowStock} Low` : null,
+          badgeColor: 'bg-rose-500 text-white font-bold'
+        },
+        { label: 'Barcode & QR Labels', path: '/admin/labels', icon: QrCode },
+        { label: 'Categories & Roundels', path: '/admin/categories', icon: Layers },
+        { label: 'Hero Banners & Slider', path: '/admin/banners', icon: Sliders }
+      ]
     },
-    { label: 'Coupons & Promo Codes', path: '/admin/coupons', icon: Tag },
-    { label: 'Users, Staff & Roles', path: '/admin/customers', icon: Users },
-    { label: 'POS Billing Counter', path: '/admin/pos', icon: ShoppingCart },
-    { 
-      label: 'Inventory & Ledger', 
-      path: '/admin/inventory', 
-      icon: Layers,
-      badge: counts.lowStock > 0 ? `${counts.lowStock} Low` : null,
-      badgeColor: 'bg-rose-500/80 text-white'
-    },
-    { label: 'Barcode & QR Labels', path: '/admin/labels', icon: QrCode },
-    { label: 'Doctor Posters Builder', path: '/admin/posters', icon: ImageIcon },
-    { label: 'Reports & Analytics', path: '/admin/reports', icon: BarChart3 },
-    { label: 'Store Settings & Controls', path: '/admin/settings', icon: Settings },
+    {
+      title: 'INTELLIGENCE & SYSTEM',
+      items: [
+        { label: 'Reports & Analytics', path: '/admin/reports', icon: BarChart3 },
+        { label: 'Doctor Posters Builder', path: '/admin/posters', icon: ImageIcon },
+        { label: 'Coupons & Promo Codes', path: '/admin/coupons', icon: Tag },
+        { label: 'Users, Staff & Roles', path: '/admin/customers', icon: Users },
+        { label: 'Store Settings & Controls', path: '/admin/settings', icon: Settings }
+      ]
+    }
   ];
 
   const handleLogout = () => {
@@ -182,119 +203,127 @@ export const AdminLayout = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-[#060D17] text-slate-900 dark:text-slate-100 flex transition-colors duration-200">
+    <div className="min-h-screen bg-slate-50 dark:bg-[#060D17] text-slate-900 dark:text-slate-100 flex flex-col md:flex-row transition-colors duration-200">
       
       {/* Mobile Drawer Backdrop */}
       {mobileMenuOpen && (
         <div 
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 md:hidden"
+          className="fixed inset-0 bg-black/70 backdrop-blur-md z-50 md:hidden animate-fadeIn"
           onClick={() => setMobileMenuOpen(false)}
         />
       )}
 
-      {/* SaaS Sidebar */}
+      {/* SaaS Sidebar Desktop & Slideout Drawer on Mobile */}
       <aside className={`
-        fixed md:static inset-y-0 left-0 z-50 w-64 bg-white dark:bg-[#0A192F] border-r border-slate-200 dark:border-white/10 flex flex-col justify-between shrink-0 transition-transform duration-300 shadow-sm dark:shadow-none
+        fixed md:sticky top-0 inset-y-0 left-0 z-50 w-72 bg-white dark:bg-[#0A192F] border-r border-slate-200 dark:border-white/10 flex flex-col justify-between shrink-0 transition-transform duration-300 shadow-xl md:shadow-none h-screen
         ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
       `}>
-        <div className="p-5 space-y-5 overflow-y-auto">
+        <div className="p-4 space-y-4 overflow-y-auto scrollbar-thin flex-1">
           
           {/* Brand Header */}
-          <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/10 pb-4">
-            <Link to="/admin" className="flex items-center gap-2.5">
+          <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/10 pb-3">
+            <Link to="/admin" className="flex items-center gap-2.5 group">
               <img 
                 src="/logo_symbol.png" 
                 alt="Netra Unnayan" 
-                className="w-9 h-9 object-contain filter drop-shadow"
+                className="w-9 h-9 object-contain filter drop-shadow group-hover:scale-105 transition-transform"
               />
               <div>
                 <span className="font-black text-slate-900 dark:text-white text-base tracking-wider font-heading block leading-none">
                   NETRA <span className="text-brand-cyan">UNNAYAN</span>
                 </span>
-                <span className="text-[10px] text-teal-600 dark:text-brand-teal font-bold uppercase tracking-widest">
+                <span className="text-[10px] text-teal-600 dark:text-brand-teal font-extrabold uppercase tracking-widest flex items-center gap-1 mt-0.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                   CONTROL PANEL
                 </span>
               </div>
             </Link>
             <button 
               onClick={() => setMobileMenuOpen(false)}
-              className="md:hidden text-slate-400 hover:text-slate-700 dark:hover:text-white"
+              className="md:hidden p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
 
           {/* Staff Profile Pill */}
-          <div className="p-3 rounded-xl bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/5 flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-cyan-100 dark:bg-brand-cyan/20 text-cyan-900 dark:text-brand-cyan flex items-center justify-center font-black text-xs shrink-0 border border-cyan-300 dark:border-brand-cyan/40">
-              {user.full_name?.charAt(0) || 'S'}
+          <div className="p-3 rounded-2xl bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/5 flex items-center gap-3">
+            <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-brand-cyan to-brand-teal text-slate-950 flex items-center justify-center font-black text-xs shrink-0 shadow-md">
+              {user.full_name?.charAt(0) || 'A'}
             </div>
             <div className="overflow-hidden flex-1">
-              <div className="text-xs font-bold text-slate-900 dark:text-white truncate">{user.full_name}</div>
-              <div className="text-[10px] text-teal-600 dark:text-brand-teal font-semibold capitalize truncate">
+              <div className="text-xs font-bold text-slate-900 dark:text-white truncate">{user.full_name || 'Staff User'}</div>
+              <div className="text-[10px] text-teal-600 dark:text-brand-teal font-bold uppercase tracking-wider truncate">
                 {user.role_name || user.role_slug || 'Administrator'}
               </div>
             </div>
           </div>
 
-          {/* Navigation Links with Notification Badges */}
-          <nav className="space-y-1">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = item.exact 
-                ? location.pathname === item.path
-                : location.pathname.startsWith(item.path);
+          {/* Grouped Navigation Links */}
+          <div className="space-y-4 pt-1">
+            {navGroups.map((group, gIdx) => (
+              <div key={gIdx} className="space-y-1">
+                <div className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400 dark:text-slate-500 px-3 pb-1">
+                  {group.title}
+                </div>
+                {group.items.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = item.exact 
+                    ? location.pathname === item.path
+                    : location.pathname.startsWith(item.path);
 
-              return (
-                <Link
-                  key={item.path}
-                  to={item.path}
-                  onClick={() => setMobileMenuOpen(false)}
-                  className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${
-                    isActive
-                      ? 'bg-brand-cyan text-slate-950 shadow-cyan-glow font-bold'
-                      : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <Icon className="w-4 h-4 shrink-0" />
-                    <span>{item.label}</span>
-                  </div>
+                  return (
+                    <Link
+                      key={item.path}
+                      to={item.path}
+                      onClick={() => setMobileMenuOpen(false)}
+                      className={`flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-all group ${
+                        isActive
+                          ? 'bg-gradient-to-r from-brand-cyan to-brand-teal text-slate-950 font-black shadow-cyan-glow'
+                          : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <Icon className={`w-4 h-4 shrink-0 transition-transform ${isActive ? 'scale-110' : 'group-hover:scale-110 text-slate-400 dark:text-slate-400 group-hover:text-brand-cyan'}`} />
+                        <span className="truncate">{item.label}</span>
+                      </div>
 
-                  {item.badge && (
-                    <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${item.badgeColor || 'bg-rose-500 text-white'}`}>
-                      {item.badge}
-                    </span>
-                  )}
-                </Link>
-              );
-            })}
-          </nav>
+                      {item.badge && (
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full shrink-0 shadow-xs ${item.badgeColor || 'bg-rose-500 text-white'}`}>
+                          {item.badge}
+                        </span>
+                      )}
+                    </Link>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* Sidebar Footer */}
-        <div className="p-5 border-t border-slate-200 dark:border-white/10 space-y-2.5">
+        <div className="p-4 border-t border-slate-200 dark:border-white/10 space-y-2 bg-slate-50 dark:bg-slate-950/40">
           <Link 
             to="/" 
             target="_blank"
-            className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 hover:text-brand-cyan transition-colors py-1 px-2 rounded-lg hover:bg-slate-100 dark:hover:bg-white/5"
+            className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-400 hover:text-brand-cyan transition-colors py-1.5 px-2.5 rounded-xl hover:bg-slate-100 dark:hover:bg-white/5 font-semibold"
           >
             <span className="flex items-center gap-2">
-              <Store className="w-3.5 h-3.5" /> View Public Storefront
+              <Store className="w-4 h-4 text-brand-cyan" /> View Public Storefront
             </span>
-            <ExternalLink className="w-3 h-3" />
+            <ExternalLink className="w-3.5 h-3.5" />
           </Link>
           <button
             onClick={handleLogout}
-            className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium text-rose-500 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-colors"
+            className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-xs font-bold text-rose-500 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-colors"
           >
-            <LogOut className="w-3.5 h-3.5" /> Log Out
+            <LogOut className="w-4 h-4" /> Sign Out from Desk
           </button>
         </div>
       </aside>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 pb-16 md:pb-0">
         
         {/* Top Header Bar */}
         <header className="h-16 border-b border-slate-200 dark:border-white/10 bg-white/95 dark:bg-[#0A192F]/90 backdrop-blur-xl px-4 sm:px-6 flex items-center justify-between sticky top-0 z-30 shadow-sm dark:shadow-md">
@@ -302,23 +331,24 @@ export const AdminLayout = () => {
           <div className="flex items-center gap-3">
             <button
               onClick={() => setMobileMenuOpen(true)}
-              className="md:hidden p-2 rounded-lg bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
+              className="md:hidden p-2 rounded-xl bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white"
               aria-label="Open menu"
             >
               <Menu className="w-5 h-5" />
             </button>
 
-            <span className="text-xs font-bold text-slate-500 dark:text-slate-400 hidden sm:inline">Optical Operations:</span>
-            <span className="text-xs font-extrabold text-slate-900 dark:text-white flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-teal-500 animate-pulse" />
-              Digha Clinic &amp; Lab Live
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-extrabold text-slate-900 dark:text-white flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-teal-500 animate-pulse" />
+                Digha Clinic &amp; Mobile Lab
+              </span>
+            </div>
           </div>
 
-          <div className="flex items-center gap-3 sm:gap-4 text-xs">
+          <div className="flex items-center gap-2 sm:gap-3 text-xs">
             
             {/* Live Store Maintenance Mode Switch */}
-            <div className="maint-toggle-pill" title="Toggle Maintenance Mode for public visitors">
+            <div className="maint-toggle-pill hidden sm:flex" title="Toggle Maintenance Mode for public visitors">
               <span className={`maint-status-dot ${maintenanceMode ? 'dot-red' : 'dot-green'}`} />
               <span 
                 className="text-[11px] font-black uppercase tracking-wider hidden sm:inline"
@@ -340,7 +370,7 @@ export const AdminLayout = () => {
             {/* Admin Theme Toggle Button */}
             <button
               onClick={toggleTheme}
-              className={`w-8 h-8 rounded-full flex items-center justify-center transition-all border shrink-0 ${
+              className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all border shrink-0 ${
                 isDark
                   ? 'text-amber-400 border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20'
                   : 'text-sky-600 border-sky-300 bg-sky-50 hover:bg-sky-100'
@@ -351,39 +381,100 @@ export const AdminLayout = () => {
               {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </button>
 
+            {/* Quick POS Billing */}
+            <Link 
+              to="/admin/pos" 
+              className="btn-primary py-1.5 px-3 sm:px-3.5 text-xs font-bold rounded-xl shadow-cyan-glow flex items-center gap-1.5"
+            >
+              <ShoppingCart className="w-3.5 h-3.5" /> 
+              <span className="hidden sm:inline">Quick POS</span>
+            </Link>
+
             {/* View Store Button */}
             <Link 
               to="/" 
               target="_blank"
-              className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-white/15 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white flex items-center gap-1.5 text-xs font-bold transition-all shadow-sm"
+              className="px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-white/15 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hidden lg:flex items-center gap-1 text-xs font-bold transition-all shadow-sm"
               title="Open storefront in new tab"
             >
-              <span>View Store</span>
-              <ExternalLink className="w-3.5 h-3.5" />
+              <span>Store</span>
+              <ExternalLink className="w-3 h-3" />
             </Link>
-
-            {/* Quick POS Billing */}
-            <Link 
-              to="/admin/pos" 
-              className="btn-primary py-1.5 px-3.5 text-xs font-bold rounded-lg shadow-cyan-glow flex items-center gap-1.5 hidden sm:flex"
-            >
-              <ShoppingCart className="w-3.5 h-3.5" /> Quick POS
-            </Link>
-
-            {/* Admin Avatar Pill */}
-            <div className="flex items-center gap-2 pl-2 border-l border-slate-200 dark:border-white/10">
-              <div className="w-8 h-8 rounded-full bg-cyan-100 dark:bg-brand-cyan/20 border border-cyan-300 dark:border-brand-cyan/40 text-cyan-900 dark:text-brand-cyan font-black text-xs flex items-center justify-center">
-                {user.full_name?.charAt(0) || 'A'}
-              </div>
-            </div>
 
           </div>
         </header>
 
         {/* Dynamic Page Router Outlet */}
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">
+        <main className="flex-1 p-3 sm:p-5 lg:p-7 max-w-7xl w-full mx-auto">
           <Outlet />
         </main>
+
+        {/* Mobile Bottom Quick Navigation Dock */}
+        <div className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-white/95 dark:bg-[#0A192F]/95 backdrop-blur-xl border-t border-slate-200 dark:border-white/10 px-2 py-1.5 flex items-center justify-around shadow-2xl">
+          <Link 
+            to="/admin" 
+            className={`flex flex-col items-center py-1 px-2 text-[10px] font-bold ${
+              location.pathname === '/admin' ? 'text-brand-cyan' : 'text-slate-500 dark:text-slate-400'
+            }`}
+          >
+            <LayoutDashboard className="w-4 h-4 mb-0.5" />
+            <span>Dashboard</span>
+          </Link>
+
+          <Link 
+            to="/admin/pos" 
+            className={`flex flex-col items-center py-1 px-2 text-[10px] font-bold ${
+              location.pathname === '/admin/pos' ? 'text-brand-cyan' : 'text-slate-500 dark:text-slate-400'
+            }`}
+          >
+            <ShoppingCart className="w-4 h-4 mb-0.5" />
+            <span>POS</span>
+          </Link>
+
+          <Link 
+            to="/admin/orders" 
+            className={`flex flex-col items-center py-1 px-2 text-[10px] font-bold relative ${
+              location.pathname.startsWith('/admin/orders') ? 'text-brand-cyan' : 'text-slate-500 dark:text-slate-400'
+            }`}
+          >
+            <Package className="w-4 h-4 mb-0.5" />
+            <span>Orders</span>
+            {counts.pendingOrders > 0 && (
+              <span className="absolute top-0 right-1 w-2 h-2 rounded-full bg-amber-500" />
+            )}
+          </Link>
+
+          <Link 
+            to="/admin/appointments" 
+            className={`flex flex-col items-center py-1 px-2 text-[10px] font-bold relative ${
+              location.pathname.startsWith('/admin/appointments') ? 'text-brand-cyan' : 'text-slate-500 dark:text-slate-400'
+            }`}
+          >
+            <Calendar className="w-4 h-4 mb-0.5" />
+            <span>Bookings</span>
+            {counts.pendingAppointments > 0 && (
+              <span className="absolute top-0 right-1 w-2 h-2 rounded-full bg-emerald-500" />
+            )}
+          </Link>
+
+          <Link 
+            to="/admin/staff-sales" 
+            className={`flex flex-col items-center py-1 px-2 text-[10px] font-bold ${
+              location.pathname.startsWith('/admin/staff-sales') ? 'text-brand-cyan' : 'text-slate-500 dark:text-slate-400'
+            }`}
+          >
+            <UserCheck className="w-4 h-4 mb-0.5" />
+            <span>Staff</span>
+          </Link>
+
+          <button 
+            onClick={() => setMobileMenuOpen(true)}
+            className="flex flex-col items-center py-1 px-2 text-[10px] font-bold text-slate-500 dark:text-slate-400"
+          >
+            <Menu className="w-4 h-4 mb-0.5" />
+            <span>More</span>
+          </button>
+        </div>
 
       </div>
     </div>

@@ -539,7 +539,7 @@ HTML;
         </div>
         <div class="footer">
             <strong>Netra Unnayan Opticals</strong> &bull; Digha Bypass Rd, Jatimati, Digha, West Bengal 721428<br>
-            Phone / WhatsApp: +91 9382293614 &bull; Email: netraunnayan7@gmail.com
+            Phone / WhatsApp: +91 9382293614 &bull; Email: netraunnayan@gmail.com
         </div>
     </div>
 </body>

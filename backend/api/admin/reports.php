@@ -232,7 +232,7 @@ foreach ($allStaff as $stf) {
         LEFT JOIN invoices inv ON o.id = inv.order_id
         WHERE {$orderDateClause} AND o.order_status != 'Cancelled' AND {$staffOrderClause}
         ORDER BY o.id DESC
-        LIMIT 15
+        LIMIT 150
     ");
     $staffBillsStmt->execute($orderParams);
     $recentBills = $staffBillsStmt->fetchAll(PDO::FETCH_ASSOC);

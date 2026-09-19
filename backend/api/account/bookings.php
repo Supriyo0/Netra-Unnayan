@@ -17,7 +17,7 @@ $docStmt = $pdo->prepare('
     SELECT 
         a.id, a.appointment_number, a.doctor_id, a.patient_name, a.patient_phone,
         a.patient_email, a.appointment_date, a.appointment_time, a.consultation_fee,
-        a.payment_status, a.status, a.notes, a.created_at,
+        a.payment_status, a.status, a.ticket_no, a.notes, a.created_at,
         d.name as doctor_name, d.qualification as doctor_qualification,
         d.specialization as doctor_specialization, d.photo_url as doctor_photo
     FROM appointments a
@@ -36,7 +36,7 @@ $homeStmt = $pdo->prepare('
         h.id, h.booking_number, h.customer_name, h.customer_phone, h.customer_email,
         h.address_line1, h.address_line2, h.landmark, h.pincode, h.service_date,
         h.service_slot, h.service_fee, h.payment_status, h.status,
-        h.assigned_optometrist, h.notes, h.can_cancel_until, h.created_at
+        h.assigned_optometrist, h.ticket_no, h.notes, h.can_cancel_until, h.created_at
     FROM home_eye_appointments h
     WHERE h.customer_id = ? 
        OR (h.customer_email IS NOT NULL AND h.customer_email = ?)

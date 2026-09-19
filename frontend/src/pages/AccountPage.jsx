@@ -6,7 +6,7 @@ import {
   ExternalLink, Truck, CheckCircle2, AlertCircle, Phone, 
   Home as HomeIcon, Stethoscope, Trash2, Star, Sparkles, Edit2,
   Upload, Camera, Lock, Save, Key, Award, Glasses, Heart, RefreshCw,
-  MessageCircle
+  MessageCircle, MessageSquare, Tag
 } from 'lucide-react';
 import api from '../api/client';
 import { uploadToImgBB } from '../utils/imgbb';
@@ -962,118 +962,152 @@ export const AccountPage = () => {
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {bookings.doctor_appointments.map((apt) => (
-                  <div key={apt.id} className="glass-card rounded-2xl p-5 space-y-4 border border-slate-200 dark:border-white/10 relative overflow-hidden shadow-sm">
-                    {/* Top Status Header */}
-                    <div className="flex items-start justify-between gap-3 border-b border-slate-200 dark:border-white/10 pb-3">
-                      <div>
-                        <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400 block font-semibold">Token: {apt.booking_number}</span>
-                        <h4 className="font-extrabold text-sm text-slate-900 dark:text-white mt-0.5">{apt.doctor_name || 'Senior Consultant'}</h4>
-                        <span className="text-[11px] text-emerald-700 dark:text-emerald-400 font-semibold">{apt.doctor_specialty}</span>
+                {bookings.doctor_appointments.map((apt) => {
+                  const refNum = apt.appointment_number || apt.booking_number || `DOC-${apt.id}`;
+                  return (
+                    <div key={apt.id} className="glass-card rounded-2xl p-5 space-y-4 border border-slate-200 dark:border-white/10 relative overflow-hidden shadow-sm hover:border-brand-cyan/40 transition-all">
+                      {/* Top Status Header */}
+                      <div className="flex items-start justify-between gap-3 border-b border-slate-200 dark:border-white/10 pb-3">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400 block font-bold">
+                              ID: #{refNum}
+                            </span>
+                            {apt.ticket_no && (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-sky-100 dark:bg-sky-900/50 text-sky-900 dark:text-sky-300 font-mono text-[10px] font-black border border-sky-300 dark:border-sky-700">
+                                <Tag className="w-2.5 h-2.5 text-sky-600 dark:text-sky-400" />
+                                Token: #{apt.ticket_no}
+                              </span>
+                            )}
+                          </div>
+                          <h4 className="font-extrabold text-sm text-slate-900 dark:text-white mt-1">
+                            {apt.doctor_name || 'Senior Consultant Ophthalmologist'}
+                          </h4>
+                          <span className="text-[11px] text-emerald-700 dark:text-emerald-400 font-semibold">
+                            {apt.doctor_specialization || apt.doctor_specialty || 'Comprehensive Eye Care'}
+                            {apt.doctor_qualification ? ` • ${apt.doctor_qualification}` : ''}
+                          </span>
+                        </div>
+
+                        {/* Status Badge */}
+                        <span className={`px-2.5 py-1 rounded-full text-xs font-extrabold flex items-center gap-1.5 shrink-0 ${
+                          apt.status === 'Confirmed' 
+                            ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-500/40 shadow-xs'
+                            : apt.status === 'Completed'
+                            ? 'bg-teal-100 dark:bg-teal-500/20 text-teal-800 dark:text-teal-300 border border-teal-300 dark:border-teal-500/40'
+                            : apt.status === 'Cancelled'
+                            ? 'bg-rose-100 dark:bg-rose-500/20 text-rose-800 dark:text-rose-300 border border-rose-300 dark:border-rose-500/40'
+                            : 'bg-amber-100 dark:bg-amber-500/20 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-500/40 animate-pulse'
+                        }`}>
+                          {apt.status === 'Confirmed' && <CheckCircle2 className="w-3.5 h-3.5" />}
+                          {apt.status === 'Pending' && <Clock className="w-3.5 h-3.5" />}
+                          {apt.status}
+                        </span>
                       </div>
 
-                      {/* Status Badge */}
-                      <span className={`px-2.5 py-1 rounded-full text-xs font-extrabold flex items-center gap-1.5 ${
+                      {/* Status Message Info Box */}
+                      <div className={`p-3 rounded-xl text-xs leading-relaxed ${
                         apt.status === 'Confirmed' 
-                          ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-500/40 shadow-xs'
-                          : apt.status === 'Completed'
-                          ? 'bg-teal-100 dark:bg-teal-500/20 text-teal-800 dark:text-teal-300 border border-teal-300 dark:border-teal-500/40'
-                          : apt.status === 'Cancelled'
-                          ? 'bg-rose-100 dark:bg-rose-500/20 text-rose-800 dark:text-rose-300 border border-rose-300 dark:border-rose-500/40'
-                          : 'bg-amber-100 dark:bg-amber-500/20 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-500/40 animate-pulse'
+                          ? 'bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 text-emerald-800 dark:text-emerald-200' 
+                          : apt.status === 'Pending'
+                          ? 'bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 text-amber-800 dark:text-amber-200'
+                          : 'bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-slate-300'
                       }`}>
-                        {apt.status === 'Confirmed' && <CheckCircle2 className="w-3.5 h-3.5" />}
-                        {apt.status === 'Pending' && <Clock className="w-3.5 h-3.5" />}
-                        {apt.status}
-                      </span>
-                    </div>
+                        {apt.status === 'Confirmed' ? (
+                          <div>
+                            <strong className="block font-bold mb-0.5 text-emerald-900 dark:text-emerald-100">Booking Confirmed by Clinic</strong>
+                            Your consultation slot is confirmed. Please report 10 minutes prior to slot time. Visual acuity screening will be conducted prior to doctor review.
+                          </div>
+                        ) : apt.status === 'Pending' ? (
+                          <div>
+                            <strong className="block font-bold mb-0.5 text-amber-900 dark:text-amber-100">Awaiting Clinic Desk Verification</strong>
+                            Your booking request is being scheduled with the doctor. As soon as the clinic approves, you will receive an SMS and email notification.
+                          </div>
+                        ) : (
+                          <span>Status: {apt.status}</span>
+                        )}
+                      </div>
 
-                    {/* Status Message Info Box */}
-                    <div className={`p-3 rounded-xl text-xs leading-relaxed ${
-                      apt.status === 'Confirmed' 
-                        ? 'bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 text-emerald-800 dark:text-emerald-200' 
-                        : apt.status === 'Pending'
-                        ? 'bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 text-amber-800 dark:text-amber-200'
-                        : 'bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-slate-300'
-                    }`}>
-                      {apt.status === 'Confirmed' ? (
-                        <div>
-                          <strong className="block font-bold mb-0.5 text-emerald-900 dark:text-emerald-100">Booking Confirmed by Clinic</strong>
-                          Your slot has been approved and confirmed. A confirmation SMS/Email has been dispatched. Please report 10 minutes prior to slot time.
+                      {/* SHARED STATUS NOTES / CLINIC DESK INSTRUCTIONS */}
+                      {apt.notes && (
+                        <div className="p-3.5 rounded-xl bg-sky-50 dark:bg-sky-950/40 border border-sky-200 dark:border-sky-800 text-xs space-y-1 shadow-xs">
+                          <div className="flex items-center gap-1.5 text-sky-800 dark:text-sky-300 font-extrabold text-[11px] uppercase tracking-wider">
+                            <MessageSquare className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400" />
+                            <span>Clinic Instructions &amp; Desk Notes</span>
+                          </div>
+                          <p className="text-slate-800 dark:text-slate-200 font-medium leading-relaxed">
+                            {apt.notes}
+                          </p>
                         </div>
-                      ) : apt.status === 'Pending' ? (
-                        <div>
-                          <strong className="block font-bold mb-0.5 text-amber-900 dark:text-amber-100">Awaiting Clinic Verification</strong>
-                          Your booking request has been forwarded to the clinic desk. Once verified by our reception, the status will immediately turn Confirmed and you will receive an alert.
-                        </div>
-                      ) : (
-                        <span>Status: {apt.status}</span>
                       )}
-                    </div>
 
-                    {/* Slot Details */}
-                    <div className="grid grid-cols-2 gap-2 text-xs bg-slate-50 dark:bg-white/5 border border-slate-200/60 dark:border-white/5 p-3 rounded-xl">
-                      <div>
-                        <span className="text-[10px] text-slate-500 dark:text-slate-400 block font-semibold">Appointment Date</span>
-                        <span className="font-bold text-slate-900 dark:text-white font-mono flex items-center gap-1 mt-0.5">
-                          <Calendar className="w-3.5 h-3.5 text-cyan-600 dark:text-brand-cyan" />
-                          {apt.appointment_date}
-                        </span>
+                      {/* Slot Details */}
+                      <div className="grid grid-cols-2 gap-2 text-xs bg-slate-50 dark:bg-white/5 border border-slate-200/60 dark:border-white/5 p-3 rounded-xl">
+                        <div>
+                          <span className="text-[10px] text-slate-500 dark:text-slate-400 block font-semibold">Appointment Date</span>
+                          <span className="font-bold text-slate-900 dark:text-white font-mono flex items-center gap-1 mt-0.5">
+                            <Calendar className="w-3.5 h-3.5 text-cyan-600 dark:text-brand-cyan" />
+                            {apt.appointment_date}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-[10px] text-slate-500 dark:text-slate-400 block font-semibold">Time Slot</span>
+                          <span className="font-bold text-slate-900 dark:text-white font-mono flex items-center gap-1 mt-0.5">
+                            <Clock className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                            {apt.appointment_time}
+                          </span>
+                        </div>
                       </div>
-                      <div>
-                        <span className="text-[10px] text-slate-500 dark:text-slate-400 block font-semibold">Time Slot</span>
-                        <span className="font-bold text-slate-900 dark:text-white font-mono flex items-center gap-1 mt-0.5">
-                          <Clock className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
-                          {apt.appointment_time}
-                        </span>
-                      </div>
-                    </div>
 
-                    {/* Patient & Clinic Details */}
-                    <div className="space-y-1.5 text-xs text-slate-600 dark:text-slate-300">
-                      <div className="flex justify-between">
-                        <span className="text-slate-500 dark:text-slate-400">Patient Name:</span>
-                        <span className="font-semibold text-slate-900 dark:text-white">{apt.patient_name} {apt.patient_age ? `(${apt.patient_age} yrs)` : ''}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-slate-500 dark:text-slate-400">Consultation Fee:</span>
-                        <span className="font-bold text-cyan-700 dark:text-brand-cyan font-mono">₹{apt.doctor_fee || 500}</span>
-                      </div>
-                      <div className="flex justify-between items-center pt-2 border-t border-white/5">
-                        <span className="text-slate-400">Clinic Location:</span>
-                        <span className="font-medium text-slate-200">{apt.clinic_address || 'Netra Unnayan Main Clinic, Digha'}</span>
-                      </div>
-                      <div className="pt-2 flex justify-end">
-                        <button
-                          onClick={() => setInvoiceModalData({
-                            invoiceNumber: `NU-DOC-${apt.booking_number?.replace('DOC-', '') || apt.id}`,
-                            orderNumber: apt.booking_number,
-                            invoiceDate: apt.appointment_date || new Date().toISOString().split('T')[0],
-                            type: 'DOCTOR',
-                            status: apt.status,
-                            paymentMode: 'CLINIC_DESK',
-                            paymentStatus: apt.status === 'Completed' ? 'Paid' : 'Pending',
-                            customerName: apt.patient_name || user.full_name,
-                            customerPhone: apt.patient_phone || user.phone,
-                            customerEmail: user.email,
-                            customerAddress: apt.clinic_address || 'Netra Unnayan Main Clinic, Digha',
-                            doctorName: apt.doctor_name,
-                            specialty: apt.doctor_specialty,
-                            appointmentDate: apt.appointment_date,
-                            appointmentTime: apt.appointment_time,
-                            totalAmount: apt.doctor_fee || 500,
-                            subtotal: apt.doctor_fee || 500,
-                            warrantyNote: 'Official Consultation Slip & Optical Prescription Token'
-                          })}
-                          className="text-[11px] font-bold py-1 px-3 rounded-lg flex items-center gap-1.5 text-emerald-800 dark:text-emerald-300 bg-emerald-100/80 dark:bg-emerald-950/50 border border-emerald-400/60 dark:border-emerald-700 hover:bg-emerald-200 dark:hover:bg-emerald-900/80 shadow-xs transition-all cursor-pointer"
-                        >
-                          <FileText className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-300" />
-                          <span>Download Slip / Invoice</span>
-                        </button>
+                      {/* Patient & Clinic Details */}
+                      <div className="space-y-1.5 text-xs text-slate-600 dark:text-slate-300">
+                        <div className="flex justify-between">
+                          <span className="text-slate-500 dark:text-slate-400">Patient Name:</span>
+                          <span className="font-semibold text-slate-900 dark:text-white">{apt.patient_name || user.full_name}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-slate-500 dark:text-slate-400">Consultation Fee:</span>
+                          <span className="font-bold text-cyan-700 dark:text-brand-cyan font-mono">₹{apt.consultation_fee || apt.doctor_fee || 500}</span>
+                        </div>
+                        <div className="flex justify-between items-center pt-2 border-t border-slate-100 dark:border-white/5">
+                          <span className="text-slate-400">Clinic Venue:</span>
+                          <span className="font-medium text-slate-700 dark:text-slate-200">Netra Unnayan Eye Clinic, Digha Bypass Rd</span>
+                        </div>
+                        <div className="pt-2 flex justify-end">
+                          <button
+                            onClick={() => setInvoiceModalData({
+                              invoiceNumber: `NU-DOC-${apt.id}`,
+                              orderNumber: refNum,
+                              ticket_no: apt.ticket_no,
+                              ticketNo: apt.ticket_no,
+                              invoiceDate: apt.appointment_date || new Date().toISOString().split('T')[0],
+                              type: 'DOCTOR',
+                              status: apt.status,
+                              paymentMode: 'CLINIC_DESK',
+                              paymentStatus: apt.status === 'Completed' ? 'Paid' : (apt.payment_status || 'Pending'),
+                              customerName: apt.patient_name || user.full_name,
+                              customerPhone: apt.patient_phone || user.phone,
+                              customerEmail: apt.patient_email || user.email,
+                              customerAddress: 'Netra Unnayan Eye Clinic, Digha Bypass Rd, Jatimati, Digha',
+                              doctorName: apt.doctor_name,
+                              specialty: apt.doctor_specialization || apt.doctor_specialty,
+                              appointmentDate: apt.appointment_date,
+                              appointmentTime: apt.appointment_time,
+                              totalAmount: apt.consultation_fee || apt.doctor_fee || 500,
+                              subtotal: apt.consultation_fee || apt.doctor_fee || 500,
+                              notes: apt.notes,
+                              warrantyNote: 'Official Consultation Slip & Clinical Token'
+                            })}
+                            className="text-[11px] font-bold py-1 px-3 rounded-lg flex items-center gap-1.5 text-emerald-800 dark:text-emerald-300 bg-emerald-100/80 dark:bg-emerald-950/50 border border-emerald-400/60 dark:border-emerald-700 hover:bg-emerald-200 dark:hover:bg-emerald-900/80 shadow-xs transition-all cursor-pointer"
+                          >
+                            <FileText className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-300" />
+                            <span>Download Slip / Invoice</span>
+                          </button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
@@ -1102,99 +1136,136 @@ export const AccountPage = () => {
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {bookings.home_visits.map((vis) => (
-                  <div key={vis.id} className="glass-card rounded-2xl p-5 space-y-4 border border-slate-200 dark:border-white/10 shadow-sm">
-                    <div className="flex items-start justify-between gap-3 border-b border-slate-200 dark:border-white/10 pb-3">
-                      <div>
-                        <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400 block">Visit ID: #{vis.id}</span>
-                        <h4 className="font-extrabold text-sm text-slate-900 dark:text-white mt-0.5">{vis.full_name}</h4>
-                        <span className="text-[11px] text-cyan-700 dark:text-brand-cyan font-mono font-bold">{vis.phone}</span>
-                      </div>
+                {bookings.home_visits.map((vis) => {
+                  const refNum = vis.booking_number || `HET-${vis.id}`;
+                  const custName = vis.customer_name || vis.full_name || user.full_name;
+                  const custPhone = vis.customer_phone || vis.phone || user.phone;
+                  const servDate = vis.service_date || vis.visit_date;
+                  const servSlot = vis.service_slot || vis.time_slot;
+                  const servFee = vis.service_fee !== undefined ? vis.service_fee : 0;
+                  const fullAddress = `${vis.address_line1 || vis.address || ''}${vis.landmark ? ` (Landmark: ${vis.landmark})` : ''} - PIN: ${vis.pincode || ''}`;
 
-                      <span className={`px-2.5 py-1 rounded-full text-xs font-extrabold flex items-center gap-1.5 ${
-                        vis.status === 'Confirmed' 
-                          ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-500/40 shadow-xs'
-                          : vis.status === 'Completed'
-                          ? 'bg-teal-100 dark:bg-teal-500/20 text-teal-800 dark:text-teal-300 border border-teal-300 dark:border-teal-500/40'
-                          : vis.status === 'Cancelled'
-                          ? 'bg-rose-100 dark:bg-rose-500/20 text-rose-800 dark:text-rose-300 border border-rose-300 dark:border-rose-500/40'
-                          : 'bg-amber-100 dark:bg-amber-500/20 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-500/40'
-                      }`}>
-                        {vis.status === 'Confirmed' && <CheckCircle2 className="w-3.5 h-3.5" />}
-                        {vis.status === 'Pending' && <Clock className="w-3.5 h-3.5" />}
-                        {vis.status}
-                      </span>
-                    </div>
-
-                    {/* Status Info */}
-                    <div className={`p-3 rounded-xl text-xs leading-relaxed ${
-                      vis.status === 'Confirmed' 
-                        ? 'bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 text-emerald-900 dark:text-emerald-200' 
-                        : vis.status === 'Pending'
-                        ? 'bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 text-amber-900 dark:text-amber-200'
-                        : 'bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-slate-300'
-                    }`}>
-                      {vis.status === 'Confirmed' ? (
+                  return (
+                    <div key={vis.id} className="glass-card rounded-2xl p-5 space-y-4 border border-slate-200 dark:border-white/10 shadow-sm hover:border-brand-cyan/40 transition-all">
+                      <div className="flex items-start justify-between gap-3 border-b border-slate-200 dark:border-white/10 pb-3">
                         <div>
-                          <strong className="block font-bold mb-0.5">Optometrist Assigned &amp; Confirmed</strong>
-                          Certified optometrist has been allocated to your area with portable digital equipment and 100+ trial frames.
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400 block font-bold">
+                              ID: #{refNum}
+                            </span>
+                            {vis.ticket_no && (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-teal-100 dark:bg-teal-900/50 text-teal-900 dark:text-teal-300 font-mono text-[10px] font-black border border-teal-300 dark:border-teal-700">
+                                <Tag className="w-2.5 h-2.5 text-teal-600 dark:text-brand-teal" />
+                                Token: #{vis.ticket_no}
+                              </span>
+                            )}
+                          </div>
+                          <h4 className="font-extrabold text-sm text-slate-900 dark:text-white mt-1">{custName}</h4>
+                          <span className="text-[11px] text-cyan-700 dark:text-brand-cyan font-mono font-bold">{custPhone}</span>
                         </div>
-                      ) : vis.status === 'Pending' ? (
-                        <div>
-                          <strong className="block font-bold mb-0.5">Route Allocation in Progress</strong>
-                          Our dispatch team is assigning an optometrist to your pincode. We will confirm your preferred time slot shortly.
-                        </div>
-                      ) : (
-                        <span>Status: {vis.status}</span>
-                      )}
-                    </div>
 
-                    {/* Slot & Location */}
-                    <div className="space-y-2 text-xs bg-slate-50 dark:bg-white/5 border border-slate-200/60 dark:border-transparent p-3 rounded-xl">
-                      <div className="flex justify-between">
-                        <span className="text-slate-500 dark:text-slate-400">Scheduled Date:</span>
-                        <span className="font-bold text-slate-900 dark:text-white font-mono">{vis.visit_date}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-slate-500 dark:text-slate-400">Time Window:</span>
-                        <span className="font-bold text-slate-900 dark:text-white font-mono">{vis.time_slot}</span>
-                      </div>
-                      <div className="pt-2 border-t border-slate-200 dark:border-white/5">
-                        <span className="text-slate-500 dark:text-slate-400 block">Address:</span>
-                        <span className="text-slate-800 dark:text-slate-200 mt-0.5 block leading-relaxed font-medium">
-                          {vis.address}{vis.landmark ? ` (Landmark: ${vis.landmark})` : ''} - {vis.pincode}
+                        <span className={`px-2.5 py-1 rounded-full text-xs font-extrabold flex items-center gap-1.5 shrink-0 ${
+                          vis.status === 'Confirmed' 
+                            ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-500/40 shadow-xs'
+                            : vis.status === 'Completed'
+                            ? 'bg-teal-100 dark:bg-teal-500/20 text-teal-800 dark:text-teal-300 border border-teal-300 dark:border-teal-500/40'
+                            : vis.status === 'Cancelled'
+                            ? 'bg-rose-100 dark:bg-rose-500/20 text-rose-800 dark:text-rose-300 border border-rose-300 dark:border-rose-500/40'
+                            : 'bg-amber-100 dark:bg-amber-500/20 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-500/40'
+                        }`}>
+                          {vis.status === 'Confirmed' && <CheckCircle2 className="w-3.5 h-3.5" />}
+                          {vis.status === 'Pending' && <Clock className="w-3.5 h-3.5" />}
+                          {vis.status}
                         </span>
                       </div>
-                      <div className="pt-2 flex justify-end">
-                        <button
-                          onClick={() => setInvoiceModalData({
-                            invoiceNumber: `NU-HET-${vis.booking_number?.replace('HET-', '') || vis.id}`,
-                            orderNumber: vis.booking_number || `HET-${vis.id}`,
-                            invoiceDate: vis.visit_date || new Date().toISOString().split('T')[0],
-                            type: 'HOME_EYE',
-                            status: vis.status,
-                            paymentMode: 'DOORSTEP_COD',
-                            paymentStatus: vis.status === 'Completed' ? 'Paid' : 'Pending',
-                            customerName: vis.full_name || user.full_name,
-                            customerPhone: vis.phone || user.phone,
-                            customerEmail: user.email,
-                            customerAddress: `${vis.address || ''} - ${vis.pincode || ''}`,
-                            zoneName: vis.service_tier || 'Doorstep Optometry',
-                            appointmentDate: vis.visit_date,
-                            appointmentTime: vis.time_slot,
-                            totalAmount: vis.service_fee || 0,
-                            subtotal: vis.service_fee || 0,
-                            warrantyNote: 'Doorstep Optometry Eye Exam & 100+ Designer Frame Trial'
-                          })}
-                          className="text-[11px] font-bold py-1 px-3 rounded-lg flex items-center gap-1.5 text-cyan-800 dark:text-cyan-300 bg-cyan-100/80 dark:bg-cyan-950/50 border border-cyan-400/60 dark:border-cyan-700 hover:bg-cyan-200 dark:hover:bg-cyan-900/80 shadow-xs transition-all cursor-pointer"
-                        >
-                          <FileText className="w-3.5 h-3.5 text-cyan-700 dark:text-cyan-300" />
-                          <span>Download Slip / Invoice</span>
-                        </button>
+
+                      {/* Status Info */}
+                      <div className={`p-3 rounded-xl text-xs leading-relaxed ${
+                        vis.status === 'Confirmed' 
+                          ? 'bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 text-emerald-900 dark:text-emerald-200' 
+                          : vis.status === 'Pending'
+                          ? 'bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 text-amber-900 dark:text-amber-200'
+                          : 'bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-slate-300'
+                      }`}>
+                        {vis.status === 'Confirmed' ? (
+                          <div>
+                            <strong className="block font-bold mb-0.5 text-emerald-900 dark:text-emerald-100">Optometrist Assigned &amp; Confirmed</strong>
+                            {vis.assigned_optometrist ? `Assigned to: ${vis.assigned_optometrist}. ` : ''}Our specialist will arrive with computerized autorefractor and 100+ trial frames.
+                          </div>
+                        ) : vis.status === 'Pending' ? (
+                          <div>
+                            <strong className="block font-bold mb-0.5 text-amber-900 dark:text-amber-100">Route Allocation in Progress</strong>
+                            Our dispatch team is assigning an optometrist to your area. We will confirm your preferred time slot shortly.
+                          </div>
+                        ) : (
+                          <span>Status: {vis.status}</span>
+                        )}
+                      </div>
+
+                      {/* SHARED STATUS NOTES / OPTOMETRIST INSTRUCTIONS */}
+                      {vis.notes && (
+                        <div className="p-3.5 rounded-xl bg-teal-50 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-800 text-xs space-y-1 shadow-xs">
+                          <div className="flex items-center gap-1.5 text-teal-800 dark:text-teal-300 font-extrabold text-[11px] uppercase tracking-wider">
+                            <MessageSquare className="w-3.5 h-3.5 text-teal-600 dark:text-brand-teal" />
+                            <span>Optometrist &amp; Visit Notes</span>
+                          </div>
+                          <p className="text-slate-800 dark:text-slate-200 font-medium leading-relaxed">
+                            {vis.notes}
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Slot & Location */}
+                      <div className="space-y-2 text-xs bg-slate-50 dark:bg-white/5 border border-slate-200/60 dark:border-transparent p-3 rounded-xl">
+                        <div className="flex justify-between">
+                          <span className="text-slate-500 dark:text-slate-400">Scheduled Date:</span>
+                          <span className="font-bold text-slate-900 dark:text-white font-mono">{servDate}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-slate-500 dark:text-slate-400">Time Window:</span>
+                          <span className="font-bold text-slate-900 dark:text-white font-mono">{servSlot}</span>
+                        </div>
+                        <div className="pt-2 border-t border-slate-200 dark:border-white/5">
+                          <span className="text-slate-500 dark:text-slate-400 block">Address:</span>
+                          <span className="text-slate-800 dark:text-slate-200 mt-0.5 block leading-relaxed font-medium">
+                            {fullAddress}
+                          </span>
+                        </div>
+                        <div className="pt-2 flex justify-end">
+                          <button
+                            onClick={() => setInvoiceModalData({
+                              invoiceNumber: `NU-HET-${vis.id}`,
+                              orderNumber: refNum,
+                              ticket_no: vis.ticket_no,
+                              ticketNo: vis.ticket_no,
+                              invoiceDate: servDate || new Date().toISOString().split('T')[0],
+                              type: 'HOME_EYE',
+                              status: vis.status,
+                              paymentMode: 'DOORSTEP_COD',
+                              paymentStatus: vis.status === 'Completed' ? 'Paid' : (vis.payment_status || 'Pending'),
+                              customerName: custName,
+                              customerPhone: custPhone,
+                              customerEmail: vis.customer_email || user.email,
+                              customerAddress: fullAddress,
+                              zoneName: 'Doorstep Optometry',
+                              assigned_optometrist: vis.assigned_optometrist,
+                              appointmentDate: servDate,
+                              appointmentTime: servSlot,
+                              totalAmount: servFee,
+                              subtotal: servFee,
+                              notes: vis.notes,
+                              warrantyNote: 'Doorstep Optometry Eye Exam & 100+ Designer Frame Trial'
+                            })}
+                            className="text-[11px] font-bold py-1 px-3 rounded-lg flex items-center gap-1.5 text-cyan-800 dark:text-cyan-300 bg-cyan-100/80 dark:bg-cyan-950/50 border border-cyan-400/60 dark:border-cyan-700 hover:bg-cyan-200 dark:hover:bg-cyan-900/80 shadow-xs transition-all cursor-pointer"
+                          >
+                            <FileText className="w-3.5 h-3.5 text-cyan-700 dark:text-cyan-300" />
+                            <span>Download Slip / Invoice</span>
+                          </button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>

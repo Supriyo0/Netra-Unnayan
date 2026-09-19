@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { 
   BarChart3, TrendingUp, DollarSign, Download, 
   Calendar, CreditCard, ShoppingBag, Eye, Users, 
@@ -7,6 +8,7 @@ import {
   Award, Clock, AlertCircle
 } from 'lucide-react';
 import api from '../../api/client';
+import { downloadExcelFile, downloadCSVFile } from '../../utils/excelExport';
 
 export const AdminReportsPage = () => {
   const [timeRange, setTimeRange] = useState('month'); // 'today' | 'week' | 'month' | 'year' | 'custom'
@@ -28,7 +30,7 @@ export const AdminReportsPage = () => {
     try {
       setLoading(true);
       setError('');
-      let url = `/admin/reports.php?period=${timeRange}`;
+      let url = `/admin/reports.php?range=${timeRange}`;
       if (timeRange === 'custom') {
         if (customStart) url += `&start_date=${customStart}`;
         if (customEnd) url += `&end_date=${customEnd}`;
@@ -62,54 +64,81 @@ export const AdminReportsPage = () => {
     fetchReports();
   };
 
-  // CSV Exporters
+  // Excel (.xls) Exporter
+  const handleExportSummaryExcel = () => {
+    if (!reportData) return;
+    const summary = reportData.summary || {};
+    const headers = [
+      { key: 'metric', label: 'Metric Name / Indicator' },
+      { key: 'value', label: 'Value / Volume' },
+      { key: 'notes', label: 'Classification & Notes' }
+    ];
+
+    const rows = [
+      { metric: 'Period Range', value: `${reportData.start_date || timeRange} to ${reportData.end_date || 'Now'}`, notes: timeRange.toUpperCase() },
+      { metric: 'Gross Sales Revenue', value: `₹${parseFloat(summary.gross_revenue || 0).toLocaleString('en-IN')}`, notes: 'All Non-Cancelled Orders' },
+      { metric: 'Total Orders Count', value: summary.total_orders || 0, notes: 'Completed & Processing' },
+      { metric: 'Total Eyewear Units Sold', value: summary.total_units_sold || 0, notes: 'Frames, Sunglasses, Lenses' },
+      { metric: 'Average Order Value (AOV)', value: `₹${Math.round(summary.avg_order_value || 0).toLocaleString('en-IN')}`, notes: 'Per Order Ticket' },
+      { metric: 'In-Store POS Revenue', value: `₹${parseFloat(summary.pos_revenue || 0).toLocaleString('en-IN')}`, notes: 'Counter Billing (Cash/Card/UPI)' },
+      { metric: 'Online Orders Revenue', value: `₹${parseFloat(summary.online_revenue || 0).toLocaleString('en-IN')}`, notes: 'Pre-paid UPI / COD' },
+      { metric: 'Doctor Clinic Appointments', value: summary.doctor_appointments || 0, notes: 'Digha Clinic Footfalls' },
+      { metric: 'Home Eye Checkup Visits', value: summary.home_visits || 0, notes: 'Doorstep Refraction Diagnostics' }
+    ];
+
+    const filename = `Netra_Unnayan_Financial_Report_${timeRange}_${new Date().toISOString().slice(0, 10)}`;
+    downloadExcelFile(filename, 'Executive Summary', headers, rows, `Netra Unnayan Financial & Store Intelligence (${timeRange.toUpperCase()})`);
+    setExportNotice('Excel Report exported successfully (.xls)!');
+    setTimeout(() => setExportNotice(false), 3500);
+  };
+
+  // CSV Exporter with UTF-8 BOM
   const handleExportSummaryCSV = () => {
     if (!reportData) return;
-    const summary = reportData.summary;
-    let csv = `Netra Unnayan Financial & Staff Sales Report (${reportData.period.toUpperCase()})\n`;
-    csv += `Date Range,${reportData.start_date} to ${reportData.end_date}\n\n`;
-    csv += `SUMMARY METRICS\n`;
-    csv += `Gross Revenue (INR),${summary.gross_revenue}\n`;
-    csv += `Total Orders,${summary.total_orders}\n`;
-    csv += `Units Sold,${summary.total_units_sold}\n`;
-    csv += `Average Order Value,${summary.avg_order_value}\n`;
-    csv += `In-Store POS Revenue,${summary.pos_revenue}\n`;
-    csv += `Online UPI/COD Revenue,${summary.online_revenue}\n`;
-    csv += `Doctor Clinic Appointments,${summary.doctor_appointments}\n`;
-    csv += `Home Eye Checkup Visits,${summary.home_visits}\n\n`;
+    const summary = reportData.summary || {};
+    const headers = [
+      { key: 'metric', label: 'Metric Name' },
+      { key: 'value', label: 'Value' },
+      { key: 'notes', label: 'Notes' }
+    ];
 
-    csv += `STAFF BILLING & SALES PERFORMANCE\n`;
-    csv += `Staff Name,Email,Role,Total Bills,Units Sold,Revenue (INR),Cash (INR),UPI (INR),Card (INR),COD (INR)\n`;
-    (reportData.staff_performance || []).forEach((st) => {
-      const p = st.payment_breakdown || {};
-      csv += `"${st.name}","${st.email}",${st.role},${st.total_bills},${st.total_units_sold},${st.total_revenue},${p.CASH?.amount || 0},${p.UPI?.amount || 0},${p.CARD?.amount || 0},${p.COD?.amount || 0}\n`;
-    });
+    const rows = [
+      { metric: 'Gross Revenue (INR)', value: summary.gross_revenue || 0, notes: 'Total Non-Cancelled' },
+      { metric: 'Total Orders', value: summary.total_orders || 0, notes: 'Orders Count' },
+      { metric: 'Units Sold', value: summary.total_units_sold || 0, notes: 'Frames & Lenses' },
+      { metric: 'Average Order Value', value: summary.avg_order_value || 0, notes: 'AOV' },
+      { metric: 'POS Counter Revenue', value: summary.pos_revenue || 0, notes: 'In-Store' },
+      { metric: 'Online Revenue', value: summary.online_revenue || 0, notes: 'Web Storefront' },
+      { metric: 'Doctor Appointments', value: summary.doctor_appointments || 0, notes: 'Clinic Appointments' },
+      { metric: 'Home Eye Tests', value: summary.home_visits || 0, notes: 'Doorstep Diagnostic Visits' }
+    ];
 
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.setAttribute('href', url);
-    a.setAttribute('download', `Netra_Unnayan_Executive_Report_${timeRange}_${new Date().toISOString().slice(0, 10)}.csv`);
-    a.click();
-    setExportNotice(true);
+    const filename = `Netra_Unnayan_Executive_Report_${timeRange}_${new Date().toISOString().slice(0, 10)}`;
+    downloadCSVFile(filename, headers, rows);
+    setExportNotice('CSV Report exported successfully (.csv)!');
     setTimeout(() => setExportNotice(false), 3500);
   };
 
   const handleExportStaffProductCSV = (staff) => {
     if (!staff) return;
-    let csv = `Staff Sales Product Breakdown: ${staff.name} (${staff.email})\n`;
-    csv += `Period: ${reportData?.period || timeRange} (${reportData?.start_date} to ${reportData?.end_date})\n\n`;
-    csv += `Product Name,Product SKU,Units Sold,Avg Unit Price (INR),Total Revenue (INR)\n`;
-    (staff.products_sold || []).forEach((prod) => {
-      csv += `"${prod.product_name}","${prod.product_sku || 'N/A'}",${prod.units_sold},${prod.unit_price},${prod.total_revenue}\n`;
-    });
-
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.setAttribute('href', url);
-    a.setAttribute('download', `Staff_Sales_${staff.name.replace(/\s+/g, '_')}_${timeRange}.csv`);
-    a.click();
+    const headers = [
+      { key: 'product_name', label: 'Product Name' },
+      { key: 'product_sku', label: 'SKU' },
+      { key: 'category_name', label: 'Category' },
+      { key: 'units_sold', label: 'Units Sold' },
+      { key: 'avg_unit_price', label: 'Avg Unit Price (INR)' },
+      { key: 'total_revenue', label: 'Total Revenue (INR)' }
+    ];
+    const rows = (staff.products_sold || []).map(p => ({
+      product_name: p.product_name,
+      product_sku: p.product_sku || 'N/A',
+      category_name: p.category_name || 'Eyewear',
+      units_sold: p.units_sold,
+      avg_unit_price: p.avg_unit_price,
+      total_revenue: p.total_revenue
+    }));
+    const cleanName = (staff.full_name || staff.name || 'Staff').replace(/\s+/g, '_');
+    downloadExcelFile(`Staff_Sales_${cleanName}_${timeRange}`, `${cleanName} Products`, headers, rows, `Products Sold by ${cleanName}`);
   };
 
   const summary = reportData?.summary || {
@@ -179,6 +208,15 @@ export const AdminReportsPage = () => {
             ))}
           </div>
 
+          <Link
+            to="/admin/staff-sales"
+            className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white transition-all text-xs flex items-center gap-1.5 font-bold"
+            title="Go to Dedicated Staff Sales Ledger"
+          >
+            <UserCheck className="w-4 h-4 text-brand-cyan" />
+            <span>Staff Sales Ledger &rarr;</span>
+          </Link>
+
           <button
             onClick={fetchReports}
             disabled={loading}
@@ -188,13 +226,26 @@ export const AdminReportsPage = () => {
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-brand-cyan' : ''}`} />
           </button>
 
+          {/* Excel Export Button */}
+          <button
+            onClick={handleExportSummaryExcel}
+            disabled={!reportData}
+            className="btn-primary text-xs py-2 px-3.5 font-bold rounded-xl flex items-center gap-2 shadow-cyan-glow"
+            title="Download formatted Excel Spreadsheet (.xls)"
+          >
+            <FileSpreadsheet className="w-4 h-4 text-slate-950" />
+            <span>Export Excel (.xls)</span>
+          </button>
+
+          {/* CSV Export Button */}
           <button
             onClick={handleExportSummaryCSV}
             disabled={!reportData}
-            className="btn-primary text-xs py-2 px-3.5 font-bold rounded-xl flex items-center gap-2 shadow-cyan-glow"
-            title="Download CSV report"
+            className="py-2 px-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white text-xs font-semibold flex items-center gap-1.5"
+            title="Download CSV format"
           >
-            <Download className="w-3.5 h-3.5" /> Export Full Report
+            <Download className="w-3.5 h-3.5" />
+            <span>CSV</span>
           </button>
         </div>
       </div>
