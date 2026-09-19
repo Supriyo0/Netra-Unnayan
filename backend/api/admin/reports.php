@@ -334,15 +334,32 @@ try {
             $hasCreatedByCol = ($colCheck && $colCheck->rowCount() > 0);
         } catch (\Throwable $ce) {}
 
-        // Gather all order IDs in the period first
-        $allPeriodOrderStmt = $pdo->prepare("
-            SELECT id, notes, is_offline_bill
-            FROM orders
-            WHERE {$orderDateClause} AND order_status != 'Cancelled'
-        ");
-        $allPeriodOrderStmt->execute($orderParams);
-        $periodOrders = $allPeriodOrderStmt->fetchAll(PDO::FETCH_ASSOC);
+        // Gather all order IDs in the period first (ensure 'orders o' alias is present)
+        $periodOrders = [];
+        try {
+            $allPeriodOrderStmt = $pdo->prepare("
+                SELECT o.id, o.notes, o.is_offline_bill
+                FROM orders o
+                WHERE {$orderDateClause} AND o.order_status != 'Cancelled'
+            ");
+            $allPeriodOrderStmt->execute($orderParams);
+            $periodOrders = $allPeriodOrderStmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (\Throwable $oe) {}
+
         $periodOrderIds = array_column($periodOrders, 'id');
+
+        // Identify the Super Admin ID (by role, username, or default admin email)
+        $primaryAdminId = !empty($allStaff[0]['id']) ? (int)$allStaff[0]['id'] : 1;
+        foreach ($allStaff as $stf) {
+            $rSlug = strtolower($stf['role_slug'] ?? '');
+            $rName = strtolower($stf['role_name'] ?? '');
+            $sEmail = strtolower($stf['email'] ?? '');
+            $sUser  = strtolower($stf['username'] ?? '');
+            if (strpos($rSlug, 'super') !== false || strpos($rName, 'super') !== false || $sEmail === 'netraunnayan@gmail.com' || $sUser === 'admin') {
+                $primaryAdminId = (int)$stf['id'];
+                break;
+            }
+        }
 
         // Build a map of order_id => staff_id
         $orderToStaffMap = [];
@@ -424,23 +441,16 @@ try {
             }
         }
 
-        // Find the primary super admin ID (usually 1 or the one with super_admin role)
-        $primaryAdminId = !empty($allStaff[0]['id']) ? (int)$allStaff[0]['id'] : 1;
-        foreach ($allStaff as $stf) {
-            if (stripos($stf['role_slug'] ?? '', 'super') !== false || stripos($stf['role_name'] ?? '', 'super') !== false) {
-                $primaryAdminId = (int)$stf['id'];
-                break;
-            }
-        }
-
-        // For any legacy or unattributed orders created via POS/counter, attribute to primary super admin so data is not lost
+        // 6. BUSINESS RULE: If invoice/order is generated online (storefront / web order), assign ALL online bills directly to Super Admin
         foreach ($periodOrders as $pOrd) {
             $oId = (int)$pOrd['id'];
-            if (!isset($orderToStaffMap[$oId])) {
-                // If it was an offline POS bill created at the main store counter, attribute to primary admin
-                if (!empty($pOrd['is_offline_bill'])) {
-                    $orderToStaffMap[$oId] = $primaryAdminId;
-                }
+            $isOffline = !empty($pOrd['is_offline_bill']);
+            if (!$isOffline) {
+                // Online bill -> attributed to Super Admin
+                $orderToStaffMap[$oId] = $primaryAdminId;
+            } else if (!isset($orderToStaffMap[$oId])) {
+                // Untagged POS counter bill -> attributed to Super Admin
+                $orderToStaffMap[$oId] = $primaryAdminId;
             }
         }
 
