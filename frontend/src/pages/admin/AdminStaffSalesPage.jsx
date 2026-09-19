@@ -239,21 +239,21 @@ export const AdminStaffSalesPage = () => {
     <div className="space-y-6 max-w-7xl mx-auto p-4 sm:p-6">
       
       {/* Top Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-white/10 pb-5">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-slate-200 dark:border-white/10 pb-5">
         <div>
           <div className="flex items-center gap-2">
-            <span className="text-xs uppercase font-extrabold tracking-wider text-brand-cyan">
+            <span className="text-xs uppercase font-extrabold tracking-wider text-teal-600 dark:text-brand-cyan">
               Enterprise POS &amp; Staff Operations
             </span>
-            <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-mono font-bold">
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 dark:text-emerald-400 font-mono font-bold">
               Live Auditing Active
             </span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-black text-white mt-1 flex items-center gap-2.5">
-            <UserCheck className="w-7 h-7 text-brand-cyan" />
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white mt-1 flex items-center gap-2.5 font-heading">
+            <UserCheck className="w-7 h-7 text-teal-600 dark:text-brand-cyan" />
             Staff Sales, Counter Billing &amp; Products Ledger
           </h1>
-          <p className="text-xs text-slate-400 mt-1">
+          <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
             Track individual sales performance, itemized products sold per staff member, invoice slips, and cashier cash/UPI settlements.
           </p>
         </div>
@@ -261,36 +261,36 @@ export const AdminStaffSalesPage = () => {
         <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           <Link
             to="/admin/reports"
-            className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white transition-all text-xs flex items-center gap-1.5"
+            className="p-2.5 rounded-xl bg-white dark:bg-white/5 hover:bg-slate-100 dark:hover:bg-white/10 border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-all text-xs flex items-center gap-1.5 shadow-sm"
             title="Go to Financial Overview Reports"
           >
-            <BarChart3 className="w-4 h-4 text-sky-400" />
+            <BarChart3 className="w-4 h-4 text-sky-600 dark:text-sky-400" />
             <span className="hidden sm:inline">Store Financials</span>
           </Link>
 
           <Link
             to="/admin/pos"
-            className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white transition-all text-xs flex items-center gap-1.5 font-bold"
+            className="p-2.5 rounded-xl bg-teal-50 dark:bg-emerald-500/15 hover:bg-teal-100 dark:hover:bg-emerald-500/25 border border-teal-200 dark:border-emerald-500/30 text-teal-800 dark:text-emerald-400 transition-all text-xs flex items-center gap-1.5 font-bold shadow-sm"
             title="Open POS Counter"
           >
-            <ShoppingBag className="w-4 h-4 text-emerald-400" />
+            <ShoppingBag className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
             <span className="hidden sm:inline">POS Counter</span>
           </Link>
 
           <button
             onClick={fetchStaffReports}
             disabled={loading}
-            className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white transition-all"
+            className="p-2.5 rounded-xl bg-white dark:bg-white/5 hover:bg-slate-100 dark:hover:bg-white/10 border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-all shadow-sm cursor-pointer"
             title="Refresh Data"
           >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-brand-cyan' : ''}`} />
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-teal-600 dark:text-brand-cyan' : ''}`} />
           </button>
 
           {/* Excel Export Button */}
           <button
             onClick={handleExportStaffSummaryExcel}
             disabled={!reportData || staffPerformance.length === 0}
-            className="btn-primary py-2 px-4 rounded-xl text-xs font-bold shadow-cyan-glow flex items-center gap-2"
+            className="btn-primary py-2 px-4 rounded-xl text-xs font-bold shadow-sm flex items-center gap-2 cursor-pointer"
             title="Download full formatted Excel spreadsheet (.xls)"
           >
             <FileSpreadsheet className="w-4 h-4 text-slate-950" />
@@ -301,7 +301,7 @@ export const AdminStaffSalesPage = () => {
           <button
             onClick={handleExportStaffSummaryCSV}
             disabled={!reportData || staffPerformance.length === 0}
-            className="py-2 px-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white text-xs font-semibold flex items-center gap-1.5"
+            className="py-2 px-3 rounded-xl bg-white dark:bg-white/5 hover:bg-slate-100 dark:hover:bg-white/10 border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white text-xs font-semibold flex items-center gap-1.5 shadow-sm cursor-pointer"
             title="Download CSV format"
           >
             <Download className="w-3.5 h-3.5" />
@@ -312,26 +312,26 @@ export const AdminStaffSalesPage = () => {
 
       {/* Export Toast Notice */}
       {exportNotice && (
-        <div className="p-3.5 rounded-xl text-xs font-bold flex items-center justify-between gap-3 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 animate-fadeIn">
+        <div className="p-3.5 rounded-xl text-xs font-bold flex items-center justify-between gap-3 bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border border-emerald-500/30 animate-fadeIn shadow-sm">
           <div className="flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
             <span>{exportNotice}</span>
           </div>
-          <button onClick={() => setExportNotice(null)} className="text-slate-400 hover:text-white font-bold">&times;</button>
+          <button onClick={() => setExportNotice(null)} className="text-slate-500 hover:text-slate-800 dark:hover:text-white font-bold">&times;</button>
         </div>
       )}
 
       {error && (
-        <div className="p-4 rounded-xl text-xs font-semibold bg-rose-500/20 text-rose-300 border border-rose-500/30 flex items-center gap-2">
-          <AlertCircle className="w-4 h-4 shrink-0" />
+        <div className="p-4 rounded-xl text-xs font-semibold bg-rose-500/15 text-rose-800 dark:text-rose-300 border border-rose-500/30 flex items-center gap-2 shadow-sm">
+          <AlertCircle className="w-4 h-4 shrink-0 text-rose-600 dark:text-rose-400" />
           <span>{error}</span>
         </div>
       )}
 
       {/* Date Range Toolbar & Navigation Tabs */}
-      <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 p-3 bg-[#0A192F] border border-white/10 rounded-2xl">
+      <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 p-3 bg-white dark:bg-[#0A192F] border border-slate-200 dark:border-white/10 rounded-2xl shadow-sm">
         {/* Preset Range Selector */}
-        <div className="flex items-center rounded-xl bg-[#060D17] border border-white/10 p-1 text-xs font-semibold overflow-x-auto scrollbar-none">
+        <div className="flex items-center rounded-xl bg-slate-100 dark:bg-[#060D17] border border-slate-200 dark:border-white/10 p-1 text-xs font-semibold overflow-x-auto scrollbar-none">
           {[
             { id: 'today', label: 'Today' },
             { id: 'week', label: 'This Week' },
@@ -342,10 +342,10 @@ export const AdminStaffSalesPage = () => {
             <button
               key={tab.id}
               onClick={() => setTimeRange(tab.id)}
-              className={`px-3.5 py-1.5 rounded-lg transition-all whitespace-nowrap ${
+              className={`px-3.5 py-1.5 rounded-lg transition-all whitespace-nowrap cursor-pointer ${
                 timeRange === tab.id
-                  ? 'bg-brand-cyan/20 text-brand-cyan border border-brand-cyan/40 shadow-sm font-bold'
-                  : 'text-slate-400 hover:text-white'
+                  ? 'bg-white dark:bg-brand-cyan/20 text-teal-700 dark:text-brand-cyan border border-slate-300 dark:border-brand-cyan/40 shadow-sm font-bold'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               {tab.label}
@@ -355,23 +355,23 @@ export const AdminStaffSalesPage = () => {
 
         {/* Custom Date Inputs */}
         {timeRange === 'custom' && (
-          <form onSubmit={handleApplyCustomDate} className="flex flex-wrap items-center gap-2 bg-[#060D17] p-2 rounded-xl border border-white/10">
+          <form onSubmit={handleApplyCustomDate} className="flex flex-wrap items-center gap-2 bg-slate-50 dark:bg-[#060D17] p-2 rounded-xl border border-slate-200 dark:border-white/10">
             <input
               type="date"
               value={customStart}
               onChange={(e) => setCustomStart(e.target.value)}
-              className="px-2.5 py-1 rounded-lg bg-[#0A192F] border border-white/10 text-white text-xs focus:border-brand-cyan focus:outline-none"
+              className="px-2.5 py-1 rounded-lg bg-white dark:bg-[#0A192F] border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white text-xs focus:border-teal-500 dark:focus:border-brand-cyan focus:outline-none"
             />
-            <span className="text-xs text-slate-400">to</span>
+            <span className="text-xs text-slate-500 dark:text-slate-400">to</span>
             <input
               type="date"
               value={customEnd}
               onChange={(e) => setCustomEnd(e.target.value)}
-              className="px-2.5 py-1 rounded-lg bg-[#0A192F] border border-white/10 text-white text-xs focus:border-brand-cyan focus:outline-none"
+              className="px-2.5 py-1 rounded-lg bg-white dark:bg-[#0A192F] border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white text-xs focus:border-teal-500 dark:focus:border-brand-cyan focus:outline-none"
             />
             <button
               type="submit"
-              className="btn-primary px-3 py-1 rounded-lg text-xs font-bold"
+              className="btn-primary px-3 py-1 rounded-lg text-xs font-bold shadow-sm"
             >
               Apply Filter
             </button>
@@ -387,14 +387,14 @@ export const AdminStaffSalesPage = () => {
               placeholder="Search staff name, email, role..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-8 pr-3 py-1.5 rounded-xl bg-[#060D17] border border-white/10 text-white text-xs placeholder:text-slate-500 focus:border-brand-cyan focus:outline-none w-52 sm:w-64"
+              className="pl-8 pr-3 py-1.5 rounded-xl bg-slate-50 dark:bg-[#060D17] border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white text-xs placeholder:text-slate-500 focus:border-teal-500 dark:focus:border-brand-cyan focus:outline-none w-52 sm:w-64"
             />
           </div>
 
           <select
             value={roleFilter}
             onChange={(e) => setRoleFilter(e.target.value)}
-            className="px-3 py-1.5 rounded-xl bg-[#060D17] border border-white/10 text-white text-xs focus:border-brand-cyan focus:outline-none"
+            className="px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-[#060D17] border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white text-xs focus:border-teal-500 dark:focus:border-brand-cyan focus:outline-none"
           >
             <option value="all">All Roles</option>
             <option value="super_admin">Super Admin</option>
@@ -409,58 +409,58 @@ export const AdminStaffSalesPage = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         
         {/* Card 1: Total Staff Sales */}
-        <div className="bg-[#0A192F] border border-brand-cyan/30 rounded-2xl p-5 shadow-lg relative overflow-hidden">
+        <div className="bg-white dark:bg-[#0A192F] border border-teal-200 dark:border-brand-cyan/30 rounded-2xl p-5 shadow-sm dark:shadow-lg relative overflow-hidden">
           <div className="flex justify-between items-start">
-            <span className="text-xs font-bold text-brand-cyan uppercase tracking-wider">
+            <span className="text-xs font-bold text-teal-700 dark:text-brand-cyan uppercase tracking-wider">
               Total Staff Sales Revenue
             </span>
-            <div className="w-8 h-8 rounded-xl bg-brand-cyan/10 border border-brand-cyan/30 flex items-center justify-center text-brand-cyan">
+            <div className="w-8 h-8 rounded-xl bg-teal-50 dark:bg-brand-cyan/10 border border-teal-200 dark:border-brand-cyan/30 flex items-center justify-center text-teal-700 dark:text-brand-cyan">
               <DollarSign className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-3xl font-black text-white mt-2 font-mono">
+          <div className="text-3xl font-black text-slate-900 dark:text-white mt-2 font-mono">
             ₹{totalStaffSales.toLocaleString('en-IN')}
           </div>
-          <div className="text-[11px] text-slate-400 mt-1 flex items-center gap-1.5">
-            <span className="text-emerald-400 font-bold">&#10003; {totalStaffBills} Counter Invoices</span>
+          <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-1.5">
+            <span className="text-emerald-700 dark:text-emerald-400 font-bold">&#10003; {totalStaffBills} Counter Invoices</span>
             <span>&bull;</span>
             <span>{timeRange.toUpperCase()}</span>
           </div>
         </div>
 
         {/* Card 2: Eyewear Units Sold */}
-        <div className="bg-[#0A192F] border border-emerald-500/30 rounded-2xl p-5 shadow-lg relative overflow-hidden">
+        <div className="bg-white dark:bg-[#0A192F] border border-emerald-200 dark:border-emerald-500/30 rounded-2xl p-5 shadow-sm dark:shadow-lg relative overflow-hidden">
           <div className="flex justify-between items-start">
-            <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider">
+            <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider">
               Total Units Sold by Staff
             </span>
-            <div className="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+            <div className="w-8 h-8 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/30 flex items-center justify-center text-emerald-700 dark:text-emerald-400">
               <Package className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-3xl font-black text-white mt-2 font-mono">
-            {totalStaffUnits} <span className="text-sm text-slate-400 font-sans font-normal">frames/lenses</span>
+          <div className="text-3xl font-black text-slate-900 dark:text-white mt-2 font-mono">
+            {totalStaffUnits} <span className="text-sm text-slate-500 dark:text-slate-400 font-sans font-normal">frames/lenses</span>
           </div>
-          <div className="text-[11px] text-slate-400 mt-1">
+          <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
             Avg {totalStaffBills > 0 ? (totalStaffUnits / totalStaffBills).toFixed(1) : 0} items per counter ticket
           </div>
         </div>
 
         {/* Card 3: Top Performer Staff */}
-        <div className="bg-[#0A192F] border border-amber-500/30 rounded-2xl p-5 shadow-lg relative overflow-hidden">
+        <div className="bg-white dark:bg-[#0A192F] border border-amber-200 dark:border-amber-500/30 rounded-2xl p-5 shadow-sm dark:shadow-lg relative overflow-hidden">
           <div className="flex justify-between items-start">
-            <span className="text-xs font-bold text-amber-400 uppercase tracking-wider">
+            <span className="text-xs font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wider">
               Top Billing Performer
             </span>
-            <div className="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
+            <div className="w-8 h-8 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 flex items-center justify-center text-amber-700 dark:text-amber-400">
               <Award className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-xl font-black text-white mt-2 truncate">
+          <div className="text-xl font-black text-slate-900 dark:text-white mt-2 truncate">
             {topPerformer ? (topPerformer.full_name || topPerformer.username) : '—'}
           </div>
-          <div className="text-[11px] text-slate-400 mt-1 flex items-center justify-between">
-            <span className="text-amber-300 font-bold font-mono">
+          <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 flex items-center justify-between">
+            <span className="text-amber-700 dark:text-amber-300 font-bold font-mono">
               ₹{(topPerformer?.total_sales || 0).toLocaleString('en-IN')}
             </span>
             <span>{topPerformer?.total_bills || 0} Bills</span>
@@ -468,57 +468,57 @@ export const AdminStaffSalesPage = () => {
         </div>
 
         {/* Card 4: Active Staff Count */}
-        <div className="bg-[#0A192F] border border-purple-500/30 rounded-2xl p-5 shadow-lg relative overflow-hidden">
+        <div className="bg-white dark:bg-[#0A192F] border border-purple-200 dark:border-purple-500/30 rounded-2xl p-5 shadow-sm dark:shadow-lg relative overflow-hidden">
           <div className="flex justify-between items-start">
-            <span className="text-xs font-bold text-purple-400 uppercase tracking-wider">
+            <span className="text-xs font-bold text-purple-700 dark:text-purple-400 uppercase tracking-wider">
               Active Billing Staff
             </span>
-            <div className="w-8 h-8 rounded-xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-400">
+            <div className="w-8 h-8 rounded-xl bg-purple-50 dark:bg-purple-500/10 border border-purple-200 dark:border-purple-500/30 flex items-center justify-center text-purple-700 dark:text-purple-400">
               <UserCheck className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-3xl font-black text-white mt-2 font-mono">
-            {filteredStaff.length} <span className="text-sm text-slate-400 font-sans font-normal">members</span>
+          <div className="text-3xl font-black text-slate-900 dark:text-white mt-2 font-mono">
+            {filteredStaff.length} <span className="text-sm text-slate-500 dark:text-slate-400 font-sans font-normal">members</span>
           </div>
-          <div className="text-[11px] text-slate-400 mt-1">
+          <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
             Store counter clerks, optometrists &amp; cashiers
           </div>
         </div>
       </div>
 
       {/* Staff Billing Performance Table */}
-      <div className="bg-[#0A192F] border border-white/10 rounded-2xl overflow-hidden shadow-xl">
-        <div className="p-4 border-b border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+      <div className="bg-white dark:bg-[#0A192F] border border-slate-200 dark:border-white/10 rounded-2xl overflow-hidden shadow-sm dark:shadow-xl">
+        <div className="p-4 border-b border-slate-100 dark:border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div>
-            <h2 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
-              <Receipt className="w-4 h-4 text-brand-cyan" />
+            <h2 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+              <Receipt className="w-4 h-4 text-teal-600 dark:text-brand-cyan" />
               Staff Members Sales &amp; Product Details Ledger
             </h2>
-            <p className="text-[11px] text-slate-400 mt-0.5">
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
               Click on <strong>Products Sold</strong> or <strong>Invoices Ledger</strong> to inspect itemized receipts.
             </p>
           </div>
 
-          <span className="text-xs font-mono text-brand-cyan font-bold">
+          <span className="text-xs font-mono text-teal-700 dark:text-brand-cyan font-bold">
             Showing {filteredStaff.length} of {staffPerformance.length} staff
           </span>
         </div>
 
         {loading ? (
-          <div className="p-16 text-center text-slate-400 space-y-3">
-            <div className="w-8 h-8 border-2 border-brand-cyan border-t-transparent rounded-full animate-spin mx-auto" />
+          <div className="p-16 text-center text-slate-500 dark:text-slate-400 space-y-3">
+            <div className="w-8 h-8 border-2 border-teal-600 dark:border-brand-cyan border-t-transparent rounded-full animate-spin mx-auto" />
             <div className="text-xs font-bold">Loading staff billing ledger...</div>
           </div>
         ) : filteredStaff.length === 0 ? (
-          <div className="p-16 text-center text-slate-400 space-y-3">
-            <UserCheck className="w-12 h-12 mx-auto text-slate-600" />
-            <div className="text-sm font-bold text-slate-300">No staff billing records found</div>
+          <div className="p-16 text-center text-slate-500 dark:text-slate-400 space-y-3">
+            <UserCheck className="w-12 h-12 mx-auto text-slate-300 dark:text-slate-600" />
+            <div className="text-sm font-bold text-slate-700 dark:text-slate-300">No staff billing records found</div>
             <p className="text-xs text-slate-500">Try adjusting your date range or search query.</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs text-slate-300">
-              <thead className="bg-white/[0.02] text-slate-400 border-b border-white/10 uppercase tracking-wider font-semibold text-[11px]">
+            <table className="w-full text-left text-xs text-slate-700 dark:text-slate-300">
+              <thead className="bg-slate-50 dark:bg-white/[0.02] text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-white/10 uppercase tracking-wider font-semibold text-[11px]">
                 <tr>
                   <th className="py-3 px-4">Staff Member</th>
                   <th className="py-3 px-4">Role</th>
@@ -529,53 +529,53 @@ export const AdminStaffSalesPage = () => {
                   <th className="py-3 px-4 text-right">Details &amp; Audit Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-white/5">
+              <tbody className="divide-y divide-slate-100 dark:divide-white/5">
                 {filteredStaff.map((st, idx) => {
                   const p = st.payment_breakdown || {};
                   const share = totalStaffSales > 0 ? ((st.total_sales / totalStaffSales) * 100).toFixed(1) : 0;
                   const isLeader = idx === 0 && st.total_sales > 0;
 
                   return (
-                    <tr key={st.staff_id} className="hover:bg-white/[0.02] transition-colors">
+                    <tr key={st.staff_id} className="hover:bg-slate-50/80 dark:hover:bg-white/[0.02] transition-colors">
                       {/* 1. Staff Member Info */}
                       <td className="py-3.5 px-4">
                         <div className="flex items-center gap-3">
                           <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-sm shrink-0 border ${
                             isLeader 
-                              ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 shadow-sm' 
-                              : 'bg-white/5 text-slate-200 border-white/10'
+                              ? 'bg-amber-100 dark:bg-amber-500/20 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-500/40 shadow-sm' 
+                              : 'bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-white/10'
                           }`}>
                             {(st.full_name || st.username || 'S').charAt(0).toUpperCase()}
                           </div>
                           <div>
-                            <div className="font-bold text-white text-sm flex items-center gap-1.5">
+                            <div className="font-bold text-slate-900 dark:text-white text-sm flex items-center gap-1.5">
                               <span>{st.full_name || st.username}</span>
                               {isLeader && (
-                                <span className="px-1.5 py-0.5 rounded text-[9px] bg-amber-500/20 text-amber-300 border border-amber-500/40 font-bold">
+                                <span className="px-1.5 py-0.5 rounded text-[9px] bg-amber-100 dark:bg-amber-500/20 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-500/40 font-bold">
                                   Top Seller
                                 </span>
                               )}
                             </div>
-                            <div className="text-[11px] text-slate-400">{st.email}</div>
+                            <div className="text-[11px] text-slate-500 dark:text-slate-400">{st.email}</div>
                           </div>
                         </div>
                       </td>
 
                       {/* 2. Role */}
                       <td className="py-3.5 px-4">
-                        <span className="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-sky-500/15 text-brand-cyan border border-brand-cyan/30">
+                        <span className="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-sky-50 dark:bg-sky-500/15 text-sky-800 dark:text-brand-cyan border border-sky-200 dark:border-brand-cyan/30">
                           {st.role_name || 'Staff'}
                         </span>
                       </td>
 
                       {/* 3. Invoices Billed */}
-                      <td className="py-3.5 px-4 text-center font-mono font-bold text-slate-200 text-sm">
+                      <td className="py-3.5 px-4 text-center font-mono font-bold text-slate-900 dark:text-slate-200 text-sm">
                         {st.total_bills}
                       </td>
 
                       {/* 4. Units Sold */}
                       <td className="py-3.5 px-4 text-center">
-                        <span className="font-mono font-bold text-emerald-400 text-sm">
+                        <span className="font-mono font-bold text-emerald-700 dark:text-emerald-400 text-sm">
                           {st.total_units}
                         </span>
                         <div className="text-[10px] text-slate-500">frames / lenses</div>
@@ -583,11 +583,11 @@ export const AdminStaffSalesPage = () => {
 
                       {/* 5. Total Revenue */}
                       <td className="py-3.5 px-4">
-                        <div className="font-mono font-black text-white text-sm">
+                        <div className="font-mono font-black text-slate-900 dark:text-white text-sm">
                           ₹{st.total_sales.toLocaleString('en-IN')}
                         </div>
-                        <div className="text-[10px] text-slate-400 flex items-center gap-1">
-                          <span className="text-brand-cyan font-bold">{share}%</span>
+                        <div className="text-[10px] text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                          <span className="text-teal-700 dark:text-brand-cyan font-bold">{share}%</span>
                           <span>of staff total</span>
                         </div>
                       </td>
@@ -596,27 +596,27 @@ export const AdminStaffSalesPage = () => {
                       <td className="py-3.5 px-4">
                         <div className="flex flex-wrap gap-1 max-w-xs">
                           {p.CASH > 0 && (
-                            <span className="px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-300 text-[10px] font-mono border border-emerald-500/30">
+                            <span className="px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 text-[10px] font-mono border border-emerald-300 dark:border-emerald-500/30">
                               Cash: ₹{p.CASH.toLocaleString('en-IN')}
                             </span>
                           )}
                           {p.UPI > 0 && (
-                            <span className="px-1.5 py-0.5 rounded bg-sky-500/15 text-sky-300 text-[10px] font-mono border border-sky-500/30">
+                            <span className="px-1.5 py-0.5 rounded bg-sky-100 dark:bg-sky-500/15 text-sky-800 dark:text-sky-300 text-[10px] font-mono border border-sky-300 dark:border-sky-500/30">
                               UPI: ₹{p.UPI.toLocaleString('en-IN')}
                             </span>
                           )}
                           {p.CARD > 0 && (
-                            <span className="px-1.5 py-0.5 rounded bg-purple-500/15 text-purple-300 text-[10px] font-mono border border-purple-500/30">
+                            <span className="px-1.5 py-0.5 rounded bg-purple-100 dark:bg-purple-500/15 text-purple-800 dark:text-purple-300 text-[10px] font-mono border border-purple-300 dark:border-purple-500/30">
                               Card: ₹{p.CARD.toLocaleString('en-IN')}
                             </span>
                           )}
                           {p.COD > 0 && (
-                            <span className="px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-300 text-[10px] font-mono border border-amber-500/30">
+                            <span className="px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-500/15 text-amber-800 dark:text-amber-300 text-[10px] font-mono border border-amber-300 dark:border-amber-500/30">
                               COD: ₹{p.COD.toLocaleString('en-IN')}
                             </span>
                           )}
                           {(!p.CASH && !p.UPI && !p.CARD && !p.COD) && (
-                            <span className="text-slate-500 text-[11px]">—</span>
+                            <span className="text-slate-400 dark:text-slate-500 text-[11px]">—</span>
                           )}
                         </div>
                       </td>
@@ -626,7 +626,7 @@ export const AdminStaffSalesPage = () => {
                         {/* View Products Sold Modal Button */}
                         <button
                           onClick={() => setSelectedStaffProducts(st)}
-                          className="py-1.5 px-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-brand-cyan hover:text-white border border-brand-cyan/30 text-xs font-bold inline-flex items-center gap-1 transition-all"
+                          className="py-1.5 px-2.5 rounded-xl bg-slate-100 dark:bg-white/5 hover:bg-teal-50 dark:hover:bg-white/10 text-teal-800 dark:text-brand-cyan hover:text-teal-950 dark:hover:text-white border border-slate-200 dark:border-brand-cyan/30 text-xs font-bold inline-flex items-center gap-1 transition-all"
                           title="View all products and lenses sold by this staff member"
                         >
                           <Package className="w-3.5 h-3.5" />
@@ -636,7 +636,7 @@ export const AdminStaffSalesPage = () => {
                         {/* View Invoices Ledger Modal Button */}
                         <button
                           onClick={() => setSelectedStaffBills(st)}
-                          className="py-1.5 px-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-emerald-400 hover:text-white border border-emerald-500/30 text-xs font-bold inline-flex items-center gap-1 transition-all"
+                          className="py-1.5 px-2.5 rounded-xl bg-slate-100 dark:bg-white/5 hover:bg-emerald-50 dark:hover:bg-white/10 text-emerald-800 dark:text-emerald-400 hover:text-emerald-950 dark:hover:text-white border border-slate-200 dark:border-emerald-500/30 text-xs font-bold inline-flex items-center gap-1 transition-all"
                           title="View all bills generated by this staff member"
                         >
                           <Receipt className="w-3.5 h-3.5" />
@@ -646,7 +646,7 @@ export const AdminStaffSalesPage = () => {
                         {/* Quick Single-Staff Excel Download */}
                         <button
                           onClick={() => handleExportSingleStaffBills(st)}
-                          className="p-1.5 rounded-xl bg-white/5 hover:bg-emerald-600 text-slate-300 hover:text-white border border-white/10 text-xs inline-flex items-center transition-all"
+                          className="p-1.5 rounded-xl bg-slate-100 dark:bg-white/5 hover:bg-emerald-600 text-slate-700 dark:text-slate-300 hover:text-white border border-slate-200 dark:border-white/10 text-xs inline-flex items-center transition-all shadow-sm"
                           title={`Download ${st.full_name}'s detailed Excel spreadsheet`}
                         >
                           <FileSpreadsheet className="w-3.5 h-3.5" />
@@ -666,18 +666,18 @@ export const AdminStaffSalesPage = () => {
          ========================================================================= */}
       {selectedStaffProducts && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-[#0A192F] border border-white/15 rounded-2xl w-full max-w-3xl p-6 shadow-2xl space-y-4 max-h-[90vh] flex flex-col">
+          <div className="bg-white dark:bg-[#0A192F] border border-slate-200 dark:border-white/15 rounded-2xl w-full max-w-3xl p-6 shadow-2xl space-y-4 max-h-[90vh] flex flex-col">
             
             {/* Modal Header */}
-            <div className="flex items-center justify-between border-b border-white/10 pb-4">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-white/10 pb-4">
               <div>
-                <span className="text-xs font-bold text-brand-cyan uppercase tracking-wider">
+                <span className="text-xs font-bold text-teal-700 dark:text-brand-cyan uppercase tracking-wider">
                   Product Sales Breakdown
                 </span>
-                <h3 className="text-lg font-black text-white font-heading mt-0.5">
+                <h3 className="text-lg font-black text-slate-900 dark:text-white font-heading mt-0.5">
                   {selectedStaffProducts.full_name || selectedStaffProducts.username} — All Items Sold
                 </h3>
-                <p className="text-[11px] text-slate-400">
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
                   Period: {timeRange.toUpperCase()} &bull; Total {selectedStaffProducts.total_units} units across {selectedStaffProducts.products_sold?.length || 0} unique models
                 </p>
               </div>
@@ -685,7 +685,7 @@ export const AdminStaffSalesPage = () => {
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => handleExportSingleStaffProducts(selectedStaffProducts)}
-                  className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm"
+                  className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm cursor-pointer"
                   title="Download products Excel"
                 >
                   <FileSpreadsheet className="w-3.5 h-3.5" />
@@ -693,7 +693,7 @@ export const AdminStaffSalesPage = () => {
                 </button>
                 <button
                   onClick={() => setSelectedStaffProducts(null)}
-                  className="text-slate-400 hover:text-white text-xl leading-none px-2"
+                  className="text-slate-400 hover:text-slate-700 dark:hover:text-white text-xl leading-none px-2 cursor-pointer"
                 >
                   &times;
                 </button>
@@ -701,9 +701,9 @@ export const AdminStaffSalesPage = () => {
             </div>
 
             {/* Products Table */}
-            <div className="overflow-y-auto flex-1 border border-white/10 rounded-xl">
-              <table className="w-full text-left text-xs text-slate-300">
-                <thead className="bg-white/[0.04] text-slate-400 border-b border-white/10 uppercase tracking-wider font-semibold text-[10px] sticky top-0 bg-[#0A192F]">
+            <div className="overflow-y-auto flex-1 border border-slate-200 dark:border-white/10 rounded-xl">
+              <table className="w-full text-left text-xs text-slate-700 dark:text-slate-300">
+                <thead className="bg-slate-50 dark:bg-slate-900 text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-white/10 uppercase tracking-wider font-semibold text-[10px] sticky top-0">
                   <tr>
                     <th className="py-2.5 px-3">Product Name</th>
                     <th className="py-2.5 px-3">SKU</th>
@@ -713,25 +713,25 @@ export const AdminStaffSalesPage = () => {
                     <th className="py-2.5 px-3 text-right">Total Revenue</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-white/5">
+                <tbody className="divide-y divide-slate-100 dark:divide-white/5">
                   {(selectedStaffProducts.products_sold || []).map((prod, pIdx) => (
-                    <tr key={pIdx} className="hover:bg-white/[0.02]">
-                      <td className="py-2.5 px-3 font-bold text-white">
+                    <tr key={pIdx} className="hover:bg-slate-50/80 dark:hover:bg-white/[0.02]">
+                      <td className="py-2.5 px-3 font-bold text-slate-900 dark:text-white">
                         {prod.product_name}
                       </td>
-                      <td className="py-2.5 px-3 font-mono text-brand-cyan text-[11px]">
+                      <td className="py-2.5 px-3 font-mono text-teal-700 dark:text-brand-cyan text-[11px]">
                         {prod.product_sku || 'NU-OPT'}
                       </td>
-                      <td className="py-2.5 px-3 text-slate-400">
+                      <td className="py-2.5 px-3 text-slate-500 dark:text-slate-400">
                         {prod.category_name || 'Eyewear'}
                       </td>
-                      <td className="py-2.5 px-3 text-center font-mono font-bold text-emerald-400">
+                      <td className="py-2.5 px-3 text-center font-mono font-bold text-emerald-700 dark:text-emerald-400">
                         {prod.units_sold}
                       </td>
                       <td className="py-2.5 px-3 text-right font-mono">
                         ₹{parseFloat(prod.avg_unit_price || 0).toLocaleString('en-IN')}
                       </td>
-                      <td className="py-2.5 px-3 text-right font-mono font-bold text-white">
+                      <td className="py-2.5 px-3 text-right font-mono font-bold text-slate-900 dark:text-white">
                         ₹{parseFloat(prod.total_revenue || 0).toLocaleString('en-IN')}
                       </td>
                     </tr>
@@ -741,13 +741,13 @@ export const AdminStaffSalesPage = () => {
             </div>
 
             {/* Modal Footer */}
-            <div className="flex items-center justify-between pt-3 border-t border-white/10 text-xs">
-              <span className="text-slate-400">
-                Total Products Billed: <strong className="text-white">{selectedStaffProducts.products_sold?.length || 0}</strong>
+            <div className="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-white/10 text-xs">
+              <span className="text-slate-500 dark:text-slate-400">
+                Total Products Billed: <strong className="text-slate-900 dark:text-white">{selectedStaffProducts.products_sold?.length || 0}</strong>
               </span>
               <button
                 onClick={() => setSelectedStaffProducts(null)}
-                className="px-4 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-semibold"
+                className="px-4 py-1.5 rounded-xl bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/20 text-slate-800 dark:text-white font-semibold cursor-pointer"
               >
                 Close
               </button>
@@ -761,18 +761,18 @@ export const AdminStaffSalesPage = () => {
          ========================================================================= */}
       {selectedStaffBills && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-[#0A192F] border border-white/15 rounded-2xl w-full max-w-4xl p-6 shadow-2xl space-y-4 max-h-[90vh] flex flex-col">
+          <div className="bg-white dark:bg-[#0A192F] border border-slate-200 dark:border-white/15 rounded-2xl w-full max-w-4xl p-6 shadow-2xl space-y-4 max-h-[90vh] flex flex-col">
             
             {/* Modal Header */}
-            <div className="flex items-center justify-between border-b border-white/10 pb-4">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-white/10 pb-4">
               <div>
-                <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider">
+                <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider">
                   Counter Invoices &amp; Receipts Ledger
                 </span>
-                <h3 className="text-lg font-black text-white font-heading mt-0.5">
+                <h3 className="text-lg font-black text-slate-900 dark:text-white font-heading mt-0.5">
                   {selectedStaffBills.full_name || selectedStaffBills.username} — Billed Orders
                 </h3>
-                <p className="text-[11px] text-slate-400">
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
                   Total {selectedStaffBills.total_bills} bills generated &bull; Gross Revenue ₹{selectedStaffBills.total_sales?.toLocaleString('en-IN')}
                 </p>
               </div>
@@ -780,7 +780,7 @@ export const AdminStaffSalesPage = () => {
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => handleExportSingleStaffBills(selectedStaffBills)}
-                  className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm"
+                  className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm cursor-pointer"
                   title="Download Invoices Excel"
                 >
                   <FileSpreadsheet className="w-3.5 h-3.5" />
@@ -788,7 +788,7 @@ export const AdminStaffSalesPage = () => {
                 </button>
                 <button
                   onClick={() => setSelectedStaffBills(null)}
-                  className="text-slate-400 hover:text-white text-xl leading-none px-2"
+                  className="text-slate-400 hover:text-slate-700 dark:hover:text-white text-xl leading-none px-2 cursor-pointer"
                 >
                   &times;
                 </button>
@@ -796,9 +796,9 @@ export const AdminStaffSalesPage = () => {
             </div>
 
             {/* Invoices Table */}
-            <div className="overflow-y-auto flex-1 border border-white/10 rounded-xl">
-              <table className="w-full text-left text-xs text-slate-300">
-                <thead className="bg-white/[0.04] text-slate-400 border-b border-white/10 uppercase tracking-wider font-semibold text-[10px] sticky top-0 bg-[#0A192F]">
+            <div className="overflow-y-auto flex-1 border border-slate-200 dark:border-white/10 rounded-xl">
+              <table className="w-full text-left text-xs text-slate-700 dark:text-slate-300">
+                <thead className="bg-slate-50 dark:bg-slate-900 text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-white/10 uppercase tracking-wider font-semibold text-[10px] sticky top-0">
                   <tr>
                     <th className="py-2.5 px-3">Invoice / Order #</th>
                     <th className="py-2.5 px-3">Date &amp; Time</th>
@@ -808,37 +808,37 @@ export const AdminStaffSalesPage = () => {
                     <th className="py-2.5 px-3 text-right">Bill Total</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-white/5">
+                <tbody className="divide-y divide-slate-100 dark:divide-white/5">
                   {(selectedStaffBills.recent_bills || []).map((bill, bIdx) => (
-                    <tr key={bIdx} className="hover:bg-white/[0.02]">
+                    <tr key={bIdx} className="hover:bg-slate-50/80 dark:hover:bg-white/[0.02]">
                       <td className="py-2.5 px-3">
-                        <div className="font-mono font-bold text-white text-xs">
+                        <div className="font-mono font-bold text-slate-900 dark:text-white text-xs">
                           {bill.invoice_number}
                         </div>
                         <div className="text-[10px] text-slate-500 font-mono">
                           Ref: #{bill.order_number}
                         </div>
                       </td>
-                      <td className="py-2.5 px-3 text-slate-400 font-mono text-[11px]">
+                      <td className="py-2.5 px-3 text-slate-500 dark:text-slate-400 font-mono text-[11px]">
                         {bill.created_at}
                       </td>
                       <td className="py-2.5 px-3">
-                        <div className="font-bold text-white">{bill.customer_name || 'Walk-in Guest'}</div>
+                        <div className="font-bold text-slate-900 dark:text-white">{bill.customer_name || 'Walk-in Guest'}</div>
                         {bill.customer_phone && (
-                          <div className="text-[10px] text-slate-400 font-mono">{bill.customer_phone}</div>
+                          <div className="text-[10px] text-slate-500 dark:text-slate-400 font-mono">{bill.customer_phone}</div>
                         )}
                       </td>
                       <td className="py-2.5 px-3">
-                        <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-white/5 text-brand-cyan border border-white/10">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-100 dark:bg-white/5 text-teal-800 dark:text-brand-cyan border border-slate-200 dark:border-white/10">
                           {bill.payment_mode || 'CASH'}
                         </span>
                       </td>
                       <td className="py-2.5 px-3">
-                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 dark:bg-emerald-500/15 text-emerald-800 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-500/30">
                           {bill.order_status || 'Completed'}
                         </span>
                       </td>
-                      <td className="py-2.5 px-3 text-right font-mono font-black text-white text-sm">
+                      <td className="py-2.5 px-3 text-right font-mono font-black text-slate-900 dark:text-white text-sm">
                         ₹{parseFloat(bill.total_amount || 0).toLocaleString('en-IN')}
                       </td>
                     </tr>
@@ -848,13 +848,13 @@ export const AdminStaffSalesPage = () => {
             </div>
 
             {/* Modal Footer */}
-            <div className="flex items-center justify-between pt-3 border-t border-white/10 text-xs">
-              <span className="text-slate-400">
-                Displaying <strong className="text-white">{selectedStaffBills.recent_bills?.length || 0}</strong> recent transactions
+            <div className="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-white/10 text-xs">
+              <span className="text-slate-500 dark:text-slate-400">
+                Displaying <strong className="text-slate-900 dark:text-white">{selectedStaffBills.recent_bills?.length || 0}</strong> recent transactions
               </span>
               <button
                 onClick={() => setSelectedStaffBills(null)}
-                className="px-4 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-semibold"
+                className="px-4 py-1.5 rounded-xl bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/20 text-slate-800 dark:text-white font-semibold cursor-pointer"
               >
                 Close
               </button>
