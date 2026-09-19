@@ -1033,44 +1033,47 @@ export const Navbar = () => {
         </nav>
       </div>
 
-      {/* Floating Draggable Ultra-Premium Support Chat Launcher */}
+      {/* Floating Draggable Ultra-Premium Support Chat Launcher (Compact & Sleek) */}
       {!supportChatOpen && (
         <motion.div
           drag
           dragConstraints={{
-            top: -500,
-            bottom: 50,
-            left: -window.innerWidth + 90,
+            top: -550,
+            bottom: 60,
+            left: -window.innerWidth + 80,
             right: 20
           }}
-          dragElastic={0.12}
+          dragElastic={0.1}
           dragMomentum={false}
-          whileDrag={{ scale: 1.08, cursor: 'grabbing' }}
-          whileHover={{ scale: 1.05 }}
-          className="fixed bottom-24 sm:bottom-7 right-4 sm:right-7 z-50 cursor-grab select-none touch-none"
+          whileDrag={{ scale: 1.12, cursor: 'grabbing' }}
+          whileHover={{ scale: 1.08 }}
+          className="fixed bottom-20 sm:bottom-6 right-4 sm:right-6 z-50 cursor-grab select-none touch-none"
         >
           <button
             type="button"
             onClick={() => setSupportChatOpen(true)}
-            className="relative flex items-center gap-2.5 px-4 py-3 rounded-full bg-gradient-to-r from-cyan-500 via-teal-400 to-emerald-400 text-slate-950 font-black shadow-[0_10px_30px_rgba(0,180,216,0.45)] border-2 border-white/80 hover:shadow-[0_15px_35px_rgba(0,180,216,0.60)] transition-all duration-300 backdrop-blur-md group"
-            title="Drag to reposition or click to open Live Optical Support"
+            className="relative w-13 h-13 sm:w-14 sm:h-14 rounded-full bg-gradient-to-tr from-cyan-500 via-teal-400 to-emerald-400 text-slate-950 flex items-center justify-center shadow-[0_8px_25px_rgba(0,180,216,0.40)] border-2 border-white/90 hover:shadow-[0_12px_30px_rgba(0,180,216,0.60)] transition-all duration-300 backdrop-blur-md group"
+            title="Netra Live Support — Drag to reposition or click to chat"
+            aria-label="Open Live Chat Support"
           >
-            {/* Specular Highlight Gloss Top */}
-            <div className="absolute top-1 left-3 right-3 h-[2px] rounded-full bg-white/70 blur-[0.5px]" />
+            {/* Top Gloss Reflection */}
+            <div className="absolute top-1 left-2 right-2 h-[2px] rounded-full bg-white/70 blur-[0.5px] pointer-events-none" />
             
-            <div className="relative">
-              <div className="w-8 h-8 rounded-full bg-slate-950/15 flex items-center justify-center">
-                <MessageSquare className="w-4 h-4 fill-slate-950 stroke-none group-hover:scale-110 transition-transform" />
-              </div>
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-700 ring-2 ring-white absolute -top-0.5 -right-0.5 animate-pulse" />
+            {/* Chat Icon */}
+            <div className="relative flex items-center justify-center">
+              <MessageSquare className="w-5.5 h-5.5 sm:w-6 sm:h-6 fill-slate-950 stroke-slate-950 group-hover:scale-110 transition-transform duration-200" />
             </div>
 
-            <div className="flex flex-col text-left">
-              <span className="text-[11px] font-black leading-tight tracking-tight">Need Help?</span>
-              <span className="text-[9px] font-bold text-slate-900/80 leading-none">Live Optical Chat</span>
-            </div>
+            {/* Live Online Glowing Pulse Indicator */}
+            <span className="absolute -top-0.5 -right-0.5 flex h-3.5 w-3.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-emerald-500 border-2 border-white"></span>
+            </span>
 
-            <Sparkles className="w-3.5 h-3.5 text-slate-950 opacity-80 animate-spin-slow" />
+            {/* Mini Hover Tooltip */}
+            <span className="absolute right-full mr-2.5 px-2.5 py-1 rounded-xl bg-slate-900/90 text-white text-[10px] font-bold tracking-wide shadow-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none border border-white/10 hidden sm:block">
+              Live Support &bull; Chat
+            </span>
           </button>
         </motion.div>
       )}
