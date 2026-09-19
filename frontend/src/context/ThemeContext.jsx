@@ -687,8 +687,7 @@ export const BUILT_IN_THEMES = {
   }
 };
 
-// Legacy backwards compatibility alias
-export const THEME_CONFIGS = BUILT_IN_THEMES;
+// Theme Contrast Helper
 
 /**
  * WCAG-Compliant Contrast Helper
@@ -711,6 +710,149 @@ export const calculateLuminance = (hexColor) => {
 export const getContrastText = (bgHex) => {
   const lum = calculateLuminance(bgHex);
   return lum > 0.45 ? '#0F172A' : '#FFFFFF';
+};
+
+export const THEME_CONFIGS = {
+  default: {
+    id: 'default',
+    slug: 'default',
+    name: 'Netra Unnayan (Sapphire & Cyan)',
+    iconEmoji: '👓',
+    badge: 'OFFICIAL STORE',
+    primaryColor: '#00B4D8',
+    accentColor: '#00F5D4',
+    secondaryColor: '#0A192F',
+    bannerText: 'Welcome to Netra Unnayan • Precision Optical Eyewear & Clinic in Digha',
+    greetingBengali: 'নেত্র উন্নয়ন — দিঘার বিশ্বস্ত অপটিক্যাল ও চক্ষু পরিচর্যা কেন্দ্র',
+    greetingEnglish: 'Clarity You Can Trust',
+    loadingTagline: 'CALIBRATING GERMAN OPTICAL APERTURE'
+  },
+  durga_puja: {
+    id: 'durga_puja',
+    slug: 'durga_puja',
+    name: 'Durga Puja / Sharodotsav',
+    iconEmoji: '🪔',
+    badge: 'PUJA SPECIAL',
+    primaryColor: '#DC2626',
+    accentColor: '#F59E0B',
+    secondaryColor: '#7F1D1D',
+    bannerText: '✨ Shubho Sharodotsav! Celebrate with Festive Clarity & Free Home Eye Checkup in Digha',
+    greetingBengali: 'শুভ শারদীয়া ও শুভ বিজয়ার আন্তরিক প্রীতি ও শুভেচ্ছা',
+    greetingEnglish: 'Celebrating Sharodotsav with Festive Clarity',
+    loadingTagline: 'PREPARING YOUR FESTIVE PUJA EXPERIENCE...'
+  },
+  diwali: {
+    id: 'diwali',
+    slug: 'diwali',
+    name: 'Diwali & Festival of Lights',
+    iconEmoji: '✨',
+    badge: 'DIWALI SPECIAL',
+    primaryColor: '#D97706',
+    accentColor: '#FBBF24',
+    secondaryColor: '#0F172A',
+    bannerText: '🪔 Happy Diwali! Illuminate Your Life with Clear Vision & Exclusive Festive Offers',
+    greetingBengali: 'শুভ দীপাবলি ও ধনতেরাসের আন্তরিক শুভেচ্ছা ও অভিনন্দন',
+    greetingEnglish: 'Illuminate Life with Festive Clarity',
+    loadingTagline: 'LIGHTING FESTIVE DIYAS FOR RADIANT VISION...'
+  },
+  christmas: {
+    id: 'christmas',
+    slug: 'christmas',
+    name: 'Christmas & New Year',
+    iconEmoji: '🎄',
+    badge: 'HOLIDAY SPECIAL',
+    primaryColor: '#15803D',
+    accentColor: '#DC2626',
+    secondaryColor: '#064E3B',
+    bannerText: '🎄 Merry Christmas & Happy New Year! Year-End Optical Mega Deals Live',
+    greetingBengali: 'শুভ বড়দিন ও শুভ নববর্ষের প্রীতি ও শুভেচ্ছা',
+    greetingEnglish: 'Merry Christmas & Happy New Year',
+    loadingTagline: 'SPREADING FESTIVE HOLIDAY EYEWEAR CHEER...'
+  },
+  summer: {
+    id: 'summer',
+    slug: 'summer',
+    name: 'Summer Sunshine & Coastal UV400',
+    iconEmoji: '☀️',
+    badge: 'UV400 POLARIZED',
+    primaryColor: '#EA580C',
+    accentColor: '#06B6D4',
+    secondaryColor: '#7C2D12',
+    bannerText: '☀️ Digha Beach Summer Special: 100% Polarized UV400 Sunglasses & Water-Repellent Lenses',
+    greetingBengali: 'গ্রীষ্মের রোদে চোখের সুরক্ষায় ১০০% পোলারাইজড চশমা',
+    greetingEnglish: 'Shield Your Eyes with Digha Ocean Polarized Optics',
+    loadingTagline: 'ENGAGING DUAL POLARIZING UV400 APERTURE...'
+  },
+  winter: {
+    id: 'winter',
+    slug: 'winter',
+    name: 'Winter Frost & Warm Elegance',
+    iconEmoji: '❄️',
+    badge: 'WINTER GLOW',
+    primaryColor: '#0284C7',
+    accentColor: '#38BDF8',
+    secondaryColor: '#0C4A6E',
+    bannerText: '❄️ Winter Clarity: Fog-Resistant Anti-Reflective Lenses & Lightweight Winter Frames',
+    greetingBengali: 'শীতের কুয়াশায় স্পষ্ট দৃষ্টির জন্য অ্যান্টি-ফগ লেন্স প্রযুক্তি',
+    greetingEnglish: 'Crystal Clarity in Winter Air',
+    loadingTagline: 'CALIBRATING ANTI-FOG HYDROPHOBIC COATING...'
+  },
+  independence: {
+    id: 'independence',
+    slug: 'independence',
+    name: 'Independence Day (Swadhinata)',
+    iconEmoji: '🇮🇳',
+    badge: 'DESH KI DRISHTI',
+    primaryColor: '#EA580C',
+    accentColor: '#16A34A',
+    secondaryColor: '#1E3A8A',
+    bannerText: '🇮🇳 Celebrating Independence: Dedicated to Clear Vision for Every Indian Family',
+    greetingBengali: 'স্বাধীনতা দিবসের আন্তরিক অভিনন্দন ও শুভকামনা',
+    greetingEnglish: 'Clear Vision for an Empowered Nation',
+    loadingTagline: 'HONORING THE SPIRIT OF FREEDOM & CLEAR VISION...'
+  },
+  republic: {
+    id: 'republic',
+    slug: 'republic',
+    name: 'Republic Day (Ganatantra)',
+    iconEmoji: '🏛️',
+    badge: 'REPUBLIC DAY',
+    primaryColor: '#1D4ED8',
+    accentColor: '#16A34A',
+    secondaryColor: '#EA580C',
+    bannerText: '🇮🇳 Happy Republic Day! Saluting the Spirit of Indian Unity & Constitutional Strength',
+    greetingBengali: 'প্রজাতন্ত্র দিবসের আন্তরিক অভিনন্দন ও শুভেচ্ছা',
+    greetingEnglish: 'Celebrating Unity, Pride & Vision',
+    loadingTagline: 'SALUTING THE CONSTITUTION & NATION...'
+  },
+  spring: {
+    id: 'spring',
+    slug: 'spring',
+    name: 'Spring / Basanta Utsav',
+    iconEmoji: '🌸',
+    badge: 'SPRING / BASANTA',
+    primaryColor: '#EAB308',
+    accentColor: '#EC4899',
+    secondaryColor: '#D97706',
+    bannerText: '🌸 Basanta Utsav Special: Welcome Spring with Colorful Eyewear & Clear Vision Trials',
+    greetingBengali: 'বসন্ত উৎসবের রঙিন শুভেচ্ছা ও অভিনন্দন',
+    greetingEnglish: 'Fresh, Colorful & Vibrant Spring Vision',
+    loadingTagline: 'WELCOMING SPRING WITH VIBRANT CLARITY...'
+  },
+  monsoon: {
+    id: 'monsoon',
+    slug: 'monsoon',
+    name: 'Monsoon Rain & Hydrophobic Optics',
+    iconEmoji: '🌧️',
+    badge: 'HYDROPHOBIC',
+    primaryColor: '#0D9488',
+    accentColor: '#06B6D4',
+    secondaryColor: '#134E4A',
+    bannerText: '🌧️ Monsoon Clarity: Super-Hydrophobic Water-Glide Lenses & Rust-Proof Beta Titanium',
+    greetingBengali: 'বর্ষার দিনে জলের ফোঁটা মুক্ত স্বচ্ছ দৃষ্টির জন্য হাইড্রোফোবিক লেন্স',
+    greetingEnglish: 'Crystal View Through Monsoon Rain',
+    loadingTagline: 'APPLYING HYDROPHOBIC WATER-SLIDE COATING...'
+  }
 };
 
 const ThemeContext = createContext(null);

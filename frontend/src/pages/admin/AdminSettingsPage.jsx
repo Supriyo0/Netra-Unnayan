@@ -290,7 +290,18 @@ export default function AdminSettingsPage() {
 
         {/* Theme Cards Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {Object.entries(THEME_CONFIGS).map(([key, cfg]) => {
+          {Object.entries(THEME_CONFIGS || BUILT_IN_THEMES || {}).map(([key, rawCfg]) => {
+            const cfg = {
+              id: key,
+              name: rawCfg.name || rawCfg.title || key,
+              iconEmoji: rawCfg.iconEmoji || (key === 'durga_puja' ? '🪔' : key === 'diwali' ? '✨' : key === 'christmas' ? '🎄' : key === 'summer' ? '☀️' : key === 'winter' ? '❄️' : key === 'spring' ? '🌸' : key === 'monsoon' ? '🌧️' : key === 'independence' || key === 'republic' ? '🇮🇳' : '👓'),
+              badge: rawCfg.badge || rawCfg.content?.en?.announcementBadge || 'SPECIAL',
+              primaryColor: rawCfg.primaryColor || rawCfg.palette?.primary || '#00B4D8',
+              accentColor: rawCfg.accentColor || rawCfg.palette?.accent || '#00F5D4',
+              greetingBengali: rawCfg.greetingBengali || rawCfg.content?.bn?.festivalGreeting || rawCfg.content?.bn?.announcementText || 'উৎসবের আন্তরিক শুভেচ্ছা • নেত্র উন্নয়ন',
+              greetingEnglish: rawCfg.greetingEnglish || rawCfg.content?.en?.festivalGreeting || rawCfg.content?.en?.announcementText || 'Festive Optical Ambience Live',
+              bannerText: rawCfg.bannerText || rawCfg.content?.en?.announcementText || ''
+            };
             const isSelected = (settings.active_theme || 'default') === key;
             return (
               <button
