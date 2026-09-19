@@ -1033,7 +1033,7 @@ export const Navbar = () => {
         </nav>
       </div>
 
-      {/* Floating 3D Draggable Support Chat Balloon (Comfortable Golden Proportion 60px/66px) */}
+      {/* Floating 3D Draggable Support Chat Balloon (Ultra-Luxury Optical Glass Orb) */}
       {!supportChatOpen && (
         <motion.div
           drag
@@ -1049,31 +1049,35 @@ export const Navbar = () => {
           whileHover={{ scale: 1.08 }}
           className="fixed bottom-20 sm:bottom-8 right-4 sm:right-8 z-[9999] cursor-grab select-none touch-none"
         >
-          <div className="animate-luxury-float">
+          <div className="animate-luxury-float relative">
+            {/* Ambient Breathing Cyan Aura Halo */}
+            <div className="absolute -inset-1 rounded-full bg-gradient-to-r from-cyan-500 via-teal-400 to-cyan-500 opacity-45 blur-md animate-pulse pointer-events-none" />
+
             <button
               type="button"
               onClick={() => setSupportChatOpen(true)}
-              className="relative w-[58px] h-[58px] sm:w-[64px] sm:h-[64px] rounded-full bg-gradient-to-tr from-cyan-600 via-teal-500 to-cyan-400 text-white flex items-center justify-center shadow-[0_12px_32px_rgba(0,180,216,0.50)] border-2 border-white/90 hover:shadow-[0_16px_40px_rgba(0,180,216,0.70)] transition-all duration-300 backdrop-blur-md group cursor-pointer"
-              title="Netra Live Optical Support — Click to chat or drag anywhere"
+              className="relative w-[58px] h-[58px] sm:w-[64px] sm:h-[64px] rounded-full bg-gradient-to-tr from-[#06152B] via-[#0B254E] to-[#0284C7] text-white flex items-center justify-center shadow-[0_14px_35px_rgba(0,180,216,0.45)] border-2 border-cyan-300/80 hover:border-white transition-all duration-300 backdrop-blur-xl group cursor-pointer overflow-visible"
+              title="Netra Live Optical Care — Click to chat or drag anywhere"
               aria-label="Open Live Chat Support"
             >
-              {/* 3D Top Specular Gloss Arc */}
-              <div className="absolute top-1.5 left-3 right-3 h-[3px] rounded-full bg-white/75 blur-[0.4px] pointer-events-none" />
-              
-              {/* Inner Optical / Chat Icon */}
-              <div className="relative flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
-                <MessageSquare className="w-7 h-7 sm:w-7.5 sm:h-7.5 fill-white stroke-none drop-shadow-md" />
+              {/* 3D Specular Top Arc Reflection */}
+              <div className="absolute top-1.5 left-3 right-3 h-[3px] rounded-full bg-gradient-to-r from-transparent via-white/80 to-transparent blur-[0.3px] pointer-events-none" />
+
+              {/* Inner Optical / Chat Icon with Luminous Cyan Glow */}
+              <div className="relative flex items-center justify-center">
+                <MessageCircle className="w-7 h-7 sm:w-8 sm:h-8 text-cyan-200 fill-cyan-400/20 stroke-[2] drop-shadow-[0_0_10px_rgba(0,245,212,0.8)] group-hover:scale-110 transition-transform duration-200" />
+                <Sparkles className="w-3.5 h-3.5 text-teal-300 absolute -top-1 -right-1 drop-shadow-[0_0_6px_rgba(0,245,212,1)] animate-pulse" />
               </div>
 
-              {/* Pulsing Emerald Online Indicator */}
-              <span className="absolute 0 top-0 right-0 flex h-4 w-4">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-300 opacity-85"></span>
-                <span className="relative inline-flex rounded-full h-4 w-4 bg-emerald-400 border-2 border-slate-950 shadow-sm"></span>
+              {/* Live Online Emerald Radar Badge */}
+              <span className="absolute -top-1 -right-1 flex h-4 w-4">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-80"></span>
+                <span className="relative inline-flex rounded-full h-4 w-4 bg-emerald-500 border-2 border-slate-950 shadow-md"></span>
               </span>
 
               {/* Mini Hover Tooltip on Desktop */}
-              <span className="absolute right-full mr-3.5 px-3.5 py-1.5 rounded-2xl bg-slate-950/95 text-white text-xs font-black tracking-wide shadow-2xl whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none border border-white/15 hidden sm:flex items-center gap-2">
-                <span>💬 Chat with us</span>
+              <span className="absolute right-full mr-3.5 px-3.5 py-1.5 rounded-2xl bg-slate-950/95 text-white text-xs font-black tracking-wide shadow-2xl whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none border border-cyan-500/30 hidden sm:flex items-center gap-2">
+                <span>💬 Live Optical Care</span>
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
               </span>
             </button>
