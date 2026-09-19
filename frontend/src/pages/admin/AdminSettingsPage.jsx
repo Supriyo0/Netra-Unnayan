@@ -3,11 +3,13 @@ import {
   Settings, Store, CreditCard, Stethoscope, Save, 
   CheckCircle2, AlertCircle, RefreshCw, MapPin, Phone, Mail,
   Sliders, Eye, Power, Send, ShieldCheck, Truck, Home, Award, Upload,
-  QrCode, ImagePlus, Trash2, ExternalLink
+  QrCode, ImagePlus, Trash2, ExternalLink, Palette, Sparkles, Sun, Snowflake, Flag, Flame
 } from 'lucide-react';
 import api from '../../api/client';
+import { useTheme, THEME_CONFIGS } from '../../context/ThemeContext';
 
 export default function AdminSettingsPage() {
+  const { setSeasonalTheme: setLiveSeasonalTheme } = useTheme();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [testingSmtp, setTestingSmtp] = useState(false);
@@ -54,6 +56,11 @@ export default function AdminSettingsPage() {
       { icon: 'RotateCcw', title: '14-DAY REPLACEMENT', desc: 'Zero-Risk Optical Frame Exchange' },
       { icon: 'Truck', title: 'SECURE CHECKOUT', desc: 'Instant UPI QR & Verified COD Orders' }
     ]),
+    // Festival & Seasonal Theme Studio
+    active_theme: 'default',
+    festive_banner_enabled: '1',
+    festive_banner_text: '✨ শুভ শারদীয়া! Special festive eyewear discounts live in Purba Medinipur store',
+    festive_effects_enabled: '1',
     // ImgBB Cloud Storage
     imgbb_api_key: '',
     // Payment QR Image (uploaded to ImgBB)
@@ -233,6 +240,192 @@ export default function AdminSettingsPage() {
           <span>{feedback.message}</span>
         </div>
       )}
+
+      {/* SECTION 0: FESTIVAL & SEASONAL THEME STUDIO */}
+      <div className="glass-card rounded-2xl p-6 space-y-5 border border-brand-cyan/30 shadow-xl bg-gradient-to-b from-white/[0.03] to-transparent">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-4">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-500/20 to-brand-cyan/20 border border-amber-500/30 flex items-center justify-center text-amber-400 shadow-sm">
+              <Sparkles className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="text-sm font-extrabold text-white uppercase tracking-wider">
+                  Festival &amp; Seasonal Theme Studio
+                </h2>
+                <span className="text-[10px] uppercase font-mono tracking-wider text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20 font-bold">
+                  Global Ambience
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-400">
+                Transform the entire storefront, Loading Screen greetings, navigation bars, ribbons, and particle effects for festivals.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 text-xs text-slate-300">
+            <span className="text-[11px] text-slate-400">Active Theme:</span>
+            <span className="px-2.5 py-1 rounded-lg bg-brand-cyan/20 border border-brand-cyan/40 text-brand-cyan font-bold font-mono uppercase text-[11px]">
+              {settings.active_theme || 'default'}
+            </span>
+          </div>
+        </div>
+
+        {/* Theme Cards Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {Object.entries(THEME_CONFIGS).map(([key, cfg]) => {
+            const isSelected = (settings.active_theme || 'default') === key;
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => {
+                  setSettings(prev => ({
+                    ...prev,
+                    active_theme: key,
+                    festive_banner_text: prev.festive_banner_text || cfg.bannerText
+                  }));
+                  setLiveSeasonalTheme(key);
+                }}
+                className={`text-left p-4 rounded-2xl border transition-all relative overflow-hidden group flex flex-col justify-between ${
+                  isSelected
+                    ? 'bg-gradient-to-b from-brand-cyan/15 to-white/5 border-brand-cyan shadow-lg shadow-brand-cyan/10 ring-1 ring-brand-cyan'
+                    : 'bg-white/[0.02] border-white/10 hover:border-white/20 hover:bg-white/[0.04]'
+                }`}
+              >
+                {/* Top Header of Card */}
+                <div className="space-y-2">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-2xl p-1.5 rounded-xl bg-white/5 border border-white/10 shadow-inner">
+                        {cfg.iconEmoji}
+                      </span>
+                      <div>
+                        <h3 className="text-xs font-extrabold text-white group-hover:text-brand-cyan transition-colors">
+                          {cfg.name}
+                        </h3>
+                        <p className="text-[10px] text-slate-400 line-clamp-1">{cfg.badge}</p>
+                      </div>
+                    </div>
+                    {isSelected && (
+                      <span className="px-1.5 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[9px] font-bold font-mono">
+                        LIVE
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Palette Preview Swatches */}
+                  <div className="flex items-center gap-1.5 pt-1">
+                    <span
+                      className="w-4 h-4 rounded-full border border-white/20 shadow-sm"
+                      style={{ backgroundColor: cfg.primaryColor }}
+                      title="Primary Color"
+                    />
+                    <span
+                      className="w-4 h-4 rounded-full border border-white/20 shadow-sm"
+                      style={{ backgroundColor: cfg.accentColor }}
+                      title="Accent Color"
+                    />
+                    <span className="text-[10px] text-slate-400 font-mono ml-1 truncate">
+                      {cfg.primaryColor} • {cfg.accentColor}
+                    </span>
+                  </div>
+
+                  {/* Bengali Greeting Sample */}
+                  <div className="p-2 rounded-xl bg-black/30 border border-white/5 space-y-0.5">
+                    <div className="text-[10px] text-amber-300 font-semibold truncate">
+                      {cfg.greetingBengali}
+                    </div>
+                    <div className="text-[9px] text-slate-400 truncate">
+                      {cfg.greetingEnglish}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Bottom Selection Button Indicator */}
+                <div className="pt-3 mt-2 border-t border-white/5 flex items-center justify-between">
+                  <span className="text-[10px] text-slate-400 font-medium">
+                    {isSelected ? '✓ Currently Selected' : 'Click to Activate'}
+                  </span>
+                  <div className={`w-3 h-3 rounded-full border ${
+                    isSelected ? 'bg-brand-cyan border-brand-cyan shadow-sm' : 'border-slate-500'
+                  }`} />
+                </div>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Festive Controls & Custom Banner Text */}
+        <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/10 space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/5 pb-3">
+            <div>
+              <h4 className="text-xs font-bold text-white flex items-center gap-2">
+                <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                Festive Announcement Ribbon &amp; Ambient Effects
+              </h4>
+              <p className="text-[10px] text-slate-400">
+                Control the top header banner and floating celebratory particles for customers
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3">
+              {/* Ribbon Banner Toggle */}
+              <button
+                type="button"
+                onClick={() => handleToggle('festive_banner_enabled')}
+                className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                  settings.festive_banner_enabled === '1'
+                    ? 'bg-amber-500 text-slate-950 shadow-sm'
+                    : 'bg-white/10 text-slate-400'
+                }`}
+              >
+                Top Ribbon: {settings.festive_banner_enabled === '1' ? 'ON' : 'OFF'}
+              </button>
+
+              {/* Floating Ambience Toggle */}
+              <button
+                type="button"
+                onClick={() => handleToggle('festive_effects_enabled')}
+                className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                  settings.festive_effects_enabled === '1'
+                    ? 'bg-brand-cyan text-slate-950 shadow-sm'
+                    : 'bg-white/10 text-slate-400'
+                }`}
+              >
+                Floating Particles: {settings.festive_effects_enabled === '1' ? 'ON' : 'OFF'}
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <label className="text-[11px] font-semibold text-slate-200">
+                Festive Header Announcement Ribbon Text
+              </label>
+              <button
+                type="button"
+                onClick={() => {
+                  const currentThemeKey = settings.active_theme || 'default';
+                  const defaultBanner = THEME_CONFIGS[currentThemeKey]?.bannerText || '';
+                  setSettings(prev => ({ ...prev, festive_banner_text: defaultBanner }));
+                }}
+                className="text-[10px] text-brand-cyan hover:underline font-medium"
+              >
+                Reset to theme default greeting
+              </button>
+            </div>
+            <input
+              type="text"
+              name="festive_banner_text"
+              value={settings.festive_banner_text || ''}
+              onChange={handleChange}
+              placeholder="e.g. ✨ শুভ শারদীয়া! Special festive discounts live at Netra Unnayan Digha..."
+              className="w-full glass-input rounded-xl px-3.5 py-2.5 text-xs text-white"
+            />
+          </div>
+        </div>
+      </div>
 
       {/* SECTION 1: PUBLIC SERVICE & SECTION VISIBILITY CONTROLS */}
       <div className="glass-card rounded-2xl p-6 space-y-5 border border-brand-cyan/20">

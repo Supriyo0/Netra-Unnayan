@@ -37,15 +37,41 @@ if ($order['payment_status'] === 'Paid') {
     Response::success(['status' => 'Paid'], 'Order is already marked as Paid.');
 }
 
-// Update payment record to 'Under Verification' with UTR
-$updatePay = $pdo->prepare('
-    UPDATE payments 
-    SET upi_utr = ?, 
-        status = "Under Verification",
-        updated_at = NOW()
-    WHERE order_id = ?
-');
-$updatePay->execute([$utr, $order['id']]);
+$paymentProofUrl = trim($input['payment_proof_url'] ?? $input['payment_proof'] ?? '');
+
+// Update payment record to 'Under Verification' with UTR & optional proof
+try {
+    if (!empty($paymentProofUrl)) {
+        $updatePay = $pdo->prepare('
+            UPDATE payments 
+            SET upi_utr = ?, 
+                payment_proof_url = ?,
+                status = "Under Verification",
+                updated_at = NOW()
+            WHERE order_id = ?
+        ');
+        $updatePay->execute([$utr, $paymentProofUrl, $order['id']]);
+    } else {
+        $updatePay = $pdo->prepare('
+            UPDATE payments 
+            SET upi_utr = ?, 
+                status = "Under Verification",
+                updated_at = NOW()
+            WHERE order_id = ?
+        ');
+        $updatePay->execute([$utr, $order['id']]);
+    }
+} catch (\PDOException $pe) {
+    // Fallback if payment_proof_url does not exist in schema
+    $updatePay = $pdo->prepare('
+        UPDATE payments 
+        SET upi_utr = ?, 
+            status = "Under Verification",
+            updated_at = NOW()
+        WHERE order_id = ?
+    ');
+    $updatePay->execute([$utr, $order['id']]);
+}
 
 // Update order status
 $updateOrd = $pdo->prepare('

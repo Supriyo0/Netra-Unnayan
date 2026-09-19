@@ -99,15 +99,25 @@ if ($method === 'GET') {
 
 if ($method === 'POST') {
     $input = json_decode(file_get_contents('php://input'), true) ?? [];
-    $action = $input['action'] ?? '';
-    $bookingType = $input['booking_type'] ?? 'doctor'; // 'doctor' or 'home_eye'
+    $action = strtolower(trim($input['action'] ?? ''));
+    $bookingType = $input['booking_type'] ?? $input['type'] ?? 'doctor'; // 'doctor' or 'home_eye'
     $id = (int)($input['id'] ?? 0);
 
     if (empty($id) || empty($action)) {
         Response::error('Booking ID and Action are required.', 422);
     }
 
-    if ($action === 'approve') {
+    if ($action === 'complete' || $action === 'mark_completed') {
+        if ($bookingType === 'doctor') {
+            $pdo->prepare("UPDATE appointments SET status = 'Completed', updated_at = NOW() WHERE id = ?")->execute([$id]);
+            Response::success(['status' => 'Completed'], "Doctor appointment marked as Completed.");
+        } else {
+            $pdo->prepare("UPDATE home_eye_appointments SET status = 'Completed', updated_at = NOW() WHERE id = ?")->execute([$id]);
+            Response::success(['status' => 'Completed'], "Home Eye Test visit marked as Completed.");
+        }
+    }
+
+    if ($action === 'approve' || $action === 'confirm') {
         $ticketNo = trim($input['ticket_no'] ?? '');
         $adminNote = trim($input['admin_note'] ?? $input['note'] ?? '');
 

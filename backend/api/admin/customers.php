@@ -5,7 +5,7 @@ require_once __DIR__ . '/../../middleware/auth.php';
 require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../../helpers/response.php';
 
-$admin = requireAdminAuth(['super_admin', 'manager']);
+$admin = requireAdminAuth();
 $pdo = Database::getConnection();
 
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {

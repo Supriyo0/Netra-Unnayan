@@ -331,6 +331,7 @@ CREATE TABLE `payments` (
     `payment_provider` VARCHAR(50) DEFAULT 'MANUAL_UPI',
     `gateway_transaction_id` VARCHAR(150) NULL,
     `upi_utr` VARCHAR(100) NULL,
+    `payment_proof_url` VARCHAR(500) NULL,
     `status` ENUM('Pending', 'Under Verification', 'Paid', 'Failed', 'Refund Initiated', 'Refunded') DEFAULT 'Pending',
     `verified_by_admin_id` INT NULL,
     `verified_at` DATETIME NULL,
@@ -534,6 +535,20 @@ CREATE TABLE `audit_logs` (
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (`admin_id`) REFERENCES `admins`(`id`) ON DELETE SET NULL,
     INDEX `idx_audit_entity` (`entity_type`, `entity_id`)
+) ENGINE=InnoDB;
+
+-- 26. PASSWORD RESETS
+DROP TABLE IF EXISTS `password_resets`;
+CREATE TABLE `password_resets` (
+    `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `email` VARCHAR(150) NOT NULL,
+    `otp` VARCHAR(10) NOT NULL,
+    `token` VARCHAR(100) NULL,
+    `expires_at` DATETIME NOT NULL,
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX `idx_reset_email` (`email`),
+    INDEX `idx_reset_otp` (`otp`),
+    INDEX `idx_reset_token` (`token`)
 ) ENGINE=InnoDB;
 
 SET FOREIGN_KEY_CHECKS = 1;

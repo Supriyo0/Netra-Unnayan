@@ -31,7 +31,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         'doctor_clinic_notice', 'offers_slider_enabled', 'serviceable_pincodes',
         'smtp_host', 'smtp_port', 'smtp_user', 'smtp_pass',
         'smtp_encryption', 'smtp_from_email', 'smtp_from_name',
-        'trust_features', 'imgbb_api_key', 'upi_qr_image'
+        'trust_features', 'imgbb_api_key', 'upi_qr_image',
+        'active_theme', 'festive_banner_enabled', 'festive_banner_text', 'festive_effects_enabled'
     ];
 
     $updateStmt = $pdo->prepare('

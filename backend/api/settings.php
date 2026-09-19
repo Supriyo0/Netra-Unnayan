@@ -16,12 +16,17 @@ $stmt = $pdo->query("
         'home_visit_cancellation_cutoff_hours', 'return_window_days', 'maintenance_mode',
         'home_visit_enabled', 'home_visit_notice', 'doctor_appointments_enabled',
         'doctor_clinic_notice', 'offers_slider_enabled', 'serviceable_pincodes', 'trust_features',
-        'imgbb_api_key'
+        'imgbb_api_key', 'active_theme', 'festive_banner_enabled', 'festive_banner_text',
+        'festive_effects_enabled'
     )
 ");
 
 $rows = $stmt->fetchAll();
 $settings = [
+    'active_theme'                => 'default',
+    'festive_banner_enabled'      => '1',
+    'festive_banner_text'         => 'Festive Optical Offers Active • Visit Our Digha Store or Book Home Eye Checkup',
+    'festive_effects_enabled'     => '1',
     'home_visit_enabled'          => '1',
     'doctor_appointments_enabled' => '1',
     'offers_slider_enabled'       => '1',

@@ -17,29 +17,34 @@ class Mailer {
             return false;
         }
 
-        $pdo = Database::getConnection();
+        $pdo = null;
+        $settings = [];
+        try {
+            $pdo = Database::getConnection();
+            $stmt = $pdo->query("SELECT setting_key, setting_value FROM settings WHERE group_name = 'smtp' OR setting_key IN ('smtp_host', 'smtp_port', 'smtp_user', 'smtp_pass', 'smtp_encryption', 'smtp_from_email', 'smtp_from_name', 'contact_email', 'business_name')");
+            $settings = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
+        } catch (\Throwable $t) {
+            // Non-blocking if table is temporarily unavailable or in CLI
+        }
 
-        // Fetch SMTP credentials and company metadata from settings
-        $stmt = $pdo->query("SELECT setting_key, setting_value FROM settings WHERE group_name = 'smtp' OR setting_key IN ('smtp_host', 'smtp_port', 'smtp_user', 'smtp_pass', 'smtp_encryption', 'smtp_from_email', 'smtp_from_name', 'contact_email', 'business_name')");
-        $settings = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
-
-        $smtpHost = $settings['smtp_host'] ?? 'smtp.gmail.com';
-        $smtpPort = (int)($settings['smtp_port'] ?? 587);
-        $smtpUser = $settings['smtp_user'] ?? 'netraunnayan@gmail.com';
-        $smtpPass = $settings['smtp_pass'] ?? '';
-        $smtpEnc  = strtolower($settings['smtp_encryption'] ?? 'tls');
-        $fromEmail = !empty($settings['smtp_from_email']) ? $settings['smtp_from_email'] : $smtpUser;
-        $fromName  = $settings['smtp_from_name'] ?? ($settings['business_name'] ?? 'Netra Unnayan Eye Care');
+        $smtpHost = getenv('SMTP_HOST') ?: ($settings['smtp_host'] ?? 'smtp.gmail.com');
+        $smtpPort = (int)(getenv('SMTP_PORT') ?: ($settings['smtp_port'] ?? 587));
+        $smtpUser = getenv('SMTP_USER') ?: ($settings['smtp_user'] ?? 'netraunnayan@gmail.com');
+        $smtpPass = getenv('SMTP_PASS') !== false && getenv('SMTP_PASS') !== '' ? getenv('SMTP_PASS') : ($settings['smtp_pass'] ?? '');
+        $smtpEnc  = strtolower(getenv('SMTP_ENCRYPTION') ?: ($settings['smtp_encryption'] ?? ($smtpPort === 465 ? 'ssl' : 'tls')));
+        $fromEmail = getenv('SMTP_FROM_EMAIL') ?: (!empty($settings['smtp_from_email']) ? $settings['smtp_from_email'] : $smtpUser);
+        $fromName  = getenv('SMTP_FROM_NAME') ?: ($settings['smtp_from_name'] ?? ($settings['business_name'] ?? 'Netra Unnayan Eye Care'));
 
         $fullHtml = self::wrapWithBrandTemplate($subject, $htmlBody);
         $sent = false;
+        $lastError = '';
 
-        // Attempt direct socket SMTP if password is provided
+        // Attempt direct socket SMTP if credentials are provided
         if (!empty($smtpPass) && !empty($smtpUser)) {
-            $sent = self::sendViaSocketSmtp($smtpHost, $smtpPort, $smtpUser, $smtpPass, $smtpEnc, $fromEmail, $fromName, $toEmail, $toName, $subject, $fullHtml);
+            $sent = self::sendViaSocketSmtp($smtpHost, $smtpPort, $smtpUser, $smtpPass, $smtpEnc, $fromEmail, $fromName, $toEmail, $toName, $subject, $fullHtml, $lastError);
         }
 
-        // Fallback to PHP native mail()
+        // Fallback to PHP native mail() if socket SMTP wasn't used or failed
         if (!$sent) {
             $headers = [
                 'MIME-Version: 1.0',
@@ -49,28 +54,34 @@ class Mailer {
                 'X-Mailer: NetraUnnayan/2.0'
             ];
             $sent = @mail($toEmail, $subject, $fullHtml, implode("\r\n", $headers));
+            if (!$sent && empty($lastError)) {
+                $lastError = 'PHP mail() fallback returned false (no local mail transfer agent configured or SMTP credentials unconfigured).';
+            }
         }
 
         // Audit Log entry
-        try {
-            $logStmt = $pdo->prepare('
-                INSERT INTO audit_logs (admin_id, action, entity_type, entity_id, details, ip_address)
-                VALUES (NULL, :action, :entity, :id, :details, :ip)
-            ');
-            $logStmt->execute([
-                ':action'  => 'EMAIL_DISPATCHED',
-                ':entity'  => 'NOTIFICATION',
-                ':id'      => $toEmail,
-                ':details' => json_encode([
-                    'subject'   => $subject,
-                    'sent'      => $sent !== false,
-                    'method'    => (!empty($smtpPass) ? 'SMTP' : 'MAIL_FALLBACK'),
-                    'timestamp' => date('Y-m-d H:i:s')
-                ]),
-                ':ip'      => $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1'
-            ]);
-        } catch (Exception $e) {
-            // Non-blocking log
+        if ($pdo) {
+            try {
+                $logStmt = $pdo->prepare('
+                    INSERT INTO audit_logs (admin_id, action, entity_type, entity_id, details, ip_address)
+                    VALUES (NULL, :action, :entity, :id, :details, :ip)
+                ');
+                $logStmt->execute([
+                    ':action'  => $sent ? 'EMAIL_DISPATCHED' : 'EMAIL_FAILED',
+                    ':entity'  => 'NOTIFICATION',
+                    ':id'      => $toEmail,
+                    ':details' => json_encode([
+                        'subject'   => $subject,
+                        'sent'      => $sent !== false,
+                        'method'    => (!empty($smtpPass) ? 'SMTP' : 'MAIL_FALLBACK'),
+                        'error'     => $lastError ?: null,
+                        'timestamp' => date('Y-m-d H:i:s')
+                    ]),
+                    ':ip'      => $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1'
+                ]);
+            } catch (Exception $e) {
+                // Non-blocking log
+            }
         }
 
         return $sent !== false;
@@ -107,9 +118,10 @@ class Mailer {
     /**
      * Native Socket SMTP Implementation
      */
-    private static function sendViaSocketSmtp(string $host, int $port, string $user, string $pass, string $enc, string $fromEmail, string $fromName, string $toEmail, string $toName, string $subject, string $html): bool {
-        $timeout = 6;
-        $connectionPrefix = ($enc === 'ssl') ? 'ssl://' : '';
+    private static function sendViaSocketSmtp(string $host, int $port, string $user, string $pass, string $enc, string $fromEmail, string $fromName, string $toEmail, string $toName, string $subject, string $html, string &$errorOut = ''): bool {
+        $timeout = 12;
+        $isSsl = ($enc === 'ssl' || $port === 465);
+        $connectionPrefix = $isSsl ? 'ssl://' : '';
         $context = stream_context_create([
             'ssl' => [
                 'verify_peer'       => false,
@@ -119,15 +131,19 @@ class Mailer {
         ]);
 
         $socket = @stream_socket_client($connectionPrefix . $host . ':' . $port, $errno, $errstr, $timeout, STREAM_CLIENT_CONNECT, $context);
-        if (!$socket) return false;
+        if (!$socket) {
+            $errorOut = "Could not connect to SMTP host {$host}:{$port} ($errstr [$errno])";
+            return false;
+        }
 
-        stream_set_timeout($socket, 6);
+        stream_set_timeout($socket, $timeout);
 
         $read = function() use ($socket) {
             $response = '';
-            while ($str = fgets($socket, 515)) {
+            while (!feof($socket) && ($str = fgets($socket, 515))) {
                 $response .= $str;
-                if (substr($str, 3, 1) === ' ') break;
+                if (isset($str[3]) && $str[3] === ' ') break;
+                if (strlen($str) < 4) break;
             }
             return $response;
         };
@@ -142,17 +158,26 @@ class Mailer {
         $write('EHLO netraunnayan.local');
         $res = $read();
 
-        // STARTTLS
-        if ($enc === 'tls' && strpos($res, 'STARTTLS') !== false) {
+        // STARTTLS (for TLS mode on port 587)
+        if (!$isSsl && ($enc === 'tls' || strpos($res, 'STARTTLS') !== false)) {
             $write('STARTTLS');
             $res = $read();
             if (substr($res, 0, 3) !== '220') {
+                $errorOut = "STARTTLS failed: " . trim($res);
                 fclose($socket);
                 return false;
             }
 
-            $cryptoMethod = defined('STREAM_CRYPTO_METHOD_TLS_CLIENT') ? STREAM_CRYPTO_METHOD_TLS_CLIENT : STREAM_CRYPTO_METHOD_TLSv1_2_CLIENT;
+            $cryptoMethod = STREAM_CRYPTO_METHOD_TLS_CLIENT;
+            if (defined('STREAM_CRYPTO_METHOD_TLSv1_2_CLIENT')) {
+                $cryptoMethod |= STREAM_CRYPTO_METHOD_TLSv1_2_CLIENT;
+            }
+            if (defined('STREAM_CRYPTO_METHOD_TLSv1_3_CLIENT')) {
+                $cryptoMethod |= STREAM_CRYPTO_METHOD_TLSv1_3_CLIENT;
+            }
+
             if (!stream_socket_enable_crypto($socket, true, $cryptoMethod)) {
+                $errorOut = "TLS handshake negotiation failed.";
                 fclose($socket);
                 return false;
             }
@@ -164,29 +189,53 @@ class Mailer {
         // AUTH LOGIN
         $write('AUTH LOGIN');
         $res = $read();
-        if (substr($res, 0, 3) !== '334') return false;
+        if (substr($res, 0, 3) !== '334') {
+            $errorOut = "AUTH LOGIN rejected: " . trim($res);
+            fclose($socket);
+            return false;
+        }
 
         $write(base64_encode($user));
         $res = $read();
-        if (substr($res, 0, 3) !== '334') return false;
+        if (substr($res, 0, 3) !== '334') {
+            $errorOut = "Username rejected: " . trim($res);
+            fclose($socket);
+            return false;
+        }
 
         $write(base64_encode($pass));
         $res = $read();
-        if (substr($res, 0, 3) !== '235') return false;
+        if (substr($res, 0, 3) !== '235') {
+            $errorOut = "Authentication credentials failed: " . trim($res);
+            fclose($socket);
+            return false;
+        }
 
         // MAIL FROM & RCPT TO
         $write("MAIL FROM: <$fromEmail>");
         $res = $read();
-        if (substr($res, 0, 3) !== '250') return false;
+        if (substr($res, 0, 3) !== '250') {
+            $errorOut = "MAIL FROM rejected: " . trim($res);
+            fclose($socket);
+            return false;
+        }
 
         $write("RCPT TO: <$toEmail>");
         $res = $read();
-        if (substr($res, 0, 3) !== '250') return false;
+        if (substr($res, 0, 3) !== '250') {
+            $errorOut = "RCPT TO rejected: " . trim($res);
+            fclose($socket);
+            return false;
+        }
 
         // DATA
         $write('DATA');
         $res = $read();
-        if (substr($res, 0, 3) !== '354') return false;
+        if (substr($res, 0, 3) !== '354') {
+            $errorOut = "DATA command rejected: " . trim($res);
+            fclose($socket);
+            return false;
+        }
 
         $headers = [
             "From: $fromName <$fromEmail>",
@@ -204,7 +253,11 @@ class Mailer {
         $write('QUIT');
         fclose($socket);
 
-        return substr($res, 0, 3) === '250';
+        $ok = (substr($res, 0, 3) === '250');
+        if (!$ok) {
+            $errorOut = "Email transmission error: " . trim($res);
+        }
+        return $ok;
     }
 
     // ==========================================

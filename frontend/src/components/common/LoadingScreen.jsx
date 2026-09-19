@@ -1,34 +1,36 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTheme } from '../../context/ThemeContext';
 
-/**
- * Netra Unnayan — Official White Theme Loading Screen
- *
- * Clean, elegant, optical white design utilizing the actual logo (/image.png)
- * with brand name and tagline. No blink animations, no artificial eyelid delays.
- */
-/**
- * Netra Unnayan — Ultra-Premium White Theme Loading Screen
- *
- * Luxury optical white aesthetic featuring the official animated transparent logo
- * with smooth aperture & light flare, brand typography, optical lens reticle,
- * and high-precision status calibration.
- */
 export const LoadingScreen = ({ onComplete }) => {
+  const { seasonalTheme, activeThemeDetails } = useTheme();
   const [progress, setProgress] = useState(15);
   const [statusText, setStatusText] = useState('CALIBRATING OPTICAL ENGINE');
   const [visible, setVisible] = useState(true);
 
   useEffect(() => {
-    // Smooth progress progression with luxury status captions
     const t1 = setTimeout(() => {
       setProgress(48);
-      setStatusText('INITIALIZING GERMAN PRECISION OPTICS');
+      if (seasonalTheme === 'durga_puja') {
+        setStatusText('শুভ শারদীয়া • AGOMONI EYEWEAR READY');
+      } else if (seasonalTheme === 'christmas') {
+        setStatusText('MERRY CHRISTMAS • WINTER CLARITY READY');
+      } else if (seasonalTheme === 'summer') {
+        setStatusText('SUMMER SUNSHINE • UV400 POLARIZED READY');
+      } else if (seasonalTheme === 'winter') {
+        setStatusText('WINTER FROST • ANTI-FOG GERMAN CUT');
+      } else if (seasonalTheme === 'independence') {
+        setStatusText('VANDE MATARAM • SERVING PURBA MEDINIPUR');
+      } else if (seasonalTheme === 'diwali') {
+        setStatusText('FESTIVAL OF LIGHTS • RADIANT OPTICS');
+      } else {
+        setStatusText('INITIALIZING GERMAN PRECISION OPTICS');
+      }
     }, 400);
 
     const t2 = setTimeout(() => {
       setProgress(82);
-      setStatusText('PREPARING LUXURY EYEWEAR CATALOG');
+      setStatusText(activeThemeDetails?.loadingTagline || 'PREPARING LUXURY EYEWEAR CATALOG');
     }, 950);
 
     const t3 = setTimeout(() => {
@@ -49,7 +51,7 @@ export const LoadingScreen = ({ onComplete }) => {
       clearTimeout(t3);
       clearTimeout(t4);
     };
-  }, [onComplete]);
+  }, [onComplete, seasonalTheme, activeThemeDetails]);
 
   return (
     <AnimatePresence>
@@ -119,12 +121,12 @@ export const LoadingScreen = ({ onComplete }) => {
               </picture>
             </motion.div>
 
-            {/* Brand Typography */}
+            {/* Brand Typography & Festive Tag */}
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.15, duration: 0.6 }}
-              className="flex flex-col items-center mb-7"
+              className="flex flex-col items-center mb-6"
             >
               <h1 className="text-2xl sm:text-3xl font-black font-heading tracking-tight text-[#041E42] leading-none">
                 NETRA UNNAYAN
@@ -132,6 +134,13 @@ export const LoadingScreen = ({ onComplete }) => {
               <p className="text-[10px] sm:text-[11px] font-extrabold uppercase font-sans tracking-[0.26em] text-[#0284C7] mt-1.5">
                 CLARITY YOU CAN TRUST
               </p>
+
+              {seasonalTheme !== 'default' && (
+                <div className="mt-2.5 inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-[10px] font-black tracking-wider text-amber-700 animate-pulse">
+                  <span>{activeThemeDetails?.iconEmoji || '✨'}</span>
+                  <span>{activeThemeDetails?.badge || 'SPECIAL EDITION'}</span>
+                </div>
+              )}
             </motion.div>
 
             {/* High-Precision Progress Bar */}
@@ -140,7 +149,15 @@ export const LoadingScreen = ({ onComplete }) => {
                 <motion.div
                   className="h-full rounded-full relative"
                   style={{
-                    background: 'linear-gradient(90deg, #0284C7 0%, #00B4D8 60%, #0D9488 100%)',
+                    background: seasonalTheme === 'durga_puja' 
+                      ? 'linear-gradient(90deg, #DC2626 0%, #EA580C 50%, #F59E0B 100%)'
+                      : seasonalTheme === 'christmas'
+                      ? 'linear-gradient(90deg, #059669 0%, #10B981 50%, #E11D48 100%)'
+                      : seasonalTheme === 'summer'
+                      ? 'linear-gradient(90deg, #F59E0B 0%, #F97316 50%, #06B6D4 100%)'
+                      : seasonalTheme === 'independence'
+                      ? 'linear-gradient(90deg, #EA580C 0%, #FFFFFF 50%, #16A34A 100%)'
+                      : 'linear-gradient(90deg, #0284C7 0%, #00B4D8 60%, #0D9488 100%)',
                     boxShadow: '0 0 14px rgba(0, 180, 216, 0.65)',
                   }}
                   animate={{ width: `${progress}%` }}
@@ -168,7 +185,11 @@ export const LoadingScreen = ({ onComplete }) => {
               className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-white/90 border border-slate-200/90 shadow-sm mt-7 text-[11px] text-slate-600 font-medium"
             >
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.6)]" />
-              <span>Certified German Optics &bull; Doorstep Care</span>
+              <span>
+                {seasonalTheme !== 'default' 
+                  ? `${activeThemeDetails?.greetingBengali || 'Certified German Optics'} • Digha Clinic` 
+                  : 'Certified German Optics • Doorstep Care'}
+              </span>
             </motion.div>
 
           </div>

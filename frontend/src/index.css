@@ -3175,3 +3175,110 @@ html.light .btn-primary:hover {
     inset 0 1px 2px 0 rgba(255, 255, 255, 0.95) !important;
 }
 
+/* ========================================================
+   FESTIVE & SEASONAL THEMES SUITE (Screen 24 & All Pages)
+   ======================================================== */
+
+/* 1. DURGA PUJA / SHARODOTSAV THEME */
+[data-season-theme="durga_puja"] {
+  --theme-accent-festive: #DC2626;
+  --theme-gold-festive: #F59E0B;
+}
+[data-season-theme="durga_puja"] .btn-primary {
+  background: linear-gradient(135deg, #DC2626 0%, #B91C1C 50%, #991B1B 100%) !important;
+  border-color: #F59E0B !important;
+  box-shadow: 0 4px 20px -2px rgba(220, 38, 38, 0.5) !important;
+}
+[data-season-theme="durga_puja"] .text-brand-cyan {
+  color: #DC2626 !important;
+}
+.dark[data-season-theme="durga_puja"] .text-brand-cyan,
+[data-season-theme="durga_puja"] .dark .text-brand-cyan {
+  color: #F87171 !important;
+}
+[data-season-theme="durga_puja"] .badge-festive {
+  background: linear-gradient(90deg, #DC2626, #F59E0B);
+  color: #FFFFFF;
+}
+
+/* 2. CHRISTMAS & NEW YEAR THEME */
+[data-season-theme="christmas"] {
+  --theme-accent-festive: #059669;
+  --theme-red-festive: #E11D48;
+}
+[data-season-theme="christmas"] .btn-primary {
+  background: linear-gradient(135deg, #059669 0%, #047857 50%, #E11D48 100%) !important;
+  border-color: rgba(255, 255, 255, 0.4) !important;
+  box-shadow: 0 4px 20px -2px rgba(5, 150, 105, 0.45) !important;
+}
+[data-season-theme="christmas"] .text-brand-cyan {
+  color: #059669 !important;
+}
+.dark[data-season-theme="christmas"] .text-brand-cyan,
+[data-season-theme="christmas"] .dark .text-brand-cyan {
+  color: #34D399 !important;
+}
+
+/* 3. SUMMER SUNSHINE THEME */
+[data-season-theme="summer"] {
+  --theme-accent-festive: #F59E0B;
+  --theme-sky-festive: #0284C7;
+}
+[data-season-theme="summer"] .btn-primary {
+  background: linear-gradient(135deg, #F59E0B 0%, #EA580C 50%, #0284C7 100%) !important;
+  box-shadow: 0 4px 20px -2px rgba(245, 158, 11, 0.45) !important;
+}
+[data-season-theme="summer"] .text-brand-cyan {
+  color: #D97706 !important;
+}
+.dark[data-season-theme="summer"] .text-brand-cyan,
+[data-season-theme="summer"] .dark .text-brand-cyan {
+  color: #FBBF24 !important;
+}
+
+/* 4. WINTER FROST THEME */
+[data-season-theme="winter"] {
+  --theme-accent-festive: #0284C7;
+  --theme-frost-festive: #38BDF8;
+}
+[data-season-theme="winter"] .btn-primary {
+  background: linear-gradient(135deg, #0284C7 0%, #0369A1 50%, #0C4A6E 100%) !important;
+  box-shadow: 0 4px 20px -2px rgba(2, 132, 199, 0.5) !important;
+}
+
+/* 5. INDEPENDENCE & REPUBLIC DAY THEME (TIRANGA) */
+[data-season-theme="independence"] {
+  --theme-saffron: #EA580C;
+  --theme-green: #16A34A;
+}
+[data-season-theme="independence"] .btn-primary {
+  background: linear-gradient(135deg, #EA580C 0%, #C2410C 50%, #16A34A 100%) !important;
+  border-color: rgba(255, 255, 255, 0.3) !important;
+  box-shadow: 0 4px 20px -2px rgba(234, 88, 12, 0.45) !important;
+}
+[data-season-theme="independence"] .text-brand-cyan {
+  color: #EA580C !important;
+}
+.dark[data-season-theme="independence"] .text-brand-cyan,
+[data-season-theme="independence"] .dark .text-brand-cyan {
+  color: #FB923C !important;
+}
+
+/* 6. DIWALI / FESTIVAL OF LIGHTS THEME */
+[data-season-theme="diwali"] {
+  --theme-purple: #9333EA;
+  --theme-gold: #F59E0B;
+}
+[data-season-theme="diwali"] .btn-primary {
+  background: linear-gradient(135deg, #9333EA 0%, #7E22CE 50%, #F59E0B 100%) !important;
+  box-shadow: 0 4px 20px -2px rgba(147, 51, 234, 0.5) !important;
+}
+[data-season-theme="diwali"] .text-brand-cyan {
+  color: #9333EA !important;
+}
+.dark[data-season-theme="diwali"] .text-brand-cyan,
+[data-season-theme="diwali"] .dark .text-brand-cyan {
+  color: #C084FC !important;
+}
+
+

@@ -387,11 +387,33 @@ try {
     if ($paymentMode === 'UPI') {
         $paymentNumber = 'NU-PAY-' . strtoupper(bin2hex(random_bytes(4)));
         $payStatus = (!empty($upiUtr) || !empty($paymentProofUrl)) ? 'Under Verification' : 'Pending';
-        $stmtPay = $pdo->prepare('
-            INSERT INTO payments (order_id, payment_number, amount, payment_mode, payment_provider, upi_utr, payment_proof_url, status)
-            VALUES (?, ?, ?, "UPI", "MANUAL_UPI", ?, ?, ?)
-        ');
-        $stmtPay->execute([$orderId, $paymentNumber, $totalAmount, $upiUtr ?: null, $paymentProofUrl ?: null, $payStatus]);
+        try {
+            $stmtPay = $pdo->prepare('
+                INSERT INTO payments (order_id, payment_number, amount, payment_mode, payment_provider, upi_utr, payment_proof_url, status)
+                VALUES (?, ?, ?, "UPI", "MANUAL_UPI", ?, ?, ?)
+            ');
+            $stmtPay->execute([$orderId, $paymentNumber, $totalAmount, $upiUtr ?: null, $paymentProofUrl ?: null, $payStatus]);
+        } catch (\PDOException $pe) {
+            // If payment_proof_url column is missing in DB schema, attempt auto-alter or fallback to standard columns
+            if (str_contains($pe->getMessage(), 'payment_proof_url') || $pe->getCode() == '42S22' || str_contains($pe->getMessage(), '1054')) {
+                try {
+                    $pdo->exec("ALTER TABLE payments ADD COLUMN payment_proof_url VARCHAR(500) NULL AFTER upi_utr");
+                    $stmtPay = $pdo->prepare('
+                        INSERT INTO payments (order_id, payment_number, amount, payment_mode, payment_provider, upi_utr, payment_proof_url, status)
+                        VALUES (?, ?, ?, "UPI", "MANUAL_UPI", ?, ?, ?)
+                    ');
+                    $stmtPay->execute([$orderId, $paymentNumber, $totalAmount, $upiUtr ?: null, $paymentProofUrl ?: null, $payStatus]);
+                } catch (\Throwable $t) {
+                    $stmtPay = $pdo->prepare('
+                        INSERT INTO payments (order_id, payment_number, amount, payment_mode, payment_provider, upi_utr, status)
+                        VALUES (?, ?, ?, "UPI", "MANUAL_UPI", ?, ?)
+                    ');
+                    $stmtPay->execute([$orderId, $paymentNumber, $totalAmount, $upiUtr ?: null, $payStatus]);
+                }
+            } else {
+                throw $pe;
+            }
+        }
 
         $upiMerchantId = $settings['upi_id'] ?? '9382293614@upi';
         $upiMerchantName = rawurlencode('NETRA UNNAYAN OPTICALS');
