@@ -1,82 +1,68 @@
+import * as XLSX from 'xlsx';
+
 /**
  * Netra Unnayan - Excel & CSV Export Helper
- * Provides 100% compliant UTF-8 BOM CSV and Formatted Excel XML (.xls) downloads
+ * Exports 100% compliant Microsoft Excel (.xlsx) workbooks and UTF-8 BOM CSV files
  */
 
 /**
- * Download formatted HTML-XML Excel spreadsheet (.xls)
- * Opens cleanly in Microsoft Excel, LibreOffice, and Google Sheets with formatting and colors.
+ * Download genuine Microsoft Excel (.xlsx) file
+ * Opens instantly with 0 errors on Windows Excel, macOS Excel, Android/iOS Office, Google Sheets & LibreOffice.
  */
 export const downloadExcelFile = (filename, sheetName, headers, rows, title = '') => {
-  const cleanTitle = title || filename.replace(/_/g, ' ');
-  const dateStr = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
+  try {
+    const cleanSheetName = (sheetName || 'Report').replace(/[*?:/\\\[\]]/g, '').substring(0, 31);
+    
+    // Normalize headers
+    const normalizedHeaders = (headers || []).map(h => {
+      if (typeof h === 'object' && h !== null) {
+        return { key: h.key || h.id || h.label, label: h.label || h.header || h.name || h.key };
+      }
+      return { key: h, label: String(h) };
+    });
 
-  let html = `
-    <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
-      <head>
-        <meta http-equiv="content-type" content="application/vnd.ms-excel; charset=UTF-8">
-        <!--[if gte mso 9]>
-        <xml>
-          <x:ExcelWorkbook>
-            <x:ExcelWorksheets>
-              <x:ExcelWorksheet>
-                <x:Name>${(sheetName || 'Report').substring(0, 31)}</x:Name>
-                <x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions>
-              </x:ExcelWorksheet>
-            </x:ExcelWorksheets>
-          </x:ExcelWorkbook>
-        </xml>
-        <![endif]-->
-        <style>
-          body { font-family: Calibri, 'Segoe UI', Arial, sans-serif; }
-          .title { font-size: 16pt; font-weight: bold; color: #060D17; background-color: #E2E8F0; text-align: center; }
-          .subtitle { font-size: 10pt; color: #475569; text-align: center; }
-          .header { background-color: #06B6D4; color: #060D17; font-weight: bold; font-size: 11pt; border: 1px solid #0891B2; text-align: center; }
-          .data-row td { border: 1px solid #E2E8F0; font-size: 10pt; padding: 6px; }
-          .number { text-align: right; }
-          .currency { text-align: right; font-weight: bold; }
-          .center { text-align: center; }
-          .bold { font-weight: bold; }
-          .even { background-color: #F8FAFC; }
-        </style>
-      </head>
-      <body>
-        <table border="1" cellpadding="5" cellspacing="0">
-          <tr>
-            <td colspan="${headers.length}" class="title">${cleanTitle}</td>
-          </tr>
-          <tr>
-            <td colspan="${headers.length}" class="subtitle">Generated on: ${dateStr} &bull; Netra Unnayan Eye Clinic &amp; Store</td>
-          </tr>
-          <tr><td colspan="${headers.length}"></td></tr>
-          <tr>
-            ${headers.map(h => `<th class="header">${h.label || h}</th>`).join('')}
-          </tr>
-          ${rows.map((row, rIdx) => `
-            <tr class="data-row ${rIdx % 2 === 0 ? 'even' : ''}">
-              ${headers.map(h => {
-                const key = h.key || h;
-                let val = typeof row === 'object' && key in row ? row[key] : (Array.isArray(row) ? row[headers.indexOf(h)] : '');
-                if (val === null || val === undefined) val = '';
-                const isNum = typeof val === 'number';
-                return `<td class="${isNum ? 'number' : ''}">${val}</td>`;
-              }).join('')}
-            </tr>
-          `).join('')}
-        </table>
-      </body>
-    </html>
-  `;
+    // Build worksheet data rows
+    const dataRows = (rows || []).map(row => {
+      const rowObj = {};
+      normalizedHeaders.forEach(h => {
+        let val = '';
+        if (typeof row === 'object' && row !== null && !Array.isArray(row)) {
+          val = row[h.key] !== undefined ? row[h.key] : (row[h.label] !== undefined ? row[h.label] : '');
+        } else if (Array.isArray(row)) {
+          const idx = normalizedHeaders.indexOf(h);
+          val = row[idx] !== undefined ? row[idx] : '';
+        }
+        if (val === null || val === undefined) val = '';
+        rowObj[h.label] = val;
+      });
+      return rowObj;
+    });
 
-  const blob = new Blob(['\uFEFF' + html], { type: 'application/vnd.ms-excel;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = filename.endsWith('.xls') ? filename : `${filename}.xls`;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+    const worksheet = XLSX.utils.json_to_sheet(dataRows);
+
+    // Auto-fit column widths
+    const colWidths = normalizedHeaders.map(h => {
+      const headerLen = String(h.label || '').length;
+      const maxDataLen = (rows || []).reduce((max, r) => {
+        const val = typeof r === 'object' && r !== null ? (r[h.key] || '') : '';
+        return Math.max(max, String(val).length);
+      }, 0);
+      return { wch: Math.max(headerLen + 4, Math.min(maxDataLen + 4, 45)) };
+    });
+    worksheet['!cols'] = colWidths;
+
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, cleanSheetName);
+
+    const cleanFilename = filename.toLowerCase().endsWith('.xlsx')
+      ? filename
+      : `${filename.replace(/\.xlsx?$|\.csv$/i, '')}.xlsx`;
+
+    XLSX.writeFile(workbook, cleanFilename);
+  } catch (err) {
+    console.error('XLSX export failed, falling back to CSV:', err);
+    downloadCSVFile(filename, headers, rows);
+  }
 };
 
 /**
@@ -84,14 +70,24 @@ export const downloadExcelFile = (filename, sheetName, headers, rows, title = ''
  * Guaranteed compatibility with Microsoft Excel on Windows & macOS
  */
 export const downloadCSVFile = (filename, headers, rows) => {
-  const headerKeys = headers.map(h => h.key || h);
-  const headerLabels = headers.map(h => h.label || h);
+  const normalizedHeaders = (headers || []).map(h => {
+    if (typeof h === 'object' && h !== null) {
+      return { key: h.key || h.id || h.label, label: h.label || h.header || h.name || h.key };
+    }
+    return { key: h, label: String(h) };
+  });
 
-  let csvContent = headerLabels.map(l => `"${String(l).replace(/"/g, '""')}"`).join(',') + '\r\n';
+  let csvContent = normalizedHeaders.map(h => `"${String(h.label).replace(/"/g, '""')}"`).join(',') + '\r\n';
 
-  rows.forEach(row => {
-    const rowValues = headerKeys.map((key, idx) => {
-      let val = typeof row === 'object' && key in row ? row[key] : (Array.isArray(row) ? row[idx] : '');
+  (rows || []).forEach(row => {
+    const rowValues = normalizedHeaders.map(h => {
+      let val = '';
+      if (typeof row === 'object' && row !== null && !Array.isArray(row)) {
+        val = row[h.key] !== undefined ? row[h.key] : (row[h.label] !== undefined ? row[h.label] : '');
+      } else if (Array.isArray(row)) {
+        const idx = normalizedHeaders.indexOf(h);
+        val = row[idx] !== undefined ? row[idx] : '';
+      }
       if (val === null || val === undefined) val = '';
       return `"${String(val).replace(/"/g, '""')}"`;
     });
@@ -102,7 +98,10 @@ export const downloadCSVFile = (filename, headers, rows) => {
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
-  link.download = filename.endsWith('.csv') ? filename : `${filename}.csv`;
+  const cleanFilename = filename.toLowerCase().endsWith('.csv')
+    ? filename
+    : `${filename.replace(/\.xlsx?$|\.csv$/i, '')}.csv`;
+  link.download = cleanFilename;
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
@@ -110,18 +109,16 @@ export const downloadCSVFile = (filename, headers, rows) => {
 };
 
 /**
- * Flexible wrapper for Excel export supporting both (columns, rows, filename, title) and (filename, sheetName, headers, rows, title)
+ * Flexible wrapper for Excel export supporting both signatures
  */
 export const exportToExcel = (arg1, arg2, arg3, arg4, arg5) => {
   if (Array.isArray(arg1) && Array.isArray(arg2)) {
-    // Called as: exportToExcel(columns, rows, filename, title)
     const columns = arg1.map(c => ({ key: c.key || c.id || c, label: c.header || c.label || c.name || c.key || c }));
     const rows = arg2;
     const filename = arg3 || 'Report';
     const title = arg4 || filename;
     downloadExcelFile(filename, 'Sheet1', columns, rows, title);
   } else {
-    // Called as: exportToExcel(filename, sheetName, headers, rows, title)
     downloadExcelFile(arg1, arg2, arg3, arg4, arg5);
   }
 };
@@ -131,12 +128,9 @@ export const exportToExcel = (arg1, arg2, arg3, arg4, arg5) => {
  */
 export const exportToCsv = (arg1, arg2, arg3) => {
   if (Array.isArray(arg1) && Array.isArray(arg2)) {
-    // Called as: exportToCsv(columns, rows, filename)
     const columns = arg1.map(c => ({ key: c.key || c.id || c, label: c.header || c.label || c.name || c.key || c }));
     downloadCSVFile(arg3 || 'Report', columns, arg2);
   } else {
-    // Called as: exportToCsv(filename, headers, rows)
     downloadCSVFile(arg1, arg2, arg3);
   }
 };
-

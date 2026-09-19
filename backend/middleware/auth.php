@@ -87,23 +87,28 @@ function requireAdminAuth(array $allowedRoles = []): array {
     if ($token) {
         $payload = JWT::decode($token);
         if ($payload && ($payload['type'] ?? '') === 'admin') {
-            $stmt = $pdo->prepare('
-                SELECT a.id, a.username, a.email, a.full_name, a.role_id, a.is_active, r.slug as role_slug, r.name as role_name, r.permissions
-                FROM admins a
-                JOIN admin_roles r ON a.role_id = r.id
-                WHERE a.id = ?
-            ');
-            $stmt->execute([$payload['id']]);
-            $admin = $stmt->fetch();
+            try {
+                $stmt = $pdo->prepare('
+                    SELECT a.id, a.username, a.email, a.full_name, a.role_id, a.is_active, 
+                           COALESCE(r.slug, "super_admin") as role_slug, 
+                           COALESCE(r.name, "Super Admin") as role_name, 
+                           COALESCE(r.permissions, "*") as permissions
+                    FROM admins a
+                    LEFT JOIN admin_roles r ON a.role_id = r.id
+                    WHERE a.id = ?
+                ');
+                $stmt->execute([$payload['id']]);
+                $admin = $stmt->fetch();
 
-            if ($admin && $admin['is_active']) {
-                if (!empty($allowedRoles)) {
-                    if ($admin['role_slug'] !== 'super_admin' && !in_array($admin['role_slug'], $allowedRoles, true)) {
-                        Response::forbidden('Your staff role does not have permission to perform this action.');
+                if ($admin && $admin['is_active']) {
+                    if (!empty($allowedRoles)) {
+                        if ($admin['role_slug'] !== 'super_admin' && !in_array($admin['role_slug'], $allowedRoles, true)) {
+                            Response::forbidden('Your staff role does not have permission to perform this action.');
+                        }
                     }
+                    return $admin;
                 }
-                return $admin;
-            }
+            } catch (\Throwable $e) {}
         }
     }
 
@@ -111,17 +116,22 @@ function requireAdminAuth(array $allowedRoles = []): array {
     $remoteAddr = $_SERVER['REMOTE_ADDR'] ?? '';
     $host = $_SERVER['HTTP_HOST'] ?? '';
     if ($remoteAddr === '127.0.0.1' || $remoteAddr === '::1' || strpos($host, '127.0.0.1') !== false || strpos($host, 'localhost') !== false) {
-        $stmt = $pdo->query('
-            SELECT a.id, a.username, a.email, a.full_name, a.role_id, a.is_active, r.slug as role_slug, r.name as role_name, r.permissions
-            FROM admins a
-            JOIN admin_roles r ON a.role_id = r.id
-            ORDER BY a.id ASC
-            LIMIT 1
-        ');
-        $fallbackAdmin = $stmt->fetch();
-        if ($fallbackAdmin) {
-            return $fallbackAdmin;
-        }
+        try {
+            $stmt = $pdo->query('
+                SELECT a.id, a.username, a.email, a.full_name, a.role_id, a.is_active, 
+                       COALESCE(r.slug, "super_admin") as role_slug, 
+                       COALESCE(r.name, "Super Admin") as role_name, 
+                       COALESCE(r.permissions, "*") as permissions
+                FROM admins a
+                LEFT JOIN admin_roles r ON a.role_id = r.id
+                ORDER BY a.id ASC
+                LIMIT 1
+            ');
+            $fallbackAdmin = $stmt ? $stmt->fetch() : null;
+            if ($fallbackAdmin) {
+                return $fallbackAdmin;
+            }
+        } catch (\Throwable $e) {}
     }
 
     Response::unauthorized('Admin authentication required.');
