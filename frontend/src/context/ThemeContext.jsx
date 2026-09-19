@@ -725,11 +725,14 @@ export const ThemeProvider = ({ children }) => {
     }
   });
 
+  const isDark = theme === 'dark';
+  const isLight = theme === 'light';
+
   // Active theme slug (default to 'default')
   const [activeThemeSlug, setActiveThemeSlug] = useState(() => {
     try {
       const saved = localStorage.getItem('nu_seasonal_theme');
-      return saved && BUILT_IN_THEMES[saved] ? saved : 'default';
+      return saved || 'default';
     } catch {
       return 'default';
     }
