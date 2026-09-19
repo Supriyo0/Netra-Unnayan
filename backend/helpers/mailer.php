@@ -511,6 +511,153 @@ HTML;
         return self::send($toEmail, $toName, $subject, $body);
     }
 
+    /**
+     * 11. Full Official Tax / Retail Invoice Dispatch
+     */
+    public static function sendInvoiceEmail(
+        string $toEmail,
+        string $toName,
+        string $invoiceNumber,
+        string $orderNumber,
+        string $invoiceDate,
+        string $invoiceTime,
+        float $totalAmount,
+        string $paymentStatus = 'Paid',
+        string $paymentMode = 'UPI',
+        array $items = [],
+        ?array $prescription = null,
+        string $verifyUrl = '',
+        string $deskNotes = '',
+        string $serviceType = 'ORDER'
+    ): bool {
+        $subject = "Official Invoice {$invoiceNumber} — Netra Unnayan Eye Care";
+
+        $itemRows = '';
+        if (!empty($items)) {
+            foreach ($items as $idx => $item) {
+                $name = htmlspecialchars($item['product_name'] ?? $item['name'] ?? 'Optical Product');
+                $sku = htmlspecialchars($item['product_sku'] ?? $item['sku'] ?? '');
+                $qty = (int)($item['quantity'] ?? 1);
+                $price = number_format((float)($item['unit_price'] ?? $item['price'] ?? 0), 2);
+                $total = number_format((float)($item['total_price'] ?? ($qty * (float)($item['unit_price'] ?? $item['price'] ?? 0))), 2);
+                $lens = !empty($item['lens_type']) ? "<br><span style='font-size:11px;color:#0077B6;'>Lens: " . htmlspecialchars($item['lens_type']) . "</span>" : "";
+                
+                $itemRows .= "<tr>
+                    <td style='padding:10px 8px;border-bottom:1px solid #E2E8F0;font-size:13px;'>
+                        <strong>{$name}</strong>
+                        " . ($sku ? "<div style='font-size:11px;color:#64748B;font-family:monospace;'>SKU: {$sku}</div>" : "") . "
+                        {$lens}
+                    </td>
+                    <td style='padding:10px 8px;border-bottom:1px solid #E2E8F0;font-size:13px;text-align:center;'>{$qty}</td>
+                    <td style='padding:10px 8px;border-bottom:1px solid #E2E8F0;font-size:13px;text-align:right;'>₹{$price}</td>
+                    <td style='padding:10px 8px;border-bottom:1px solid #E2E8F0;font-size:13px;text-align:right;'>₹{$total}</td>
+                </tr>";
+            }
+        }
+
+        $rxSection = '';
+        if (!empty($prescription) && (
+            !empty($prescription['right_sph']) || !empty($prescription['left_sph']) || 
+            !empty($prescription['right_cyl']) || !empty($prescription['left_cyl'])
+        )) {
+            $rSph = htmlspecialchars($prescription['right_sph'] ?? '0.00');
+            $rCyl = htmlspecialchars($prescription['right_cyl'] ?? '0.00');
+            $rAxis = htmlspecialchars($prescription['right_axis'] ?? '—');
+            $rAdd = htmlspecialchars($prescription['right_add'] ?? '—');
+
+            $lSph = htmlspecialchars($prescription['left_sph'] ?? '0.00');
+            $lCyl = htmlspecialchars($prescription['left_cyl'] ?? '0.00');
+            $lAxis = htmlspecialchars($prescription['left_axis'] ?? '—');
+            $lAdd = htmlspecialchars($prescription['left_add'] ?? '—');
+
+            $rxSection = <<<HTML
+            <div style="margin:20px 0;background:#F0FDF4;border:1px solid #BBF7D0;border-radius:12px;padding:16px;">
+                <div style="font-size:12px;font-weight:bold;color:#166534;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;">
+                    👁️ Optical Prescription Diopter Parameters
+                </div>
+                <table style="width:100%;border-collapse:collapse;font-size:12px;text-align:center;">
+                    <thead>
+                        <tr style="background:#DCFCE7;color:#14532D;font-weight:bold;">
+                            <th style="padding:6px;border:1px solid #BBF7D0;">Eye</th>
+                            <th style="padding:6px;border:1px solid #BBF7D0;">SPH</th>
+                            <th style="padding:6px;border:1px solid #BBF7D0;">CYL</th>
+                            <th style="padding:6px;border:1px solid #BBF7D0;">AXIS</th>
+                            <th style="padding:6px;border:1px solid #BBF7D0;">ADD / NEAR</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td style="padding:6px;border:1px solid #BBF7D0;font-weight:bold;background:#F0FDF4;">Right (OD)</td>
+                            <td style="padding:6px;border:1px solid #BBF7D0;font-family:monospace;">{$rSph}</td>
+                            <td style="padding:6px;border:1px solid #BBF7D0;font-family:monospace;">{$rCyl}</td>
+                            <td style="padding:6px;border:1px solid #BBF7D0;font-family:monospace;">{$rAxis}°</td>
+                            <td style="padding:6px;border:1px solid #BBF7D0;font-family:monospace;">{$rAdd}</td>
+                        </tr>
+                        <tr>
+                            <td style="padding:6px;border:1px solid #BBF7D0;font-weight:bold;background:#F0FDF4;">Left (OS)</td>
+                            <td style="padding:6px;border:1px solid #BBF7D0;font-family:monospace;">{$lSph}</td>
+                            <td style="padding:6px;border:1px solid #BBF7D0;font-family:monospace;">{$lCyl}</td>
+                            <td style="padding:6px;border:1px solid #BBF7D0;font-family:monospace;">{$lAxis}°</td>
+                            <td style="padding:6px;border:1px solid #BBF7D0;font-family:monospace;">{$lAdd}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+HTML;
+        }
+
+        $formattedTotal = number_format($totalAmount, 2);
+        $customSection = !empty($deskNotes) ? "<div style='margin-top:15px;padding:12px;background:#F8FAFC;border-left:4px solid #00B4D8;border-radius:6px;font-size:13px;color:#334155;'><strong>Clinic Note:</strong> {$deskNotes}</div>" : "";
+        $trackingBtn = !empty($verifyUrl) ? "<div style='text-align:center;margin:25px 0;'><a href='{$verifyUrl}' target='_blank' style='display:inline-block;background:#00B4D8;color:#ffffff;text-decoration:none;padding:14px 28px;border-radius:10px;font-weight:bold;font-size:14px;box-shadow:0 4px 12px rgba(0,180,216,0.3);'>📄 View &amp; Download Verified Digital Invoice &rarr;</a></div>" : "";
+
+        $body = <<<HTML
+        <span class="badge" style="background:#E0F2FE;color:#0369A1;padding:6px 14px;border-radius:20px;font-weight:600;font-size:12px;">OFFICIAL INVOICE &bull; NETRA UNNAYAN</span>
+        <h2 style="color:#0A192F;font-size:22px;margin-top:10px;">Hello {$toName},</h2>
+        <p>Thank you for choosing <strong>Netra Unnayan Eye Care</strong>. Please find your official invoice summary below:</p>
+        
+        <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;padding:18px;margin:20px 0;">
+            <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+                <span><strong>Invoice No:</strong> <code style="color:#0077B6;font-weight:bold;">{$invoiceNumber}</code></span>
+                <span><strong>Order / Ref ID:</strong> #{$orderNumber}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+                <span><strong>Date &amp; Time:</strong> {$invoiceDate} at {$invoiceTime}</span>
+                <span><strong>Payment:</strong> <span style="color:#166534;font-weight:bold;">{$paymentStatus}</span> ({$paymentMode})</span>
+            </div>
+        </div>
+
+        <table style="width:100%;border-collapse:collapse;margin:20px 0;">
+            <thead>
+                <tr style="background:#F1F5F9;color:#334155;font-size:12px;text-transform:uppercase;">
+                    <th style="padding:10px 8px;text-align:left;">Item / Description</th>
+                    <th style="padding:10px 8px;text-align:center;">Qty</th>
+                    <th style="padding:10px 8px;text-align:right;">Rate</th>
+                    <th style="padding:10px 8px;text-align:right;">Amount</th>
+                </tr>
+            </thead>
+            <tbody>
+                {$itemRows}
+            </tbody>
+            <tfoot>
+                <tr style="border-top:2px solid #00B4D8;">
+                    <td colspan="3" style="padding:14px 8px;font-weight:bold;text-align:right;font-size:14px;">Total Invoice Amount:</td>
+                    <td style="padding:14px 8px;font-weight:bold;text-align:right;color:#00B4D8;font-size:18px;">₹{$formattedTotal}</td>
+                </tr>
+            </tfoot>
+        </table>
+
+        {$rxSection}
+        {$customSection}
+        {$trackingBtn}
+
+        <p style="font-size:12px;color:#64748B;text-align:center;margin-top:20px;">
+            1-Year Optical Warranty on Frame &amp; Multi-Coat Lenses. For customer support or prescription consultations, reach us on WhatsApp at <strong>+91 9382293614</strong>.
+        </p>
+HTML;
+
+        return self::send($toEmail, $toName, $subject, $body);
+    }
+
     private static function wrapWithBrandTemplate(string $title, string $contentHtml): string {
         return <<<HTML
 <!DOCTYPE html>

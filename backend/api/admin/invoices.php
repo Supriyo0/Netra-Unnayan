@@ -3,13 +3,67 @@
 require_once __DIR__ . '/../../middleware/cors.php';
 require_once __DIR__ . '/../../middleware/auth.php';
 require_once __DIR__ . '/../../config/database.php';
-require_once __DIR__ . '/../../helpers/response.php';
+require_once __DIR__ . '/../../helpers/mailer.php';
 
 $admin = requireAdminAuth();
 $pdo = Database::getConnection();
 $method = $_SERVER['REQUEST_METHOD'];
 
 try {
+    if ($method === 'POST') {
+        $input = json_decode(file_get_contents('php://input'), true) ?? [];
+        $action = trim($input['action'] ?? '');
+
+        if ($action === 'send_email' || $action === 'send_invoice_email') {
+            $toEmail = trim($input['to_email'] ?? $input['customer_email'] ?? $input['email'] ?? '');
+            $toName  = trim($input['to_name'] ?? $input['customer_name'] ?? $input['patient_name'] ?? 'Valued Customer');
+            $invoiceNumber = trim($input['invoice_number'] ?? $input['invoiceNumber'] ?? 'NU-INV-001');
+            $orderNumber   = trim($input['order_number'] ?? $input['orderNumber'] ?? 'ORD-001');
+            $invoiceDate   = trim($input['invoice_date'] ?? $input['invoiceDate'] ?? date('d M Y'));
+            $invoiceTime   = trim($input['invoice_time'] ?? $input['invoiceTime'] ?? date('h:i A'));
+            $totalAmount   = (float)($input['total_amount'] ?? $input['totalAmount'] ?? 0);
+            $paymentStatus = trim($input['payment_status'] ?? $input['paymentStatus'] ?? 'Paid');
+            $paymentMode   = trim($input['payment_mode'] ?? $input['paymentMode'] ?? 'UPI');
+            $items         = (array)($input['items'] ?? []);
+            $prescription  = !empty($input['prescription']) && is_array($input['prescription']) ? $input['prescription'] : null;
+            $verifyUrl     = trim($input['verify_url'] ?? $input['verifyUrl'] ?? "https://netraunnayan.com/order-tracking?order=" . urlencode($orderNumber) . "&view=invoice");
+            $deskNotes     = trim($input['notes'] ?? $input['desk_notes'] ?? '');
+            $serviceType   = trim($input['service_type'] ?? $input['type'] ?? 'ORDER');
+
+            if (empty($toEmail) || !filter_var($toEmail, FILTER_VALIDATE_EMAIL)) {
+                Response::error('A valid customer email address is required to dispatch the invoice.', 422);
+            }
+
+            $sent = Mailer::sendInvoiceEmail(
+                $toEmail,
+                $toName,
+                $invoiceNumber,
+                $orderNumber,
+                $invoiceDate,
+                $invoiceTime,
+                $totalAmount,
+                $paymentStatus,
+                $paymentMode,
+                $items,
+                $prescription,
+                $verifyUrl,
+                $deskNotes,
+                $serviceType
+            );
+
+            if ($sent) {
+                Response::success([
+                    'to_email'       => $toEmail,
+                    'invoice_number' => $invoiceNumber,
+                    'sent'           => true
+                ], "Official invoice successfully dispatched to {$toEmail} via SMTP.");
+            } else {
+                Response::error("Failed to dispatch invoice email to {$toEmail}. Please verify SMTP settings.", 500);
+            }
+        }
+
+        Response::error('Invalid POST action for invoices', 400);
+    }
     if ($method === 'GET') {
         $search = trim($_GET['search'] ?? '');
         $type = trim($_GET['type'] ?? ''); // OFFLINE_POS, ONLINE_ORDER, ALL
