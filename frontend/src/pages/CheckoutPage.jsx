@@ -4,7 +4,8 @@ import {
   ShieldCheck, Truck, QrCode, CreditCard, Lock, 
   ArrowRight, AlertCircle, CheckCircle2, ChevronRight,
   Upload, Image as ImageIcon, X, Sparkles, MapPin, Plus, Check,
-  FileText, MessageCircle, ExternalLink
+  FileText, MessageCircle, ExternalLink, Tag, Gift, Home,
+  Building2, Navigation, Trash2, Edit3, RefreshCw
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import api from '../api/client';
@@ -14,10 +15,39 @@ import { useAuth } from '../context/AuthContext';
 
 export const CheckoutPage = () => {
   const navigate = useNavigate();
-  const { items, totals, couponCode, clearCart } = useCart();
+  const { 
+    items, 
+    totals, 
+    couponCode, 
+    couponFeedback, 
+    applyCoupon, 
+    removeCoupon, 
+    isCalculating, 
+    clearCart 
+  } = useCart();
   const { user } = useAuth();
 
-  // All shipping fields start empty for customer to fill
+  // Coupon state on checkout
+  const [checkoutCouponInput, setCheckoutCouponInput] = useState(couponCode || '');
+  const [availableCoupons, setAvailableCoupons] = useState([
+    {
+      code: 'CLARITY10',
+      discount_type: 'PERCENTAGE',
+      discount_value: 10,
+      min_order_amount: 1499,
+      description: 'Get 10% instant discount on orders above ₹1,499'
+    },
+    {
+      code: 'NETRA500',
+      discount_type: 'FIXED',
+      discount_value: 500,
+      min_order_amount: 2999,
+      description: 'Flat ₹500 off on premium titanium orders above ₹2,999'
+    }
+  ]);
+  const [showCouponsList, setShowCouponsList] = useState(false);
+
+  // All shipping fields
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerEmail, setCustomerEmail] = useState('');
@@ -36,13 +66,32 @@ export const CheckoutPage = () => {
   // Saved addresses state
   const [savedAddresses, setSavedAddresses] = useState([]);
   const [selectedAddressId, setSelectedAddressId] = useState(null);
-  const [useNewAddress, setUseNewAddress] = useState(true);
+  const [useNewAddress, setUseNewAddress] = useState(false);
   const [saveAddressToAccount, setSaveAddressToAccount] = useState(true);
+  const [loadingAddresses, setLoadingAddresses] = useState(false);
+
+  // Quick Add New Address Modal
+  const [showAddAddressModal, setShowAddAddressModal] = useState(false);
+  const [newAddrForm, setNewAddrForm] = useState({
+    recipient_name: '',
+    phone: '',
+    address_line1: '',
+    address_line2: '',
+    landmark: '',
+    city: 'Digha',
+    state: 'West Bengal',
+    pincode: '721428',
+    address_type: 'HOME',
+    is_default: false
+  });
+  const [savingNewAddr, setSavingNewAddr] = useState(false);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
+  // Select address helper
   const selectAddress = (addr) => {
+    if (!addr) return;
     setSelectedAddressId(addr.id);
     setUseNewAddress(false);
     if (addr.recipient_name) setCustomerName(addr.recipient_name);
@@ -50,14 +99,25 @@ export const CheckoutPage = () => {
     setAddressLine1(addr.address_line1 || '');
     setAddressLine2(addr.address_line2 || '');
     setLandmark(addr.landmark || '');
-    setCity(addr.city || '');
-    setState(addr.state || '');
+    setCity(addr.city || 'Digha');
+    setState(addr.state || 'West Bengal');
     setPincode(addr.pincode || '');
   };
 
-  // Fetch saved addresses from server and prefill customer info from user account
+  // Fetch available active coupons
   useEffect(() => {
-    if (user) {
+    api.get('/coupons.php').then(res => {
+      if (res.success && Array.isArray(res.data) && res.data.length > 0) {
+        setAvailableCoupons(res.data);
+      }
+    }).catch(() => {});
+  }, []);
+
+  // Fetch saved addresses from server and prefill customer info from user account
+  const fetchSavedAddresses = async () => {
+    if (!user) return;
+    setLoadingAddresses(true);
+    try {
       if (!customerName && (user.full_name || user.name)) {
         setCustomerName(user.full_name || user.name || '');
       }
@@ -68,19 +128,81 @@ export const CheckoutPage = () => {
         setCustomerEmail(user.email || '');
       }
 
-      api.get('/account/addresses.php').then((res) => {
-        if (res.success && Array.isArray(res.data) && res.data.length > 0) {
-          setSavedAddresses(res.data);
-          // If customer has a default address, select it immediately
-          const def = res.data.find(a => a.is_default == 1) || res.data[0];
-          if (def) {
-            selectAddress(def);
-            setUseNewAddress(false);
-          }
+      const res = await api.get('/account/addresses.php');
+      if (res.success && Array.isArray(res.data) && res.data.length > 0) {
+        setSavedAddresses(res.data);
+        // If customer has a default address, select it immediately
+        const def = res.data.find(a => a.is_default == 1) || res.data[0];
+        if (def) {
+          selectAddress(def);
+          setUseNewAddress(false);
         }
-      }).catch(() => {});
+      } else {
+        setUseNewAddress(true);
+      }
+    } catch {
+      setUseNewAddress(true);
+    } finally {
+      setLoadingAddresses(false);
     }
+  };
+
+  useEffect(() => {
+    fetchSavedAddresses();
   }, [user]);
+
+  // Keep checkout coupon input in sync
+  useEffect(() => {
+    if (couponCode) {
+      setCheckoutCouponInput(couponCode);
+    }
+  }, [couponCode]);
+
+  const handleApplyCheckoutCoupon = (e) => {
+    e?.preventDefault();
+    if (checkoutCouponInput.trim()) {
+      applyCoupon(checkoutCouponInput.trim());
+    }
+  };
+
+  const handleQuickApplyCoupon = (code) => {
+    setCheckoutCouponInput(code);
+    applyCoupon(code);
+  };
+
+  const handleSaveNewAddressModal = async (e) => {
+    e.preventDefault();
+    if (!newAddrForm.recipient_name || !newAddrForm.phone || !newAddrForm.address_line1 || !newAddrForm.pincode) {
+      alert('Please fill all required address fields.');
+      return;
+    }
+    setSavingNewAddr(true);
+    try {
+      const res = await api.post('/account/addresses.php', newAddrForm);
+      if (res.success) {
+        await fetchSavedAddresses();
+        setShowAddAddressModal(false);
+        setNewAddrForm({
+          recipient_name: '',
+          phone: '',
+          address_line1: '',
+          address_line2: '',
+          landmark: '',
+          city: 'Digha',
+          state: 'West Bengal',
+          pincode: '721428',
+          address_type: 'HOME',
+          is_default: false
+        });
+      } else {
+        alert(res.message || 'Failed to save address.');
+      }
+    } catch (err) {
+      alert(err.message || 'Error saving address.');
+    } finally {
+      setSavingNewAddr(false);
+    }
+  };
 
   if (items.length === 0) {
     navigate('/cart');
@@ -156,7 +278,6 @@ export const CheckoutPage = () => {
 
     setIsSubmitting(true);
     try {
-      // First item's prescription if available or checkout-attached prescription
       const firstRx = checkoutRx || items.find(i => i.prescription)?.prescription || null;
 
       const payload = {
@@ -167,8 +288,8 @@ export const CheckoutPage = () => {
         address_line1: addressLine1.trim(),
         address_line2: addressLine2.trim() || null,
         landmark: landmark.trim() || null,
-        city: city.trim(),
-        state: state.trim(),
+        city: city.trim() || 'Digha',
+        state: state.trim() || 'West Bengal',
         pincode: pincode.trim(),
         payment_mode: paymentMode,
         coupon_code: couponCode || '',
@@ -197,8 +318,8 @@ export const CheckoutPage = () => {
             address_line1: addressLine1.trim(),
             address_line2: addressLine2.trim() || null,
             landmark: landmark.trim() || null,
-            city: city.trim(),
-            state: state.trim(),
+            city: city.trim() || 'Digha',
+            state: state.trim() || 'West Bengal',
             pincode: pincode.trim(),
             address_type: 'HOME',
             is_default: savedAddresses.length === 0 ? 1 : 0
@@ -208,8 +329,8 @@ export const CheckoutPage = () => {
         // Confetti celebration
         try {
           confetti({
-            particleCount: 80,
-            spread: 70,
+            particleCount: 90,
+            spread: 80,
             origin: { y: 0.6 }
           });
         } catch {}
@@ -231,13 +352,30 @@ export const CheckoutPage = () => {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       
-      <div className="border-b border-white/10 pb-4">
-        <h1 className="text-2xl font-extrabold text-white">Secure Checkout</h1>
-        <p className="text-xs text-slate-400 mt-0.5">Finalize your eyewear order with verified optical lab fabrication</p>
+      {/* Header */}
+      <div className="border-b border-slate-200 dark:border-white/10 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <span className="text-xs font-black uppercase tracking-wider text-brand-cyan">
+            Step 2 of 2: Clinical Verification
+          </span>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white mt-0.5">
+            Secure Optical Checkout
+          </h1>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+            Choose delivery destination, attach doctor prescription, apply coupons &amp; confirm order
+          </p>
+        </div>
+
+        <Link
+          to="/cart"
+          className="text-xs font-bold text-brand-cyan hover:underline inline-flex items-center gap-1 self-start sm:self-auto"
+        >
+          &larr; Back to Shopping Cart
+        </Link>
       </div>
 
       {errorMessage && (
-        <div className="p-4 rounded-xl bg-rose-950/50 border border-rose-500/40 text-rose-200 text-xs flex items-center gap-2.5">
+        <div className="p-4 rounded-xl bg-rose-950/50 border border-rose-500/40 text-rose-200 text-xs flex items-center gap-2.5 shadow-sm">
           <AlertCircle className="w-5 h-5 shrink-0 text-rose-400" />
           <span>{errorMessage}</span>
         </div>
@@ -248,10 +386,11 @@ export const CheckoutPage = () => {
         {/* LEFT COLUMN: Shipping & Customer Details */}
         <div className="lg:col-span-7 space-y-6">
           
-          {/* Contact Details Card */}
+          {/* SECTION 1: CUSTOMER CONTACT */}
           <div className="glass-card rounded-2xl p-6 space-y-4 border-2 border-slate-200 dark:border-white/10 shadow-sm">
             <h3 className="text-xs font-bold uppercase tracking-wider text-brand-cyan border-b border-slate-200 dark:border-white/10 pb-2 flex items-center gap-2">
-              <span>1. Customer Contact</span>
+              <span className="w-5 h-5 rounded-full bg-brand-cyan/20 text-brand-cyan flex items-center justify-center font-mono text-[10px]">1</span>
+              <span>Customer Contact Details</span>
             </h3>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -267,7 +406,7 @@ export const CheckoutPage = () => {
                 />
               </div>
               <div>
-                <label className="block text-xs text-slate-700 dark:text-slate-300 font-semibold mb-1">Mobile Phone (for updates &amp; OTP) *</label>
+                <label className="block text-xs text-slate-700 dark:text-slate-300 font-semibold mb-1">Mobile Phone (for delivery &amp; OTP) *</label>
                 <input 
                   type="tel" 
                   required
@@ -280,7 +419,7 @@ export const CheckoutPage = () => {
             </div>
 
             <div>
-              <label className="block text-xs text-slate-700 dark:text-slate-300 font-semibold mb-1">Email Address (Optional for Invoice &amp; Tracking)</label>
+              <label className="block text-xs text-slate-700 dark:text-slate-300 font-semibold mb-1">Email Address (Optional for Invoice PDF &amp; Tracking)</label>
               <input 
                 type="email" 
                 value={customerEmail}
@@ -291,15 +430,20 @@ export const CheckoutPage = () => {
             </div>
           </div>
 
-          {/* Delivery Address Card with Interactive Saved Addresses Section */}
+          {/* SECTION 2: SAVED ADDRESS CHOOSER & DELIVERY DESTINATION */}
           <div className="glass-card rounded-2xl p-6 space-y-4 border-2 border-slate-200 dark:border-white/10 shadow-sm">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-200 dark:border-white/10 pb-3 gap-2">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-brand-cyan flex items-center gap-1.5">
-                <MapPin className="w-4 h-4" /> 2. Delivery Address
-              </h3>
+            
+            {/* Header with Mode Switcher */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-200 dark:border-white/10 pb-3 gap-3">
+              <div className="flex items-center gap-2">
+                <span className="w-5 h-5 rounded-full bg-brand-cyan/20 text-brand-cyan flex items-center justify-center font-mono text-[10px]">2</span>
+                <h3 className="text-xs font-bold uppercase tracking-wider text-brand-cyan flex items-center gap-1.5">
+                  <MapPin className="w-4 h-4" /> Delivery Destination &amp; Address
+                </h3>
+              </div>
               
-              {/* Segmented Mode Switcher if customer has saved addresses */}
-              {savedAddresses.length > 0 && (
+              {/* If user has saved addresses, show tabs */}
+              {user && savedAddresses.length > 0 && (
                 <div className="inline-flex items-center p-1 rounded-xl bg-slate-100 dark:bg-white/10 border border-slate-300 dark:border-white/10 text-xs font-bold">
                   <button
                     type="button"
@@ -310,7 +454,8 @@ export const CheckoutPage = () => {
                         : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                     }`}
                   >
-                    <span>🏠 Use Saved Address ({savedAddresses.length})</span>
+                    <Home className="w-3.5 h-3.5" />
+                    <span>Saved Addresses ({savedAddresses.length})</span>
                   </button>
                   <button
                     type="button"
@@ -324,28 +469,42 @@ export const CheckoutPage = () => {
                         : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                     }`}
                   >
-                    <span>✍️ Enter New Address</span>
+                    <Edit3 className="w-3.5 h-3.5" />
+                    <span>Enter New Address</span>
                   </button>
                 </div>
               )}
             </div>
 
-            {/* Mode 1: Saved Addresses Picker Grid with Explicit 'Use This Address' Buttons */}
-            {!useNewAddress && savedAddresses.length > 0 && (
+            {/* Guest / Non-logged in Prompt */}
+            {!user && (
+              <div className="p-3.5 rounded-xl bg-brand-cyan/10 border border-brand-cyan/30 flex items-center justify-between text-xs">
+                <div className="flex items-center gap-2 text-slate-900 dark:text-white font-medium">
+                  <Sparkles className="w-4 h-4 text-brand-cyan shrink-0" />
+                  <span>Already have an account with saved addresses?</span>
+                </div>
+                <Link
+                  to={`/login?redirect=${encodeURIComponent('/checkout')}`}
+                  className="px-3 py-1 rounded-lg bg-brand-cyan text-slate-950 font-bold hover:bg-cyan-400 transition-colors shrink-0"
+                >
+                  Log In &rarr;
+                </Link>
+              </div>
+            )}
+
+            {/* VIEW A: SAVED ADDRESSES CARDS SELECTOR */}
+            {!useNewAddress && user && savedAddresses.length > 0 && (
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <p className="text-xs text-slate-700 dark:text-slate-300 font-semibold">
-                    Select a saved delivery destination for this shipment:
+                    Select a saved address for this optical delivery:
                   </p>
                   <button
                     type="button"
-                    onClick={() => {
-                      setUseNewAddress(true);
-                      setSelectedAddressId(null);
-                    }}
+                    onClick={() => setShowAddAddressModal(true)}
                     className="text-xs text-brand-cyan hover:underline font-bold flex items-center gap-1"
                   >
-                    + Add Different Address
+                    <Plus className="w-3.5 h-3.5" /> Add New Address
                   </button>
                 </div>
 
@@ -356,29 +515,34 @@ export const CheckoutPage = () => {
                       <div
                         key={addr.id}
                         onClick={() => selectAddress(addr)}
-                        className={`p-4 rounded-xl cursor-pointer transition-all border-2 relative flex flex-col justify-between ${
+                        className={`p-4 rounded-2xl cursor-pointer transition-all border-2 relative flex flex-col justify-between ${
                           isSelected
-                            ? 'border-brand-cyan bg-brand-cyan/10 shadow-cyan-glow/25 ring-2 ring-brand-cyan/20'
-                            : 'border-slate-300 dark:border-white/15 bg-slate-50 dark:bg-white/5 hover:border-brand-cyan/50'
+                            ? 'border-brand-cyan bg-brand-cyan/10 shadow-lg shadow-brand-cyan/10 ring-2 ring-brand-cyan/30'
+                            : 'border-slate-300 dark:border-white/10 bg-slate-50 dark:bg-white/[0.03] hover:border-brand-cyan/50 hover:bg-slate-100 dark:hover:bg-white/[0.05]'
                         }`}
                       >
                         <div>
                           <div className="flex items-center justify-between mb-2">
-                            <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded bg-brand-cyan/20 text-brand-cyan border border-brand-cyan/30">
-                              {addr.address_type || 'HOME'}
+                            <span className="text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full bg-brand-cyan/20 text-brand-cyan border border-brand-cyan/30 flex items-center gap-1">
+                              {addr.address_type === 'OFFICE' ? <Building2 className="w-3 h-3" /> : <Home className="w-3 h-3" />}
+                              <span>{addr.address_type || 'HOME'}</span>
                             </span>
+
                             {addr.is_default == 1 && (
-                              <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 bg-amber-400/10 px-1.5 py-0.5 rounded border border-amber-400/30">
-                                Default
+                              <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded-full border border-amber-400/30">
+                                Default Address
                               </span>
                             )}
                           </div>
-                          <h4 className="font-bold text-xs text-slate-900 dark:text-white">
-                            {addr.recipient_name}
+
+                          <h4 className="font-extrabold text-xs text-slate-900 dark:text-white flex items-center gap-1.5">
+                            <span>{addr.recipient_name}</span>
                           </h4>
+                          
                           <p className="text-[11px] text-slate-600 dark:text-slate-400 font-mono mt-0.5">
-                            {addr.phone}
+                            📞 {addr.phone}
                           </p>
+
                           <p className="text-[11px] text-slate-700 dark:text-slate-300 mt-2 leading-relaxed">
                             {addr.address_line1}{addr.address_line2 ? `, ${addr.address_line2}` : ''}
                             {addr.landmark ? ` (Near ${addr.landmark})` : ''}<br />
@@ -386,7 +550,7 @@ export const CheckoutPage = () => {
                           </p>
                         </div>
 
-                        {/* Explicit 'Use This Address' Button */}
+                        {/* Explicit Select Button */}
                         <div className="pt-3 mt-3 border-t border-slate-200 dark:border-white/10 flex items-center justify-between">
                           <button
                             type="button"
@@ -394,19 +558,19 @@ export const CheckoutPage = () => {
                               e.stopPropagation();
                               selectAddress(addr);
                             }}
-                            className={`w-full py-1.5 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                            className={`w-full py-1.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
                               isSelected
-                                ? 'bg-teal-500 text-white shadow-sm'
+                                ? 'bg-emerald-500 text-slate-950 font-extrabold shadow-sm'
                                 : 'bg-brand-cyan/15 hover:bg-brand-cyan text-brand-cyan hover:text-slate-950 border border-brand-cyan/40'
                             }`}
                           >
                             {isSelected ? (
                               <>
                                 <Check className="w-3.5 h-3.5" />
-                                <span>Using This Address</span>
+                                <span>Delivering to This Address</span>
                               </>
                             ) : (
-                              <span>Use This Address</span>
+                              <span>Deliver Here</span>
                             )}
                           </button>
                         </div>
@@ -417,15 +581,16 @@ export const CheckoutPage = () => {
               </div>
             )}
 
-            {/* Mode 2: Manual Address Input with Quick-Fill Saved Address Dropdown */}
-            {(useNewAddress || savedAddresses.length === 0) && (
+            {/* VIEW B: NEW ADDRESS ENTRY FORM */}
+            {(useNewAddress || !user || savedAddresses.length === 0) && (
               <div className="space-y-4">
-                {/* Quick-Fill dropdown if customer has saved addresses */}
+                
+                {/* Autofill helper if customer has saved addresses */}
                 {savedAddresses.length > 0 && (
                   <div className="p-3 rounded-xl bg-brand-cyan/10 border border-brand-cyan/30 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
                     <div className="flex items-center gap-2 text-xs font-semibold text-slate-900 dark:text-white">
                       <Sparkles className="w-4 h-4 text-brand-cyan shrink-0" />
-                      <span>Have a saved address? Use it to auto-fill:</span>
+                      <span>Autofill from your saved addresses:</span>
                     </div>
                     <select
                       onChange={(e) => {
@@ -438,7 +603,7 @@ export const CheckoutPage = () => {
                       defaultValue=""
                       className="glass-input rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-800 dark:text-slate-200 border-brand-cyan/40"
                     >
-                      <option value="" disabled>-- Select Saved Address to Auto-fill --</option>
+                      <option value="" disabled>-- Select Saved Address to Autofill --</option>
                       {savedAddresses.map((a) => (
                         <option key={a.id} value={a.id}>
                           {a.address_type || 'HOME'}: {a.recipient_name} ({a.city} - {a.pincode})
@@ -447,16 +612,17 @@ export const CheckoutPage = () => {
                     </select>
                   </div>
                 )}
+
                 <div>
                   <label className="block text-xs text-slate-700 dark:text-slate-300 font-semibold mb-1">
-                    Flat / House / Building / Street *
+                    Flat / House / Building / Street Address *
                   </label>
                   <input 
                     type="text" 
                     required
                     value={addressLine1}
                     onChange={(e) => setAddressLine1(e.target.value)}
-                    placeholder="e.g. Flat 4B, Sagarika Enclave, New Digha Road"
+                    placeholder="e.g. Flat 4B, Sagarika Enclave, Digha Bypass Rd"
                     className="w-full glass-input rounded-xl px-3.5 py-2 text-xs"
                   />
                 </div>
@@ -468,7 +634,7 @@ export const CheckoutPage = () => {
                       type="text" 
                       value={addressLine2}
                       onChange={(e) => setAddressLine2(e.target.value)}
-                      placeholder="e.g. Sea Beach Market Area"
+                      placeholder="e.g. Jatimati / New Digha"
                       className="w-full glass-input rounded-xl px-3.5 py-2 text-xs"
                     />
                   </div>
@@ -478,7 +644,7 @@ export const CheckoutPage = () => {
                       type="text" 
                       value={landmark}
                       onChange={(e) => setLandmark(e.target.value)}
-                      placeholder="e.g. Near Lions Eye Hospital"
+                      placeholder="e.g. Near Digha Railway Station"
                       className="w-full glass-input rounded-xl px-3.5 py-2 text-xs"
                     />
                   </div>
@@ -492,6 +658,7 @@ export const CheckoutPage = () => {
                       required
                       value={city}
                       onChange={(e) => setCity(e.target.value)}
+                      placeholder="Digha"
                       className="w-full glass-input rounded-xl px-3.5 py-2 text-xs"
                     />
                   </div>
@@ -502,6 +669,7 @@ export const CheckoutPage = () => {
                       required
                       value={state}
                       onChange={(e) => setState(e.target.value)}
+                      placeholder="West Bengal"
                       className="w-full glass-input rounded-xl px-3.5 py-2 text-xs"
                     />
                   </div>
@@ -527,7 +695,7 @@ export const CheckoutPage = () => {
                       className="rounded border-slate-300 dark:border-white/20 text-brand-cyan focus:ring-0"
                     />
                     <span className="text-xs text-slate-700 dark:text-slate-300 font-medium">
-                      Save this address to my account for future orders
+                      Save this address to my account for 1-click checkout next time
                     </span>
                   </label>
                 )}
@@ -535,23 +703,26 @@ export const CheckoutPage = () => {
             )}
 
             <div>
-              <label className="block text-xs text-slate-700 dark:text-slate-300 font-semibold mb-1">Order / Prescription Special Notes (Optional)</label>
+              <label className="block text-xs text-slate-700 dark:text-slate-300 font-semibold mb-1">
+                Order &amp; Delivery Instructions (Optional)
+              </label>
               <textarea 
                 rows="2"
                 value={orderNotes}
                 onChange={(e) => setOrderNotes(e.target.value)}
-                placeholder="Any special optical lab instructions or delivery landmarks..."
+                placeholder="e.g. Call before delivery, or special frame fitting notes..."
                 className="w-full glass-input rounded-xl px-3.5 py-2 text-xs"
               />
             </div>
           </div>
 
-          {/* SECTION 2: OPTICAL PRESCRIPTION & CUSTOMIZATION */}
+          {/* SECTION 3: OPTICAL PRESCRIPTION ATTACHMENT */}
           <div className="glass-card rounded-2xl p-6 space-y-4 border-2 border-slate-200 dark:border-white/10 shadow-sm">
             <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/10 pb-2">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-brand-cyan flex items-center gap-1.5">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-brand-cyan flex items-center gap-2">
+                <span className="w-5 h-5 rounded-full bg-brand-cyan/20 text-brand-cyan flex items-center justify-center font-mono text-[10px]">3</span>
                 <FileText className="w-4 h-4 text-brand-cyan" />
-                <span>2. Optical Prescription Details</span>
+                <span>Doctor Prescription Slip</span>
               </h3>
               {checkoutRx && (
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700/50 flex items-center gap-1">
@@ -581,7 +752,6 @@ export const CheckoutPage = () => {
                   </button>
                 </div>
 
-                {/* Display preview if image is attached */}
                 {(checkoutRx.file_url || checkoutRx.rx_image_url || checkoutRx.image_url) && (
                   <div className="flex items-center gap-3 p-2.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10">
                     <img 
@@ -603,36 +773,14 @@ export const CheckoutPage = () => {
                     </div>
                   </div>
                 )}
-
-                {/* Display Diopters if entered */}
-                {(checkoutRx.right_sph !== null && checkoutRx.right_sph !== undefined && checkoutRx.method === 'FORM') && (
-                  <div className="grid grid-cols-2 gap-2 text-center text-xs font-mono bg-white dark:bg-slate-900 p-2.5 rounded-lg border border-slate-200 dark:border-white/10">
-                    <div>
-                      <span className="text-[10px] text-slate-400 block font-sans">OD (Right Eye)</span>
-                      <strong className="text-slate-900 dark:text-white">SPH: {checkoutRx.right_sph} | CYL: {checkoutRx.right_cyl || '0.00'}</strong>
-                    </div>
-                    <div>
-                      <span className="text-[10px] text-slate-400 block font-sans">OS (Left Eye)</span>
-                      <strong className="text-slate-900 dark:text-white">SPH: {checkoutRx.left_sph} | CYL: {checkoutRx.left_cyl || '0.00'}</strong>
-                    </div>
-                  </div>
-                )}
-
-                {checkoutRx.method === 'WHATSAPP' && (
-                  <div className="flex items-center gap-2 text-xs text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/20 p-2 rounded-lg border border-emerald-200 dark:border-emerald-800/30">
-                    <MessageCircle className="w-4 h-4 text-emerald-500 shrink-0" />
-                    <span>Our optometrist will contact you on WhatsApp to collect your slip photo.</span>
-                  </div>
-                )}
               </div>
             ) : (
               <div className="space-y-3">
                 <p className="text-xs text-slate-600 dark:text-slate-400">
-                  You can upload a photo of your doctor's slip now, or send it directly to our optometrist on WhatsApp after checkout.
+                  Upload a photo of your doctor's slip now, or send it directly to our optometrist on WhatsApp after checkout.
                 </p>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                  {/* Upload photo slip */}
                   <label className="p-3 rounded-xl border border-dashed border-sky-300 dark:border-brand-cyan/40 bg-sky-50/50 dark:bg-brand-cyan/[0.04] cursor-pointer hover:bg-sky-100/50 dark:hover:bg-brand-cyan/[0.08] transition-colors flex items-center justify-center gap-2 text-xs font-bold text-slate-800 dark:text-slate-200">
                     <Upload className="w-4 h-4 text-brand-cyan shrink-0" />
                     <span>{uploadingCheckoutRx ? 'Uploading Slip...' : 'Upload Prescription Slip'}</span>
@@ -645,7 +793,6 @@ export const CheckoutPage = () => {
                     />
                   </label>
 
-                  {/* Send via WhatsApp */}
                   <button
                     type="button"
                     onClick={() => setCheckoutRx({
@@ -663,17 +810,18 @@ export const CheckoutPage = () => {
             )}
           </div>
 
-          {/* Payment Method Card */}
+          {/* SECTION 4: PAYMENT METHOD SELECTION */}
           <div className="glass-card rounded-2xl p-6 space-y-4 border-2 border-slate-200 dark:border-white/10 shadow-sm">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-brand-cyan border-b border-slate-200 dark:border-white/10 pb-2">
-              3. Payment Method
+            <h3 className="text-xs font-bold uppercase tracking-wider text-brand-cyan border-b border-slate-200 dark:border-white/10 pb-2 flex items-center gap-2">
+              <span className="w-5 h-5 rounded-full bg-brand-cyan/20 text-brand-cyan flex items-center justify-center font-mono text-[10px]">4</span>
+              <span>Payment Method</span>
             </h3>
 
             <div className="space-y-3">
               {/* Cash On Delivery Option */}
               <label className={`p-4 rounded-xl border-2 cursor-pointer flex items-center justify-between transition-all ${
                 paymentMode === 'COD' 
-                  ? 'bg-brand-cyan/15 border-brand-cyan shadow-cyan-glow/20' 
+                  ? 'bg-brand-cyan/15 border-brand-cyan shadow-cyan-glow/20 ring-1 ring-brand-cyan/30' 
                   : 'bg-slate-50 dark:bg-white/5 border-slate-300 dark:border-white/10 hover:border-slate-400 dark:hover:border-white/20'
               }`}>
                 <div className="flex items-center gap-3">
@@ -683,7 +831,7 @@ export const CheckoutPage = () => {
                     value="COD"
                     checked={paymentMode === 'COD'}
                     onChange={() => setPaymentMode('COD')}
-                    className="accent-brand-cyan"
+                    className="accent-brand-cyan w-4 h-4"
                   />
                   <div>
                     <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-2">
@@ -702,7 +850,7 @@ export const CheckoutPage = () => {
               {/* Online UPI Payment Option */}
               <label className={`p-4 rounded-xl border-2 cursor-pointer flex flex-col gap-3 transition-all ${
                 paymentMode === 'UPI' 
-                  ? 'bg-brand-cyan/15 border-brand-cyan shadow-cyan-glow/20' 
+                  ? 'bg-brand-cyan/15 border-brand-cyan shadow-cyan-glow/20 ring-1 ring-brand-cyan/30' 
                   : 'bg-slate-50 dark:bg-white/5 border-slate-300 dark:border-white/10 hover:border-slate-400 dark:hover:border-white/20'
               }`}>
                 <div className="flex items-center justify-between w-full">
@@ -713,7 +861,7 @@ export const CheckoutPage = () => {
                       value="UPI"
                       checked={paymentMode === 'UPI'}
                       onChange={() => setPaymentMode('UPI')}
-                      className="accent-brand-cyan"
+                      className="accent-brand-cyan w-4 h-4"
                     />
                     <div>
                       <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-2">
@@ -734,7 +882,7 @@ export const CheckoutPage = () => {
                     <div className="flex flex-col sm:flex-row items-center gap-4">
                       <div className="w-36 h-36 bg-white rounded-2xl p-2 shrink-0 flex items-center justify-center shadow-2xl border border-white/20">
                         <img 
-                          src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(`upi://pay?pa=netraunnayan7@okaxis&pn=Netra%20Unnayan&am=${totals.total_amount}&cu=INR&tn=Order%20Netra%20Unnayan`)}`}
+                          src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(`upi://pay?pa=9382293614@upi&pn=NETRA%20UNNAYAN&am=${totals.total_amount}&cu=INR&tn=Order%20Netra%20Unnayan`)}`}
                           alt="Dynamic UPI QR"
                           className="w-full h-full object-contain"
                         />
@@ -748,16 +896,12 @@ export const CheckoutPage = () => {
                           Scan using PhonePe, Google Pay, Paytm, BHIM, or your bank's UPI app.
                         </p>
                         <div className="p-2.5 rounded-xl bg-white/5 border border-white/10 font-mono text-[11px] text-slate-200 flex items-center justify-between">
-                          <span>UPI VPA: <strong className="text-white">netraunnayan7@okaxis</strong></span>
+                          <span>UPI VPA: <strong className="text-white">9382293614@upi</strong></span>
                           <span className="text-[9px] font-bold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">Verified Merchant</span>
-                        </div>
-                        <div className="text-[10px] text-slate-400">
-                          Transfer exact order amount of ₹{totals.total_amount}. Order confirms automatically once verified.
                         </div>
                       </div>
                     </div>
 
-                    {/* UTR and Payment Screenshot Verification Inputs */}
                     <div className="pt-3 border-t border-white/10 space-y-3">
                       <div>
                         <label className="block text-xs font-semibold text-slate-200 mb-1">
@@ -817,14 +961,22 @@ export const CheckoutPage = () => {
 
         </div>
 
-        {/* RIGHT COLUMN: Order Review & Placement */}
+        {/* RIGHT COLUMN: Order Review, Coupon Section & Checkout Confirmation */}
         <div className="lg:col-span-5 space-y-6">
           <div className="glass-card rounded-2xl p-6 space-y-5 sticky top-24 border-2 border-slate-200 dark:border-white/10 shadow-sm">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-brand-cyan border-b border-slate-200 dark:border-white/10 pb-3">
-              Order Review ({items.length} Items)
-            </h3>
+            
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/10 pb-3">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-brand-cyan">
+                Order Review ({items.length} Items)
+              </h3>
+              <Link to="/cart" className="text-[11px] text-brand-cyan hover:underline font-bold">
+                Edit Cart
+              </Link>
+            </div>
 
-            <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
+            {/* Cart Items List Preview */}
+            <div className="space-y-3 max-h-56 overflow-y-auto pr-1">
               {items.map((it, i) => (
                 <div key={i} className="flex items-center justify-between text-xs py-1.5 border-b border-slate-100 dark:border-white/5">
                   <div className="space-y-0.5 max-w-[200px]">
@@ -841,27 +993,150 @@ export const CheckoutPage = () => {
               ))}
             </div>
 
+            {/* ========================================================= */}
+            {/* DEDICATED COUPON APPLYING BOX (PRIMARY USER REQUEST)       */}
+            {/* ========================================================= */}
+            <div className="p-4 rounded-2xl bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                  <Tag className="w-3.5 h-3.5 text-brand-cyan" />
+                  <span>Apply Discount Coupon</span>
+                </label>
+                
+                <button
+                  type="button"
+                  onClick={() => setShowCouponsList(!showCouponsList)}
+                  className="text-[11px] text-brand-cyan hover:underline font-bold flex items-center gap-1"
+                >
+                  <Gift className="w-3 h-3" />
+                  <span>{showCouponsList ? 'Hide Offers' : 'View Offers'}</span>
+                </button>
+              </div>
+
+              {/* Coupon Form */}
+              <div className="flex gap-2">
+                <input 
+                  type="text"
+                  placeholder="Enter Promo Code (e.g. CLARITY10)"
+                  value={checkoutCouponInput}
+                  onChange={(e) => setCheckoutCouponInput(e.target.value.toUpperCase())}
+                  className="flex-1 glass-input rounded-xl px-3 py-2 text-xs font-mono font-bold tracking-wider uppercase text-slate-900 dark:text-white"
+                />
+                <button 
+                  type="button"
+                  onClick={handleApplyCheckoutCoupon}
+                  disabled={isCalculating || !checkoutCouponInput.trim()}
+                  className="btn-primary text-xs px-4 py-2 rounded-xl shrink-0 font-bold shadow-cyan-glow disabled:opacity-50 flex items-center gap-1"
+                >
+                  {isCalculating ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : 'Apply'}
+                </button>
+              </div>
+
+              {/* Feedback Alert */}
+              {couponFeedback && (
+                <div className={`p-2.5 rounded-xl flex items-center justify-between text-xs font-semibold ${
+                  couponFeedback.invalid 
+                    ? 'bg-rose-50 dark:bg-rose-950/40 text-rose-800 dark:text-rose-300 border border-rose-300 dark:border-rose-500/30' 
+                    : 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-500/30'
+                }`}>
+                  <span className="flex items-center gap-1.5 text-[11px]">
+                    {couponFeedback.invalid ? <AlertCircle className="w-3.5 h-3.5 text-rose-500 shrink-0" /> : <Check className="w-3.5 h-3.5 text-emerald-500 shrink-0" />}
+                    {couponFeedback.invalid ? couponFeedback.message : `Coupon Applied! Saved ₹${totals.discount_amount}`}
+                  </span>
+                  {!couponFeedback.invalid && (
+                    <button 
+                      type="button" 
+                      onClick={() => {
+                        removeCoupon();
+                        setCheckoutCouponInput('');
+                      }} 
+                      className="text-rose-500 hover:underline text-[10px] font-bold"
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {/* Available Coupons Dropdown / List */}
+              {showCouponsList && (
+                <div className="pt-2 border-t border-slate-200 dark:border-white/10 space-y-2 animate-fadeIn">
+                  <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+                    Available Promo Coupons:
+                  </div>
+                  {availableCoupons.map((cpn) => {
+                    const isCurrent = couponCode?.toUpperCase() === cpn.code?.toUpperCase();
+                    return (
+                      <div 
+                        key={cpn.code} 
+                        className="p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 flex items-center justify-between gap-2 text-xs"
+                      >
+                        <div className="space-y-0.5">
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-mono font-black text-brand-cyan text-xs px-2 py-0.5 rounded bg-brand-cyan/15 border border-brand-cyan/30">
+                              {cpn.code}
+                            </span>
+                            <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300">
+                              {cpn.discount_type === 'PERCENTAGE' ? `${cpn.discount_value}% OFF` : `₹${cpn.discount_value} FLAT OFF`}
+                            </span>
+                          </div>
+                          <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                            {cpn.description || `Min order ₹${cpn.min_order_amount || 0}`}
+                          </p>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => handleQuickApplyCoupon(cpn.code)}
+                          disabled={isCurrent}
+                          className={`px-3 py-1 rounded-lg text-[10px] font-bold transition-all ${
+                            isCurrent
+                              ? 'bg-emerald-500 text-slate-950 cursor-default font-extrabold'
+                              : 'btn-secondary hover:bg-brand-cyan hover:text-slate-950'
+                          }`}
+                        >
+                          {isCurrent ? 'Applied' : 'Apply'}
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
             {/* Financial Breakdown */}
             <div className="space-y-2 text-xs border-t border-slate-200 dark:border-white/10 pt-3">
               <div className="flex justify-between text-slate-700 dark:text-slate-300 font-medium">
-                <span>Subtotal</span>
+                <span>Subtotal (Frames &amp; Lenses)</span>
                 <span className="font-mono font-semibold">₹{totals.subtotal}</span>
               </div>
+
               {totals.discount_amount > 0 && (
-                <div className="flex justify-between text-teal-600 dark:text-teal-400 font-semibold">
-                  <span>Coupon Discount</span>
+                <div className="flex justify-between text-emerald-600 dark:text-emerald-400 font-bold">
+                  <span className="flex items-center gap-1">
+                    <Tag className="w-3 h-3" />
+                    Coupon Discount ({couponCode})
+                  </span>
                   <span className="font-mono">-₹{totals.discount_amount}</span>
                 </div>
               )}
+
               <div className="flex justify-between text-slate-700 dark:text-slate-300 font-medium">
-                <span>Shipping</span>
+                <span>Standard Shipping</span>
                 <span className="font-mono">
-                  {totals.shipping_fee === 0 ? <span className="text-teal-600 dark:text-teal-400 font-bold">FREE</span> : `₹${totals.shipping_fee}`}
+                  {totals.shipping_fee === 0 ? (
+                    <span className="text-emerald-600 dark:text-emerald-400 font-bold">FREE (Above ₹{totals.free_shipping_threshold})</span>
+                  ) : (
+                    `₹${totals.shipping_fee}`
+                  )}
                 </span>
               </div>
+
               <div className="border-t border-slate-200 dark:border-white/10 pt-3 flex justify-between items-baseline">
                 <span className="font-bold text-slate-900 dark:text-white text-sm">Total Payable</span>
-                <span className="text-2xl font-black text-slate-900 dark:text-white font-mono">₹{totals.total_amount}</span>
+                <span className="text-2xl font-black text-brand-cyan font-mono">
+                  ₹{totals.total_amount}
+                </span>
               </div>
             </div>
 
@@ -869,7 +1144,7 @@ export const CheckoutPage = () => {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full btn-primary py-3.5 text-sm font-bold flex items-center justify-center gap-2 rounded-xl shadow-cyan-glow disabled:opacity-50"
+              className="w-full btn-primary py-3.5 text-sm font-bold flex items-center justify-center gap-2 rounded-xl shadow-cyan-glow disabled:opacity-50 cursor-pointer"
             >
               {isSubmitting ? (
                 <span>Confirming Order...</span>
@@ -884,10 +1159,10 @@ export const CheckoutPage = () => {
             <div className="text-[11px] text-slate-400 space-y-1">
               <p className="flex items-center gap-1">
                 <ShieldCheck className="w-3.5 h-3.5 text-teal-400 shrink-0" />
-                12-Hour cancellation window applies prior to lens cutting.
+                12-Hour cancellation cutoff window applies before optical fabrication.
               </p>
               <p className="text-[10px] text-slate-500">
-                By placing this order, you confirm acceptance of Netra Unnayan's optical prescription terms and return policy.
+                By placing this order, you accept Netra Unnayan's optical prescription terms and return policy.
               </p>
             </div>
 
@@ -896,6 +1171,172 @@ export const CheckoutPage = () => {
 
       </form>
 
+      {/* ========================================================================= */}
+      {/* QUICK ADD ADDRESS MODAL                                                   */}
+      {/* ========================================================================= */}
+      {showAddAddressModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-brand-cyan/40 rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/10 pb-3">
+              <h3 className="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+                <MapPin className="w-4 h-4 text-brand-cyan" />
+                <span>Add New Delivery Address</span>
+              </h3>
+              <button 
+                type="button" 
+                onClick={() => setShowAddAddressModal(false)}
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-900 dark:hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveNewAddressModal} className="space-y-3.5 text-xs">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">Recipient Name *</label>
+                  <input
+                    type="text"
+                    required
+                    value={newAddrForm.recipient_name}
+                    onChange={(e) => setNewAddrForm(prev => ({ ...prev, recipient_name: e.target.value }))}
+                    placeholder="Full Name"
+                    className="w-full glass-input rounded-xl px-3 py-2 text-xs"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">Phone Number *</label>
+                  <input
+                    type="tel"
+                    required
+                    value={newAddrForm.phone}
+                    onChange={(e) => setNewAddrForm(prev => ({ ...prev, phone: e.target.value }))}
+                    placeholder="10-digit mobile"
+                    className="w-full glass-input rounded-xl px-3 py-2 text-xs font-mono"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">Address Line 1 *</label>
+                <input
+                  type="text"
+                  required
+                  value={newAddrForm.address_line1}
+                  onChange={(e) => setNewAddrForm(prev => ({ ...prev, address_line1: e.target.value }))}
+                  placeholder="Flat, House, Street"
+                  className="w-full glass-input rounded-xl px-3 py-2 text-xs"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">Area / Locality</label>
+                  <input
+                    type="text"
+                    value={newAddrForm.address_line2}
+                    onChange={(e) => setNewAddrForm(prev => ({ ...prev, address_line2: e.target.value }))}
+                    placeholder="Locality"
+                    className="w-full glass-input rounded-xl px-3 py-2 text-xs"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">Landmark</label>
+                  <input
+                    type="text"
+                    value={newAddrForm.landmark}
+                    onChange={(e) => setNewAddrForm(prev => ({ ...prev, landmark: e.target.value }))}
+                    placeholder="Nearby landmark"
+                    className="w-full glass-input rounded-xl px-3 py-2 text-xs"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2.5">
+                <div>
+                  <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">City *</label>
+                  <input
+                    type="text"
+                    required
+                    value={newAddrForm.city}
+                    onChange={(e) => setNewAddrForm(prev => ({ ...prev, city: e.target.value }))}
+                    className="w-full glass-input rounded-xl px-2.5 py-2 text-xs"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">State *</label>
+                  <input
+                    type="text"
+                    required
+                    value={newAddrForm.state}
+                    onChange={(e) => setNewAddrForm(prev => ({ ...prev, state: e.target.value }))}
+                    className="w-full glass-input rounded-xl px-2.5 py-2 text-xs"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-700 dark:text-slate-300 font-semibold mb-1">PIN Code *</label>
+                  <input
+                    type="text"
+                    required
+                    value={newAddrForm.pincode}
+                    onChange={(e) => setNewAddrForm(prev => ({ ...prev, pincode: e.target.value }))}
+                    placeholder="721428"
+                    className="w-full glass-input rounded-xl px-2.5 py-2 text-xs text-center font-mono"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center gap-4 pt-1">
+                <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Type:</span>
+                {['HOME', 'OFFICE', 'OTHER'].map(type => (
+                  <label key={type} className="flex items-center gap-1.5 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="addrType"
+                      value={type}
+                      checked={newAddrForm.address_type === type}
+                      onChange={() => setNewAddrForm(prev => ({ ...prev, address_type: type }))}
+                      className="accent-brand-cyan"
+                    />
+                    <span className="text-xs">{type}</span>
+                  </label>
+                ))}
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-200 dark:border-white/10">
+                <button
+                  type="button"
+                  onClick={() => setShowAddAddressModal(false)}
+                  className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-white/10 text-slate-700 dark:text-slate-300 font-semibold"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingNewAddr}
+                  className="btn-primary px-5 py-2 rounded-xl font-bold flex items-center gap-2 shadow-cyan-glow"
+                >
+                  {savingNewAddr ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <SaveIcon className="w-3.5 h-3.5" />}
+                  <span>Save Address</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };
+
+function SaveIcon(props) {
+  return (
+    <svg {...props} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+      <polyline points="17 21 17 13 7 13 7 21"/>
+      <polyline points="7 3 7 8 15 8"/>
+    </svg>
+  );
+}
+
+export default CheckoutPage;

@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
   Trash2, Plus, Minus, ArrowRight, ShoppingBag, 
-  Tag, ShieldCheck, Truck, Check, AlertCircle 
+  Tag, ShieldCheck, Truck, Check, AlertCircle, Gift, Sparkles, RefreshCw
 } from 'lucide-react';
+import api from '../api/client';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 
@@ -30,13 +31,49 @@ export const CartPage = () => {
     clearCart 
   } = useCart();
 
-  const [inputCoupon, setInputCoupon] = useState('');
+  const [inputCoupon, setInputCoupon] = useState(couponCode || '');
+  const [availableCoupons, setAvailableCoupons] = useState([
+    {
+      code: 'CLARITY10',
+      discount_type: 'PERCENTAGE',
+      discount_value: 10,
+      min_order_amount: 1499,
+      description: 'Get 10% instant discount on orders above ₹1,499'
+    },
+    {
+      code: 'NETRA500',
+      discount_type: 'FIXED',
+      discount_value: 500,
+      min_order_amount: 2999,
+      description: 'Flat ₹500 off on premium titanium orders above ₹2,999'
+    }
+  ]);
+  const [showCouponsList, setShowCouponsList] = useState(false);
+
+  useEffect(() => {
+    api.get('/coupons.php').then(res => {
+      if (res.success && Array.isArray(res.data) && res.data.length > 0) {
+        setAvailableCoupons(res.data);
+      }
+    }).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (couponCode) {
+      setInputCoupon(couponCode);
+    }
+  }, [couponCode]);
 
   const handleApplyCoupon = (e) => {
-    e.preventDefault();
+    e?.preventDefault();
     if (inputCoupon.trim()) {
       applyCoupon(inputCoupon.trim());
     }
+  };
+
+  const handleQuickApply = (code) => {
+    setInputCoupon(code);
+    applyCoupon(code);
   };
 
   if (items.length === 0) {
@@ -165,39 +202,106 @@ export const CartPage = () => {
             </h3>
 
             {/* Coupon Code Input */}
-            <div>
-              <label className="block text-[11px] text-slate-700 dark:text-slate-300 mb-1.5 font-semibold">Apply Promotional Coupon</label>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="text-[11px] text-slate-700 dark:text-slate-300 font-semibold flex items-center gap-1.5">
+                  <Tag className="w-3.5 h-3.5 text-brand-cyan" />
+                  <span>Apply Promotional Coupon</span>
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setShowCouponsList(!showCouponsList)}
+                  className="text-[11px] text-brand-cyan hover:underline font-bold flex items-center gap-1"
+                >
+                  <Gift className="w-3 h-3" />
+                  <span>{showCouponsList ? 'Hide Offers' : 'View Offers'}</span>
+                </button>
+              </div>
+
               <form onSubmit={handleApplyCoupon} className="flex gap-2">
                 <input 
                   type="text"
-                  placeholder="e.g. NETRA500, SAVE10"
+                  placeholder="e.g. NETRA500, CLARITY10"
                   value={inputCoupon}
-                  onChange={(e) => setInputCoupon(e.target.value)}
-                  className="flex-1 glass-input rounded-xl px-3 py-2 text-xs uppercase"
+                  onChange={(e) => setInputCoupon(e.target.value.toUpperCase())}
+                  className="flex-1 glass-input rounded-xl px-3 py-2 text-xs font-mono uppercase font-bold"
                 />
                 <button 
                   type="submit" 
-                  className="btn-secondary text-xs px-4 py-2 rounded-xl shrink-0"
+                  disabled={isCalculating || !inputCoupon.trim()}
+                  className="btn-secondary text-xs px-4 py-2 rounded-xl shrink-0 font-bold flex items-center gap-1 disabled:opacity-50"
                 >
-                  Apply
+                  {isCalculating ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : 'Apply'}
                 </button>
               </form>
 
               {couponFeedback && (
-                <div className={`mt-2 text-xs p-2.5 rounded-lg flex items-center justify-between ${
+                <div className={`text-xs p-2.5 rounded-xl flex items-center justify-between font-semibold ${
                   couponFeedback.invalid 
                     ? 'bg-rose-50 dark:bg-rose-950/40 text-rose-800 dark:text-rose-300 border border-rose-300 dark:border-rose-500/30' 
                     : 'bg-teal-50 dark:bg-teal-950/40 text-teal-800 dark:text-teal-300 border border-teal-300 dark:border-teal-500/30'
                 }`}>
-                  <span className="flex items-center gap-1.5 text-[11px] font-medium">
-                    {couponFeedback.invalid ? <AlertCircle className="w-3.5 h-3.5 text-rose-500" /> : <Check className="w-3.5 h-3.5 text-teal-500" />}
+                  <span className="flex items-center gap-1.5 text-[11px]">
+                    {couponFeedback.invalid ? <AlertCircle className="w-3.5 h-3.5 text-rose-500 shrink-0" /> : <Check className="w-3.5 h-3.5 text-teal-500 shrink-0" />}
                     {couponFeedback.invalid ? couponFeedback.message : `Coupon applied: -₹${totals.discount_amount}`}
                   </span>
                   {!couponFeedback.invalid && (
-                    <button onClick={removeCoupon} className="text-rose-500 hover:underline text-[10px] font-bold">
+                    <button 
+                      type="button"
+                      onClick={() => {
+                        removeCoupon();
+                        setInputCoupon('');
+                      }} 
+                      className="text-rose-500 hover:underline text-[10px] font-bold"
+                    >
                       Remove
                     </button>
                   )}
+                </div>
+              )}
+
+              {/* Available Coupons Accordion */}
+              {showCouponsList && (
+                <div className="pt-2 border-t border-slate-200 dark:border-white/10 space-y-2 animate-fadeIn">
+                  <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+                    Available Promo Coupons:
+                  </div>
+                  {availableCoupons.map((cpn) => {
+                    const isCurrent = couponCode?.toUpperCase() === cpn.code?.toUpperCase();
+                    return (
+                      <div 
+                        key={cpn.code} 
+                        className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-white/10 flex items-center justify-between gap-2 text-xs"
+                      >
+                        <div className="space-y-0.5">
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-mono font-black text-brand-cyan text-xs px-2 py-0.5 rounded bg-brand-cyan/15 border border-brand-cyan/30">
+                              {cpn.code}
+                            </span>
+                            <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300">
+                              {cpn.discount_type === 'PERCENTAGE' ? `${cpn.discount_value}% OFF` : `₹${cpn.discount_value} FLAT OFF`}
+                            </span>
+                          </div>
+                          <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                            {cpn.description || `Min order ₹${cpn.min_order_amount || 0}`}
+                          </p>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => handleQuickApply(cpn.code)}
+                          disabled={isCurrent}
+                          className={`px-3 py-1 rounded-lg text-[10px] font-bold transition-all ${
+                            isCurrent
+                              ? 'bg-emerald-500 text-slate-950 cursor-default font-extrabold'
+                              : 'btn-secondary hover:bg-brand-cyan hover:text-slate-950'
+                          }`}
+                        >
+                          {isCurrent ? 'Applied' : 'Apply'}
+                        </button>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>

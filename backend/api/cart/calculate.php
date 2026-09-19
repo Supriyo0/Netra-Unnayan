@@ -111,9 +111,10 @@ $couponInfo = null;
 if (!empty($couponCode)) {
     $cpnStmt = $pdo->prepare('
         SELECT * FROM coupons 
-        WHERE code = ? AND is_active = 1 
-          AND valid_from <= CURDATE() AND valid_until >= CURDATE()
-          AND (usage_limit = 0 OR times_used < usage_limit)
+        WHERE UPPER(TRIM(code)) = UPPER(TRIM(?)) AND is_active = 1 
+          AND (valid_from IS NULL OR valid_from <= CURDATE())
+          AND (valid_until IS NULL OR valid_until >= CURDATE())
+          AND (usage_limit = 0 OR usage_limit IS NULL OR times_used < usage_limit)
     ');
     $cpnStmt->execute([$couponCode]);
     $coupon = $cpnStmt->fetch();

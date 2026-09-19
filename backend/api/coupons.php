@@ -20,9 +20,10 @@ try {
         $stmt = $pdo->prepare('
             SELECT id, code, discount_type, discount_value, min_order_amount, max_discount, valid_from, valid_until
             FROM coupons 
-            WHERE code = ? AND is_active = 1 
-              AND valid_from <= CURDATE() AND valid_until >= CURDATE()
-              AND (usage_limit = 0 OR times_used < usage_limit)
+            WHERE UPPER(code) = UPPER(?) AND is_active = 1 
+              AND (valid_from IS NULL OR valid_from <= CURDATE())
+              AND (valid_until IS NULL OR valid_until >= CURDATE())
+              AND (usage_limit = 0 OR usage_limit IS NULL OR times_used < usage_limit)
             LIMIT 1
         ');
         $stmt->execute([$code]);
@@ -38,10 +39,11 @@ try {
             SELECT id, code, discount_type, discount_value, min_order_amount, max_discount, valid_from, valid_until
             FROM coupons 
             WHERE is_active = 1 
-              AND valid_from <= CURDATE() AND valid_until >= CURDATE()
-              AND (usage_limit = 0 OR times_used < usage_limit)
+              AND (valid_from IS NULL OR valid_from <= CURDATE())
+              AND (valid_until IS NULL OR valid_until >= CURDATE())
+              AND (usage_limit = 0 OR usage_limit IS NULL OR times_used < usage_limit)
             ORDER BY id DESC
-            LIMIT 5
+            LIMIT 10
         ');
         $coupons = $stmt->fetchAll(PDO::FETCH_ASSOC);
         Response::success($coupons, 'Active coupons loaded');
@@ -49,3 +51,4 @@ try {
 } catch (Exception $e) {
     Response::error($e->getMessage(), 500);
 }
+
