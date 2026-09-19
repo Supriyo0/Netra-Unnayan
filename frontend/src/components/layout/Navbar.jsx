@@ -36,6 +36,26 @@ export const Navbar = () => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const [supportChatOpen, setSupportChatOpen] = useState(false);
+  const [unreadSupportCount, setUnreadSupportCount] = useState(0);
+
+  useEffect(() => {
+    const checkCustomerUnread = async () => {
+      try {
+        const res = await api.get('/support/index.php');
+        if (res.success && res.data?.conversation) {
+          const unread = parseInt(res.data.conversation.unread_customer_count, 10) || 0;
+          setUnreadSupportCount(unread);
+        } else {
+          setUnreadSupportCount(0);
+        }
+      } catch (err) {
+        // silent
+      }
+    };
+    checkCustomerUnread();
+    const interval = setInterval(checkCustomerUnread, 8000);
+    return () => clearInterval(interval);
+  }, [user]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -1069,15 +1089,21 @@ export const Navbar = () => {
                 <Sparkles className="w-3.5 h-3.5 text-teal-300 absolute -top-1 -right-1 drop-shadow-[0_0_6px_rgba(0,245,212,1)] animate-pulse" />
               </div>
 
-              {/* Live Online Emerald Radar Badge */}
-              <span className="absolute -top-1 -right-1 flex h-4 w-4">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-80"></span>
-                <span className="relative inline-flex rounded-full h-4 w-4 bg-emerald-500 border-2 border-slate-950 shadow-md"></span>
-              </span>
+              {/* Live Online Emerald Radar Badge / WhatsApp Unread Counter (1, 2, 3...) */}
+              {unreadSupportCount > 0 ? (
+                <span className="absolute -top-1.5 -right-1.5 min-w-[22px] h-[22px] px-1.5 rounded-full bg-emerald-500 text-slate-950 font-black text-[11px] flex items-center justify-center border-2 border-slate-950 shadow-lg animate-bounce">
+                  {unreadSupportCount}
+                </span>
+              ) : (
+                <span className="absolute -top-1 -right-1 flex h-4 w-4">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-80"></span>
+                  <span className="relative inline-flex rounded-full h-4 w-4 bg-emerald-500 border-2 border-slate-950 shadow-md"></span>
+                </span>
+              )}
 
               {/* Mini Hover Tooltip on Desktop */}
               <span className="absolute right-full mr-3.5 px-3.5 py-1.5 rounded-2xl bg-slate-950/95 text-white text-xs font-black tracking-wide shadow-2xl whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none border border-cyan-500/30 hidden sm:flex items-center gap-2">
-                <span>💬 Live Optical Care</span>
+                <span>💬 {unreadSupportCount > 0 ? `${unreadSupportCount} New Reply` : 'Live Optical Care'}</span>
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
               </span>
             </button>

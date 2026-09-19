@@ -4,11 +4,31 @@ import {
   Send, Image as ImageIcon, Paperclip, CheckCircle2, Clock, 
   AlertCircle, RefreshCw, User, ShieldCheck, Trash2, Filter,
   ArrowUpRight, Eye, Sparkles, X, ChevronRight, Check, Loader2,
-  ExternalLink, CornerDownLeft
+  ExternalLink, CornerDownLeft, CheckCheck, ArrowLeft, MoreVertical
 } from 'lucide-react';
 import api from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
 import { uploadToImgBB } from '../../utils/imgbb';
+
+// WhatsApp-style timestamp helper
+const formatWhatsAppTimestamp = (dateStr) => {
+  if (!dateStr) return '';
+  const date = new Date(dateStr);
+  const now = new Date();
+  
+  const isToday = date.toDateString() === now.toDateString();
+  const yesterday = new Date(now);
+  yesterday.setDate(now.getDate() - 1);
+  const isYesterday = date.toDateString() === yesterday.toDateString();
+
+  if (isToday) {
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  } else if (isYesterday) {
+    return 'Yesterday';
+  } else {
+    return date.toLocaleDateString([], { day: 'numeric', month: 'short' });
+  }
+};
 
 export const AdminMessagesPage = () => {
   const { user } = useAuth();
@@ -42,7 +62,7 @@ export const AdminMessagesPage = () => {
   const cannedResponses = [
     "Hello! How can we assist you with your eyewear today?",
     "Your order is currently undergoing precision optical glazing and will dispatch soon.",
-    "Could you please upload a clear photo of your ophthalmologist prescription slip?",
+    "Could you please upload a clear photo of your doctor's prescription slip?",
     "Your eye specialist appointment is confirmed. Please arrive 10 minutes prior.",
     "We have initiated your refund. It will reflect in your account within 24-48 hours."
   ];
@@ -70,8 +90,8 @@ export const AdminMessagesPage = () => {
         setConversations(convs);
         if (res.data.metrics) setMetrics(res.data.metrics);
 
-        // Auto select first conversation if none selected
-        if (!selectedConvId && convs.length > 0 && !silent) {
+        // Auto select first conversation on desktop if none selected
+        if (!selectedConvId && convs.length > 0 && !silent && window.innerWidth >= 768) {
           setSelectedConvId(convs[0].id);
         }
       }
@@ -92,7 +112,7 @@ export const AdminMessagesPage = () => {
         setActiveConversation(res.data.conversation);
         setMessages(res.data.messages || []);
         
-        // Update unread badge in local list
+        // Mark conversation as read in local state
         setConversations(prev => prev.map(c => c.id === convId ? { ...c, unread_admin_count: 0 } : c));
       }
     } catch (err) {
@@ -109,6 +129,9 @@ export const AdminMessagesPage = () => {
   useEffect(() => {
     if (selectedConvId) {
       fetchConversationMessages(selectedConvId);
+    } else {
+      setActiveConversation(null);
+      setMessages([]);
     }
   }, [selectedConvId]);
 
@@ -156,13 +179,14 @@ export const AdminMessagesPage = () => {
     }
   };
 
-  // Admin Send Live Reply Handler
+  // Send Reply Handler
   const handleSendReply = async (e) => {
     if (e) e.preventDefault();
     const text = replyText.trim();
     const attachedUrl = selectedImage?.url || '';
 
-    if (!selectedConvId || (!text && !attachedUrl)) return;
+    if (!text && !attachedUrl) return;
+    if (!selectedConvId) return;
 
     setSendingReply(true);
     try {
@@ -182,34 +206,34 @@ export const AdminMessagesPage = () => {
         alert(res.message || 'Failed to dispatch reply.');
       }
     } catch (err) {
-      alert(err.message || 'Error dispatching message.');
+      alert(err.message || 'Error sending reply to customer.');
     } finally {
       setSendingReply(false);
     }
   };
 
-  // Update Status Handler (Open / Resolved / Closed)
-  const handleUpdateStatus = async (nextStatus) => {
+  // Update Status
+  const handleUpdateStatus = async (newStatus) => {
     if (!selectedConvId) return;
     try {
       const res = await api.post('/admin/messages.php', {
         action: 'update_status',
         conversation_id: selectedConvId,
-        status: nextStatus
+        status: newStatus
       });
       if (res.success) {
-        setActiveConversation(prev => prev ? { ...prev, status: nextStatus } : null);
-        setConversations(prev => prev.map(c => c.id === selectedConvId ? { ...c, status: nextStatus } : c));
+        setActiveConversation(prev => prev ? { ...prev, status: newStatus } : null);
+        setConversations(prev => prev.map(c => c.id === selectedConvId ? { ...c, status: newStatus } : c));
       }
     } catch (err) {
-      alert('Failed to update status');
+      console.error('Status update failed:', err);
     }
   };
 
-  // Delete Conversation Handler
+  // Delete Conversation
   const handleDeleteConversation = async () => {
     if (!selectedConvId) return;
-    if (!window.confirm('Are you sure you want to permanently delete this customer chat thread?')) return;
+    if (!window.confirm('Are you sure you want to delete this customer support thread permanently?')) return;
 
     try {
       const res = await api.post('/admin/messages.php', {
@@ -217,41 +241,48 @@ export const AdminMessagesPage = () => {
         conversation_id: selectedConvId
       });
       if (res.success) {
-        setConversations(prev => prev.filter(c => c.id !== selectedConvId));
         setSelectedConvId(null);
         setActiveConversation(null);
-        setMessages([]);
+        fetchConversations();
       }
     } catch (err) {
-      alert('Failed to delete conversation');
+      alert('Failed to delete conversation.');
     }
   };
 
   return (
-    <div className="space-y-4 max-w-7xl mx-auto h-[calc(100vh-140px)] min-h-[620px] flex flex-col">
+    <div className="space-y-4 max-w-7xl mx-auto flex flex-col h-[calc(100vh-6rem)] min-h-[640px]">
       
-      {/* 1. Header Toolbar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 dark:border-white/10 pb-3 shrink-0">
-        <div>
-          <span className="text-xs uppercase font-extrabold tracking-wider text-brand-cyan">
-            Optical Client Care &amp; Support
-          </span>
-          <h1 className="text-2xl font-black text-slate-900 dark:text-white font-heading flex items-center gap-2.5">
-            <MessageSquare className="w-7 h-7 text-brand-cyan" />
-            Live Customer Messages &amp; Chat Inbox
-          </h1>
+      {/* 1. Header Bar with Real-time Counters */}
+      <div className="flex flex-wrap items-center justify-between gap-3 p-4 glass-card bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-white/10 shadow-sm shrink-0">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-2xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center relative">
+            <MessageCircle className="w-5 h-5 stroke-[2.4]" />
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 absolute -top-0.5 -right-0.5 ring-2 ring-white dark:ring-slate-900 animate-pulse" />
+          </div>
+          <div>
+            <h1 className="text-lg font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
+              <span>Customer Live Support Desk</span>
+              <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 font-mono text-[10px] font-bold">
+                WhatsApp Live View
+              </span>
+            </h1>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Live customer messaging, WhatsApp escalations &amp; image verification
+            </p>
+          </div>
         </div>
 
-        {/* Global Quick Stats */}
-        <div className="flex items-center gap-2 text-xs font-bold">
-          <div className="px-3 py-1.5 rounded-xl bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span>{metrics.total_unread || 0} Unread Live</span>
+        {/* Unread & Action Metrics */}
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-400 text-xs font-black">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+            <span>{metrics.total_unread || 0} New Messages</span>
           </div>
 
           <button
             onClick={() => { fetchConversations(); if (selectedConvId) fetchConversationMessages(selectedConvId); }}
-            className="p-2 rounded-xl bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300 transition-all text-xs flex items-center gap-1.5"
+            className="p-2 rounded-xl bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300 transition-all text-xs flex items-center gap-1.5 cursor-pointer"
             title="Refresh Inbox"
           >
             <RefreshCw className={`w-4 h-4 ${loadingList ? 'animate-spin text-brand-cyan' : ''}`} />
@@ -259,73 +290,78 @@ export const AdminMessagesPage = () => {
         </div>
       </div>
 
-      {/* 2. Main Inbox Workspace (Split 2-Column SaaS Layout) */}
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-4 flex-1 min-h-0">
+      {/* 2. Main Inbox Workspace (WhatsApp Web 2-Column Responsive Layout) */}
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-4 flex-1 min-h-0 relative">
         
-        {/* LEFT COLUMN: Conversation Threads List (4 cols) */}
-        <div className="md:col-span-5 lg:col-span-4 glass-card bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-white/10 shadow-lg flex flex-col overflow-hidden">
+        {/* LEFT COLUMN: WhatsApp Chats List (Hidden on mobile when a chat is open) */}
+        <div className={`md:col-span-5 lg:col-span-4 glass-card bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-white/10 shadow-lg flex flex-col overflow-hidden ${
+          selectedConvId ? 'hidden md:flex' : 'flex'
+        }`}>
           
           {/* Search & Filter Header */}
-          <div className="p-3.5 border-b border-slate-200 dark:border-white/10 space-y-2.5 shrink-0 bg-slate-50/50 dark:bg-white/[0.02]">
+          <div className="p-3.5 border-b border-slate-200 dark:border-white/10 space-y-2.5 shrink-0 bg-slate-50/70 dark:bg-white/[0.02]">
             
-            {/* Real-time Search */}
+            {/* Real-time Search Input */}
             <form onSubmit={handleSearchSubmit} className="relative">
               <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
-                placeholder="Search name, phone, message..."
+                placeholder="Search by customer, phone, text..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full glass-input rounded-xl pl-9 pr-3 py-2 text-xs"
+                className="w-full glass-input rounded-xl pl-9 pr-3 py-2 text-xs bg-white dark:bg-slate-800"
               />
             </form>
 
-            {/* Filter Pills */}
+            {/* WhatsApp Filter Tabs */}
             <div className="flex items-center gap-1 text-[11px] font-bold">
               <button
                 type="button"
                 onClick={() => setActiveFilter('all')}
-                className={`px-2.5 py-1 rounded-lg transition-all ${
+                className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
                   activeFilter === 'all' 
-                    ? 'bg-brand-cyan text-slate-950 font-black' 
+                    ? 'bg-slate-900 text-white dark:bg-brand-cyan dark:text-slate-950 font-black shadow-xs' 
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                 }`}
               >
                 All ({metrics.total_all || conversations.length})
               </button>
+              
               <button
                 type="button"
                 onClick={() => setActiveFilter('unread')}
-                className={`px-2.5 py-1 rounded-lg transition-all flex items-center gap-1 ${
+                className={`px-2.5 py-1 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
                   activeFilter === 'unread' 
-                    ? 'bg-emerald-500 text-slate-950 font-black' 
+                    ? 'bg-emerald-500 text-slate-950 font-black shadow-xs' 
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                 }`}
               >
                 <span>Unread</span>
                 {metrics.total_unread > 0 && (
-                  <span className="px-1.5 py-0.2 rounded-full bg-rose-500 text-white text-[9px]">
+                  <span className="min-w-[18px] h-4 px-1 rounded-full bg-emerald-700 text-white text-[9.5px] font-black flex items-center justify-center">
                     {metrics.total_unread}
                   </span>
                 )}
               </button>
+              
               <button
                 type="button"
                 onClick={() => setActiveFilter('open')}
-                className={`px-2.5 py-1 rounded-lg transition-all ${
+                className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
                   activeFilter === 'open' 
-                    ? 'bg-amber-400 text-slate-950 font-black' 
+                    ? 'bg-amber-400 text-slate-950 font-black shadow-xs' 
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                 }`}
               >
                 Open ({metrics.total_open || 0})
               </button>
+              
               <button
                 type="button"
                 onClick={() => setActiveFilter('resolved')}
-                className={`px-2.5 py-1 rounded-lg transition-all ${
+                className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
                   activeFilter === 'resolved' 
-                    ? 'bg-teal-500 text-slate-950 font-black' 
+                    ? 'bg-teal-500 text-slate-950 font-black shadow-xs' 
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                 }`}
               >
@@ -335,81 +371,87 @@ export const AdminMessagesPage = () => {
 
           </div>
 
-          {/* Conversations Scrollable List */}
+          {/* Conversations Scrollable WhatsApp List */}
           <div className="flex-1 overflow-y-auto divide-y divide-slate-100 dark:divide-white/5 scrollbar-thin">
             {loadingList && conversations.length === 0 ? (
               <div className="p-8 text-center text-slate-400 text-xs">
                 <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-brand-cyan" />
-                Loading message threads...
+                Loading WhatsApp inbox...
               </div>
             ) : conversations.length === 0 ? (
               <div className="p-8 text-center text-slate-400 text-xs">
-                <MessageSquare className="w-8 h-8 mx-auto mb-2 opacity-30 text-brand-cyan" />
-                No customer messages found.
+                <MessageCircle className="w-8 h-8 mx-auto mb-2 opacity-30 text-emerald-500" />
+                No messages found.
               </div>
             ) : (
               conversations.map((conv) => {
                 const isSelected = selectedConvId === conv.id;
-                const isUnread = conv.unread_admin_count > 0;
+                const unreadCount = parseInt(conv.unread_admin_count, 10) || 0;
+                const isUnread = unreadCount > 0;
                 const displayName = conv.registered_name || conv.guest_name || 'Customer';
-                const displayContact = conv.registered_phone || conv.guest_phone || conv.registered_email || conv.guest_email || 'Direct Chat';
+                const displayContact = conv.registered_phone || conv.guest_phone || conv.registered_email || conv.guest_email || 'Live Chat';
 
                 return (
                   <div
                     key={conv.id}
                     onClick={() => setSelectedConvId(conv.id)}
-                    className={`p-3.5 transition-all cursor-pointer relative group ${
+                    className={`p-3.5 transition-all cursor-pointer relative group flex items-start gap-3 ${
                       isSelected 
-                        ? 'bg-slate-100 dark:bg-white/10 border-l-4 border-brand-cyan' 
+                        ? 'bg-emerald-500/10 dark:bg-emerald-950/30 border-l-4 border-emerald-500' 
                         : isUnread
-                        ? 'bg-emerald-500/10 dark:bg-emerald-950/20 hover:bg-emerald-500/15'
+                        ? 'bg-emerald-50/80 dark:bg-emerald-950/20 hover:bg-emerald-100/60 dark:hover:bg-emerald-950/30 font-semibold'
                         : 'hover:bg-slate-50 dark:hover:bg-white/[0.02]'
                     }`}
                   >
-                    {/* Unread Glowing Dot */}
-                    {isUnread && (
-                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 absolute top-3.5 right-3.5 animate-pulse shadow-sm" />
-                    )}
-
-                    <div className="flex items-start gap-3">
-                      
-                      {/* Avatar */}
-                      <div className="w-10 h-10 rounded-2xl bg-brand-cyan/15 text-brand-cyan flex items-center justify-center font-black text-sm shrink-0 uppercase border border-brand-cyan/30">
+                    {/* WhatsApp Avatar with Online Badge */}
+                    <div className="relative shrink-0">
+                      <div className="w-11 h-11 rounded-full bg-gradient-to-tr from-emerald-600 to-teal-500 text-white flex items-center justify-center font-black text-sm uppercase shadow-sm">
                         {displayName.charAt(0)}
                       </div>
+                      {isUnread && (
+                        <span className="w-3 h-3 rounded-full bg-emerald-400 border-2 border-white dark:border-slate-900 absolute -top-0.5 -right-0.5 animate-pulse" />
+                      )}
+                    </div>
 
-                      {/* Content Snippet */}
-                      <div className="flex-1 min-w-0 pr-4">
-                        <div className="flex items-center justify-between gap-1">
-                          <h4 className="font-bold text-slate-900 dark:text-white text-xs truncate">
-                            {displayName}
-                          </h4>
-                        </div>
+                    {/* WhatsApp Chat Card Content */}
+                    <div className="flex-1 min-w-0">
+                      
+                      {/* Top Row: Name + Time */}
+                      <div className="flex items-center justify-between gap-1 mb-0.5">
+                        <h4 className={`text-xs truncate ${isUnread ? 'font-black text-slate-900 dark:text-white' : 'font-bold text-slate-800 dark:text-slate-200'}`}>
+                          {displayName}
+                        </h4>
+                        
+                        <span className={`text-[10px] font-mono shrink-0 ${isUnread ? 'text-emerald-600 dark:text-emerald-400 font-bold' : 'text-slate-400'}`}>
+                          {formatWhatsAppTimestamp(conv.last_message_at)}
+                        </span>
+                      </div>
 
-                        <div className="text-[10px] text-slate-500 dark:text-slate-400 font-mono truncate">
-                          {displayContact}
-                        </div>
+                      {/* Middle Row: Phone / Guest Subtitle */}
+                      <div className="text-[10px] text-slate-500 dark:text-slate-400 font-mono truncate mb-1 flex items-center gap-1">
+                        <span>{displayContact}</span>
+                        {conv.customer_id && (
+                          <span className="text-[9px] px-1 rounded bg-brand-cyan/15 text-brand-cyan font-bold">VIP</span>
+                        )}
+                      </div>
 
-                        <p className="text-[11px] text-slate-700 dark:text-slate-300 truncate mt-1">
-                          {conv.last_message_text || 'Active support thread'}
+                      {/* Bottom Row: Message Snippet + WhatsApp Round 1,2,3 Unread Badge */}
+                      <div className="flex items-center justify-between gap-2">
+                        <p className={`text-[11px] truncate flex items-center gap-1 ${isUnread ? 'text-slate-900 dark:text-white font-bold' : 'text-slate-600 dark:text-slate-400'}`}>
+                          {conv.unread_customer_count > 0 ? (
+                            <CheckCheck className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+                          ) : (
+                            <Check className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                          )}
+                          <span className="truncate">{conv.last_message_text || 'Started inquiry'}</span>
                         </p>
 
-                        <div className="flex items-center gap-2 mt-1.5 text-[9px] text-slate-400">
-                          <span className="flex items-center gap-1 font-mono">
-                            <Clock className="w-2.5 h-2.5" />
-                            {conv.last_message_at ? new Date(conv.last_message_at).toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''}
+                        {/* WhatsApp-Style Circular Green Unread Badge (1, 2, 3...) */}
+                        {isUnread && (
+                          <span className="min-w-[20px] h-5 px-1.5 rounded-full bg-emerald-500 text-white font-black text-[10.5px] flex items-center justify-center shadow-xs shrink-0 animate-scaleIn">
+                            {unreadCount}
                           </span>
-                          <span>&bull;</span>
-                          <span className={`px-1.5 py-0.2 rounded font-bold uppercase ${
-                            conv.status === 'resolved' 
-                              ? 'bg-teal-500/15 text-teal-600 dark:text-teal-400' 
-                              : conv.status === 'in_progress'
-                              ? 'bg-blue-500/15 text-blue-600 dark:text-blue-400'
-                              : 'bg-amber-500/15 text-amber-600 dark:text-amber-400'
-                          }`}>
-                            {conv.status}
-                          </span>
-                        </div>
+                        )}
                       </div>
 
                     </div>
@@ -421,37 +463,53 @@ export const AdminMessagesPage = () => {
 
         </div>
 
-        {/* RIGHT COLUMN: Active Chat & Live Replay Pane (8 cols) */}
-        <div className="md:col-span-7 lg:col-span-8 glass-card bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-white/10 shadow-lg flex flex-col overflow-hidden">
+        {/* RIGHT COLUMN: Active WhatsApp Live Chat Pane */}
+        <div className={`md:col-span-7 lg:col-span-8 glass-card bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-white/10 shadow-lg flex flex-col overflow-hidden ${
+          selectedConvId ? 'flex' : 'hidden md:flex'
+        }`}>
           
           {selectedConvId && activeConversation ? (
             <>
-              {/* Active Conversation Top Bar */}
-              <div className="p-4 border-b border-slate-200 dark:border-white/10 bg-slate-50/70 dark:bg-white/[0.02] shrink-0 flex flex-wrap items-center justify-between gap-3">
+              {/* WhatsApp Active Header */}
+              <div className="p-3.5 sm:p-4 border-b border-slate-200 dark:border-white/10 bg-slate-50/90 dark:bg-slate-950/80 shrink-0 flex items-center justify-between gap-2">
                 
-                <div className="flex items-center gap-3">
-                  <div className="w-11 h-11 rounded-2xl bg-brand-cyan/20 text-brand-cyan flex items-center justify-center font-black text-base shrink-0 border border-brand-cyan/30">
-                    {(activeConversation.registered_name || activeConversation.guest_name || 'C').charAt(0)}
+                <div className="flex items-center gap-2.5 min-w-0">
+                  {/* Mobile Back Button to Return to Chats List */}
+                  <button
+                    type="button"
+                    onClick={() => setSelectedConvId(null)}
+                    className="md:hidden p-2 rounded-xl bg-slate-200/80 dark:bg-white/10 text-slate-800 dark:text-white hover:bg-slate-300 transition-colors shrink-0"
+                    title="Back to Conversations List"
+                  >
+                    <ArrowLeft className="w-4 h-4" />
+                  </button>
+
+                  <div className="relative shrink-0">
+                    <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-gradient-to-tr from-emerald-600 to-teal-500 text-white flex items-center justify-center font-black text-sm sm:text-base uppercase shadow-sm">
+                      {(activeConversation.registered_name || activeConversation.guest_name || 'C').charAt(0)}
+                    </div>
+                    <span className="w-3 h-3 rounded-full bg-emerald-400 border-2 border-white dark:border-slate-900 absolute -bottom-0.5 -right-0.5"></span>
                   </div>
-                  <div>
-                    <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                      <span>{activeConversation.registered_name || activeConversation.guest_name || 'Customer'}</span>
+
+                  <div className="min-w-0">
+                    <h3 className="text-xs sm:text-sm font-black text-slate-900 dark:text-white truncate flex items-center gap-1.5">
+                      <span className="truncate">{activeConversation.registered_name || activeConversation.guest_name || 'Customer'}</span>
                       {activeConversation.customer_id && (
-                        <span className="px-2 py-0.5 rounded-full bg-brand-cyan/20 text-brand-cyan text-[10px] font-mono font-bold">
-                          Registered Shopper
+                        <span className="px-1.5 py-0.2 rounded-md bg-brand-cyan/20 text-brand-cyan text-[9px] font-mono font-bold shrink-0">
+                          Registered
                         </span>
                       )}
                     </h3>
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-2 mt-0.5 font-mono">
-                      <span>{activeConversation.registered_phone || activeConversation.guest_phone || '—'}</span>
-                      <span>&bull;</span>
-                      <span>{activeConversation.registered_email || activeConversation.guest_email || '—'}</span>
+                    
+                    <p className="text-[10px] sm:text-[11px] text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1 mt-0.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                      <span>Online &bull; Live Customer Session</span>
                     </p>
                   </div>
                 </div>
 
-                {/* Shortcuts & Status Actions */}
-                <div className="flex items-center gap-2">
+                {/* WhatsApp Action Controls */}
+                <div className="flex items-center gap-1.5 shrink-0">
                   
                   {/* Direct WhatsApp Callout */}
                   {(activeConversation.registered_phone || activeConversation.guest_phone) && (
@@ -459,30 +517,30 @@ export const AdminMessagesPage = () => {
                       href={`https://wa.me/91${(activeConversation.registered_phone || activeConversation.guest_phone).replace(/\D/g, '')}?text=Hello%20${encodeURIComponent(activeConversation.registered_name || 'Customer')},%20this%20is%20Netra%20Unnayan%20Support.`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="p-2 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 text-xs font-bold transition-all flex items-center gap-1.5"
-                      title="Open Direct WhatsApp Chat"
+                      className="p-2 sm:px-3 sm:py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-black text-xs transition-all flex items-center gap-1.5 shadow-sm"
+                      title="Open Direct WhatsApp"
                     >
-                      <MessageCircle className="w-3.5 h-3.5" />
+                      <MessageCircle className="w-4 h-4 fill-slate-950 stroke-none" />
                       <span className="hidden sm:inline">WhatsApp</span>
                     </a>
                   )}
 
-                  {/* Status Dropdown / Action */}
+                  {/* Status Dropdown */}
                   <select
                     value={activeConversation.status}
                     onChange={(e) => handleUpdateStatus(e.target.value)}
-                    className="glass-input rounded-xl px-2.5 py-1.5 text-xs font-bold bg-white dark:bg-slate-800"
+                    className="glass-input rounded-xl px-2 py-1.5 text-xs font-bold bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-white/10"
                   >
-                    <option value="open">Status: Open</option>
-                    <option value="in_progress">Status: In Progress</option>
-                    <option value="resolved">Status: Resolved</option>
-                    <option value="closed">Status: Closed</option>
+                    <option value="open">Open</option>
+                    <option value="in_progress">In Progress</option>
+                    <option value="resolved">Resolved</option>
+                    <option value="closed">Closed</option>
                   </select>
 
                   <button
                     type="button"
                     onClick={handleDeleteConversation}
-                    className="p-2 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-600 dark:text-rose-400 border border-rose-500/30 text-xs transition-colors"
+                    className="p-2 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-600 dark:text-rose-400 border border-rose-500/30 text-xs transition-colors cursor-pointer"
                     title="Delete Thread"
                   >
                     <Trash2 className="w-4 h-4" />
@@ -491,15 +549,22 @@ export const AdminMessagesPage = () => {
 
               </div>
 
-              {/* Chat Messages Body */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-3.5 bg-slate-50 dark:bg-[#07101C]/80 scrollbar-thin">
+              {/* WhatsApp Messages Scrollable Body */}
+              <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-[#e5ddd5]/30 dark:bg-[#0b141a] scrollbar-thin">
                 {loadingMessages ? (
                   <div className="flex flex-col items-center justify-center h-48 text-slate-400 text-xs gap-2">
-                    <Loader2 className="w-6 h-6 animate-spin text-brand-cyan" />
-                    <span>Loading conversation history...</span>
+                    <Loader2 className="w-6 h-6 animate-spin text-emerald-500" />
+                    <span>Loading messages...</span>
                   </div>
                 ) : (
                   <>
+                    {/* Centered Date Badge */}
+                    <div className="flex justify-center my-2">
+                      <span className="px-3 py-1 rounded-lg bg-slate-200/80 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 text-[10px] font-bold shadow-xs">
+                        TODAY'S CONVERSATION
+                      </span>
+                    </div>
+
                     {messages.map((msg, idx) => {
                       const isAdmin = msg.sender_type === 'admin';
                       const isBot = msg.sender_type === 'bot';
@@ -509,37 +574,55 @@ export const AdminMessagesPage = () => {
                           key={msg.id || idx}
                           className={`flex flex-col ${isAdmin ? 'items-end' : 'items-start'}`}
                         >
-                          <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1 px-1 flex items-center gap-1">
-                            {isAdmin ? <ShieldCheck className="w-3 h-3 text-amber-500" /> : <User className="w-3 h-3 text-brand-cyan" />}
-                            <span>{msg.sender_name}</span>
-                          </span>
-
-                          <div className={`max-w-[78%] rounded-2xl p-3.5 text-xs shadow-sm space-y-2 ${
+                          {/* WhatsApp Bubble */}
+                          <div className={`max-w-[85%] sm:max-w-[75%] rounded-2xl p-3 text-xs shadow-xs space-y-1.5 ${
                             isAdmin
-                              ? 'bg-amber-500 text-slate-950 font-medium rounded-tr-xs shadow-amber-500/10'
+                              ? 'bg-[#005c4b] text-white rounded-tr-xs shadow-sm'
                               : isBot
-                              ? 'bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded-tl-xs border border-slate-300 dark:border-white/10'
-                              : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white rounded-tl-xs'
+                              ? 'bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded-tl-xs border border-slate-200 dark:border-white/10'
+                              : 'bg-white dark:bg-[#202c33] border border-slate-200/80 dark:border-transparent text-slate-900 dark:text-white rounded-tl-xs shadow-sm'
                           }`}>
-                            {msg.message && (
-                              <p className="leading-relaxed whitespace-pre-line">{msg.message}</p>
+                            
+                            {/* Sender Label for Bot or Multi-user */}
+                            {!isAdmin && (
+                              <div className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                                {isBot ? <Sparkles className="w-3 h-3" /> : <User className="w-3 h-3" />}
+                                <span>{msg.sender_name}</span>
+                              </div>
                             )}
 
+                            {/* Message Text */}
+                            {msg.message && (
+                              <p className="leading-relaxed whitespace-pre-line text-xs">
+                                {msg.message}
+                              </p>
+                            )}
+
+                            {/* Attached Photo */}
                             {msg.attachment_url && (
-                              <div className="rounded-xl overflow-hidden border border-black/10 dark:border-white/10 mt-1">
+                              <div className="rounded-xl overflow-hidden border border-black/10 dark:border-white/10 mt-1.5">
                                 <img 
                                   src={msg.attachment_url} 
                                   alt="Attached proof" 
-                                  className="w-full max-h-56 object-cover cursor-pointer hover:scale-105 transition-transform"
+                                  className="w-full max-h-60 object-cover cursor-pointer hover:scale-105 transition-transform"
                                   onClick={() => setLightboxImage(msg.attachment_url)}
                                 />
                               </div>
                             )}
-                          </div>
 
-                          <span className="text-[9px] text-slate-400 px-1 mt-0.5">
-                            {msg.created_at ? new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
-                          </span>
+                            {/* WhatsApp Timestamp & Blue Double Checkmarks */}
+                            <div className={`flex items-center justify-end gap-1 text-[9px] pt-0.5 ${
+                              isAdmin ? 'text-teal-200' : 'text-slate-400 dark:text-slate-400'
+                            }`}>
+                              <span>
+                                {msg.created_at ? new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
+                              </span>
+                              {isAdmin && (
+                                <CheckCheck className="w-3.5 h-3.5 text-cyan-300" />
+                              )}
+                            </div>
+
+                          </div>
                         </div>
                       );
                     })}
@@ -549,16 +632,16 @@ export const AdminMessagesPage = () => {
               </div>
 
               {/* Quick Canned Responses Bar */}
-              <div className="p-2 bg-slate-100 dark:bg-slate-800/60 border-t border-slate-200 dark:border-white/10 overflow-x-auto flex items-center gap-1.5 scrollbar-none shrink-0">
+              <div className="p-2 bg-slate-100 dark:bg-slate-800/80 border-t border-slate-200 dark:border-white/10 overflow-x-auto flex items-center gap-1.5 scrollbar-none shrink-0">
                 <span className="text-[10px] uppercase font-bold text-slate-500 px-1 shrink-0 flex items-center gap-1">
-                  <Sparkles className="w-3 h-3 text-brand-cyan" /> Quick:
+                  <Sparkles className="w-3 h-3 text-emerald-500" /> 1-Tap Quick:
                 </span>
                 {cannedResponses.map((cr, i) => (
                   <button
                     key={i}
                     type="button"
                     onClick={() => setReplyText(cr)}
-                    className="px-2.5 py-1 rounded-lg bg-white dark:bg-white/5 hover:bg-brand-cyan hover:text-slate-950 text-slate-700 dark:text-slate-300 text-[10px] font-semibold transition-all shrink-0 border border-slate-200 dark:border-white/10 text-left max-w-xs truncate"
+                    className="px-2.5 py-1 rounded-lg bg-white dark:bg-white/5 hover:bg-emerald-500 hover:text-slate-950 text-slate-700 dark:text-slate-300 text-[10px] font-semibold transition-all shrink-0 border border-slate-200 dark:border-white/10 text-left max-w-xs truncate cursor-pointer"
                   >
                     {cr}
                   </button>
@@ -566,7 +649,7 @@ export const AdminMessagesPage = () => {
               </div>
 
               {/* Reply Input Area */}
-              <div className="p-3.5 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-white/10 shrink-0 space-y-2">
+              <div className="p-3 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-white/10 shrink-0 space-y-2">
                 
                 {/* Attached Image Preview */}
                 {selectedImage && (
@@ -578,7 +661,7 @@ export const AdminMessagesPage = () => {
                     <button
                       type="button"
                       onClick={() => setSelectedImage(null)}
-                      className="p-1 text-slate-400 hover:text-rose-500"
+                      className="p-1 text-slate-400 hover:text-rose-500 cursor-pointer"
                     >
                       <X className="w-4 h-4" />
                     </button>
@@ -599,11 +682,11 @@ export const AdminMessagesPage = () => {
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
                     disabled={uploadingImage || sendingReply}
-                    className="p-2.5 rounded-xl bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-600 dark:text-slate-300 transition-colors shrink-0 disabled:opacity-50"
-                    title="Attach Image / Lens Certificate / Photo"
+                    className="p-2.5 rounded-xl bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-600 dark:text-slate-300 transition-colors shrink-0 disabled:opacity-50 cursor-pointer"
+                    title="Attach Photo / Lens Slip"
                   >
                     {uploadingImage ? (
-                      <Loader2 className="w-4 h-4 animate-spin text-brand-cyan" />
+                      <Loader2 className="w-4 h-4 animate-spin text-emerald-500" />
                     ) : (
                       <ImageIcon className="w-4 h-4 stroke-[2.2]" />
                     )}
@@ -611,20 +694,20 @@ export const AdminMessagesPage = () => {
 
                   <input
                     type="text"
-                    placeholder="Type live reply to customer..."
+                    placeholder="Type live message to customer..."
                     value={replyText}
                     onChange={(e) => setReplyText(e.target.value)}
                     disabled={sendingReply}
-                    className="flex-1 glass-input rounded-xl px-3.5 py-2.5 text-xs focus:ring-2 focus:ring-brand-cyan"
+                    className="flex-1 glass-input rounded-xl px-3.5 py-2.5 text-xs bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-200 dark:border-white/10 focus:ring-2 focus:ring-emerald-500"
                   />
 
                   <button
                     type="submit"
                     disabled={sendingReply || (!replyText.trim() && !selectedImage)}
-                    className="btn-primary px-4 py-2.5 rounded-xl text-slate-950 font-bold disabled:opacity-40 shadow-cyan-glow shrink-0 flex items-center gap-1.5 transition-transform active:scale-95 text-xs"
+                    className="px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black disabled:opacity-40 shadow-sm shrink-0 flex items-center gap-1.5 transition-transform active:scale-95 text-xs cursor-pointer"
                   >
                     {sendingReply ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4 stroke-[2.5]" />}
-                    <span>Reply Live</span>
+                    <span>Send</span>
                   </button>
                 </form>
 
@@ -633,10 +716,12 @@ export const AdminMessagesPage = () => {
             </>
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-slate-400">
-              <MessageSquare className="w-12 h-12 mb-3 text-brand-cyan opacity-30" />
-              <h3 className="text-base font-bold text-slate-700 dark:text-slate-300">Select a Conversation Thread</h3>
+              <div className="w-16 h-16 rounded-full bg-emerald-500/10 text-emerald-500 flex items-center justify-center mb-3">
+                <MessageCircle className="w-8 h-8 stroke-[2.2]" />
+              </div>
+              <h3 className="text-base font-black text-slate-700 dark:text-slate-300">Netra WhatsApp Live Desk</h3>
               <p className="text-xs text-slate-500 max-w-sm mt-1">
-                Choose a customer from the left inbox queue to view live chat history and reply in real time.
+                Tap on any customer chat on the left to enter the thread, inspect attachments, and reply instantly.
               </p>
             </div>
           )}
