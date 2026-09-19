@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../../context/ThemeContext';
-import { NetraSymbolSVG } from './BrandLogo';
 
 /**
  * Animated Santa in Sleigh for Christmas loading scene
@@ -177,49 +176,102 @@ export const LoadingScreen = ({ onComplete }) => {
           {/* MAIN STAGE */}
           <div className="relative z-10 flex flex-col items-center max-w-sm sm:max-w-md w-full px-6 text-center">
             
-            {/* Netra Unnayan Sacred Eye & Logo */}
+            {/* Official Netra Unnayan Logo & Branding */}
             <motion.div
               initial={{ opacity: 0, y: 14, scale: 0.94 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
               className="relative flex flex-col items-center mb-6"
             >
-              {/* Sacred Official SVG Symbol */}
-              <NetraSymbolSVG size={88} spin={!safeMode} />
+              {/* DURGA PUJA: Traditional Glowing Terracotta Pradip above logo */}
+              {seasonalTheme === 'durga_puja' && !safeMode && (
+                <motion.div
+                  initial={{ opacity: 0, y: -8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2, duration: 0.5 }}
+                  className="mb-1 pointer-events-none"
+                >
+                  <div style={{ width: 34, height: 30 }}>
+                    <svg viewBox="0 0 100 95" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full drop-shadow-md">
+                      {/* Flame Radiant Glow */}
+                      <circle cx="50" cy="28" r="24" fill="#FDE047" opacity="0.65" style={{ animation: 'diya-flicker 2.2s infinite ease-in-out' }} />
+                      {/* Terracotta Clay Body */}
+                      <path d="M12 55 C20 85 80 85 88 55 C70 65 30 65 12 55 Z" fill="#C2410C" stroke="#7C2D12" strokeWidth="2" />
+                      <ellipse cx="50" cy="55" rx="38" ry="8" fill="#EA580C" stroke="#7C2D12" strokeWidth="1.5" />
+                      <ellipse cx="50" cy="56" rx="30" ry="5.5" fill="#F59E0B" />
+                      {/* Flickering Flame */}
+                      <g style={{ animation: 'diya-flicker 2.4s infinite ease-in-out', transformOrigin: '50px 42px' }}>
+                        <line x1="50" y1="50" x2="50" y2="40" stroke="#451A03" strokeWidth="2.5" strokeLinecap="round" />
+                        <path d="M50 8 C40 24 35 38 50 42 C65 38 60 24 50 8 Z" fill="#F59E0B" />
+                        <path d="M50 14 C44 25 42 33 50 37 C58 33 56 25 50 14 Z" fill="#FEF08A" />
+                        <ellipse cx="50" cy="32" rx="2.5" ry="4.5" fill="#FFFFFF" opacity="0.95" />
+                      </g>
+                    </svg>
+                  </div>
+                </motion.div>
+              )}
 
-              {/* Brand Typography */}
+              {/* Official Animated Eye Logo */}
+              <div className="relative flex items-center justify-center">
+                <picture>
+                  <source srcSet="/logo_animated.webp" type="image/webp" />
+                  <img
+                    src="/logo_animated.gif"
+                    alt="Netra Unnayan Official Logo"
+                    className="h-16 sm:h-20 w-auto object-contain drop-shadow-md"
+                    onError={(e) => {
+                      e.currentTarget.onerror = null;
+                      e.currentTarget.src = '/image.png';
+                    }}
+                  />
+                </picture>
+              </div>
+
+              {/* Official Brand Typography */}
               <div className="mt-3 text-center">
-                <span className={`text-lg sm:text-xl font-extrabold tracking-[0.24em] font-heading ${isDiwali ? 'text-white' : 'text-[#0A192F]'}`}>
+                <span className={`text-xl sm:text-2xl font-black tracking-tight font-heading uppercase ${isDiwali ? 'text-white' : 'text-[#041E42]'}`}>
                   NETRA UNNAYAN
                 </span>
-                <p className={`text-[10px] font-semibold tracking-[0.3em] uppercase ${isDiwali ? 'text-amber-300' : 'text-cyan-700'}`}>
+                <p className={`text-[10px] sm:text-[11px] font-bold tracking-[0.24em] uppercase mt-0.5 ${isDiwali ? 'text-amber-300' : 'text-[#0284C7]'}`}>
                   CLARITY YOU CAN TRUST
                 </p>
               </div>
 
-              {/* DURGA PUJA SPECIAL: Diyas & Kash Accents below Logo */}
+              {/* DURGA PUJA SPECIAL: Festival Greeting Banner */}
               {seasonalTheme === 'durga_puja' && !safeMode && (
                 <motion.div 
-                  initial={{ opacity: 0, scale: 0.8 }}
+                  initial={{ opacity: 0, scale: 0.85 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: 0.3, duration: 0.5 }}
-                  className="flex items-center justify-center gap-4 mt-2"
+                  className="flex items-center justify-center gap-3 mt-2 px-3 py-1 rounded-full bg-amber-500/15 border border-amber-500/30"
                 >
-                  <span className="text-sm">🪔</span>
-                  <span className="text-xs font-serif font-bold text-amber-800">
-                    {content.festivalGreeting || 'শুভ শারদীয়া'}
+                  <span className="text-xs font-serif font-bold text-amber-900">
+                    {content.festivalGreeting || 'শুভ শারদীয়া • আনন্দময়ীর আগমন'}
                   </span>
-                  <span className="text-sm">🪔</span>
                 </motion.div>
               )}
 
-              {/* DIWALI SPECIAL: Glow Diya below Logo */}
+              {/* CHRISTMAS SPECIAL: Festive Season Banner */}
+              {seasonalTheme === 'christmas' && !safeMode && (
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.85 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.3, duration: 0.5 }}
+                  className="flex items-center justify-center gap-2 mt-2 px-3 py-1 rounded-full bg-red-500/10 border border-red-500/25"
+                >
+                  <span className="text-xs font-bold text-red-700 tracking-wider">
+                    {content.festivalGreeting || 'MERRY CHRISTMAS • SEASON OF JOY'}
+                  </span>
+                </motion.div>
+              )}
+
+              {/* DIWALI SPECIAL: Glow Diya Banner */}
               {seasonalTheme === 'diwali' && !safeMode && (
                 <motion.div 
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.4 }}
-                  className="flex items-center justify-center gap-3 mt-2 text-amber-300 text-xs font-bold"
+                  className="flex items-center justify-center gap-2 mt-2 text-amber-300 text-xs font-bold px-3 py-1 rounded-full bg-amber-500/15 border border-amber-500/30"
                 >
                   <span>✨</span>
                   <span>{content.festivalGreeting || 'শুভ দীপাবলি • HAPPY DIWALI'}</span>
