@@ -156,6 +156,9 @@ try {
     $orderNumber = 'NU-POS-' . strtoupper(bin2hex(random_bytes(3)));
     $invoiceNumber = 'NU-INV-' . date('Ymd') . '-' . strtoupper(bin2hex(random_bytes(2)));
 
+    $staffNoteTag = "[Staff: {$adminName} (#{$adminId})]";
+    $finalOrderNotes = $notes ? ($notes . ' | ' . $staffNoteTag) : ('Counter POS Billing by ' . $adminName . ' ' . $staffNoteTag);
+
     // Create Order Record
     $ordStmt = $pdo->prepare('
         INSERT INTO orders (
@@ -175,9 +178,14 @@ try {
     $ordStmt->execute([
         $orderNumber, $customerName, $customerPhone,
         $customerAddress, $subtotal, $discountAmount, $totalAmount,
-        $paymentMode, $notes ?: 'Counter POS Billing by ' . $adminName
+        $paymentMode, $finalOrderNotes
     ]);
     $orderId = (int)$pdo->lastInsertId();
+
+    // Silently update created_by_admin_id on orders if column exists
+    try {
+        $pdo->prepare('UPDATE orders SET created_by_admin_id = ? WHERE id = ?')->execute([$adminId, $orderId]);
+    } catch (\Throwable $e) {}
 
     // Insert Order Items & Audit Ledger
     $invStmt = $pdo->prepare('
@@ -226,6 +234,11 @@ try {
         $customerAddress, $subtotal, $discountAmount, $totalAmount, $paymentMode
     ]);
     $invoiceId = (int)$pdo->lastInsertId();
+
+    // Silently update created_by_admin_id on invoices if column exists
+    try {
+        $pdo->prepare('UPDATE invoices SET created_by_admin_id = ? WHERE id = ?')->execute([$adminId, $invoiceId]);
+    } catch (\Throwable $e) {}
 
     // Insert Payment Record
     $payNumber = 'NU-PAY-' . strtoupper(bin2hex(random_bytes(4)));

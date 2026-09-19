@@ -327,59 +327,164 @@ try {
             ]];
         }
 
-        // Pre-fetch all products sold in period
-        $periodProducts = [];
+        // Check if created_by_admin_id column exists on orders table
+        $hasCreatedByCol = false;
         try {
-            $pStmt = $pdo->prepare("
-                SELECT 
-                    oi.product_name,
-                    oi.product_sku,
-                    COALESCE(c.name, 'Eyewear') as category_name,
-                    SUM(oi.quantity) as units_sold,
-                    COALESCE(AVG(oi.unit_price), 0) as avg_unit_price,
-                    COALESCE(SUM(oi.total_price), 0) as total_revenue
-                FROM order_items oi
-                JOIN orders o ON oi.order_id = o.id
-                LEFT JOIN products p ON oi.product_id = p.id
-                LEFT JOIN categories c ON p.category_id = c.id
-                WHERE {$orderDateClause} AND o.order_status != 'Cancelled'
-                GROUP BY oi.product_name, oi.product_sku, c.name
-                ORDER BY total_revenue DESC
-                LIMIT 50
-            ");
-            $pStmt->execute($orderParams);
-            $periodProducts = $pStmt->fetchAll(PDO::FETCH_ASSOC);
-        } catch (\Throwable $pe) {}
+            $colCheck = $pdo->query("SHOW COLUMNS FROM orders LIKE 'created_by_admin_id'");
+            $hasCreatedByCol = ($colCheck && $colCheck->rowCount() > 0);
+        } catch (\Throwable $ce) {}
 
-        // Pre-fetch recent bills in period
-        $periodBills = [];
+        // Gather all order IDs in the period first
+        $allPeriodOrderStmt = $pdo->prepare("
+            SELECT id, notes, is_offline_bill
+            FROM orders
+            WHERE {$orderDateClause} AND order_status != 'Cancelled'
+        ");
+        $allPeriodOrderStmt->execute($orderParams);
+        $periodOrders = $allPeriodOrderStmt->fetchAll(PDO::FETCH_ASSOC);
+        $periodOrderIds = array_column($periodOrders, 'id');
+
+        // Build a map of order_id => staff_id
+        $orderToStaffMap = [];
+
+        // 1. Map via created_by_admin_id on orders if column exists
+        if ($hasCreatedByCol && !empty($periodOrderIds)) {
+            try {
+                $cStmt = $pdo->query("SELECT id, created_by_admin_id FROM orders WHERE created_by_admin_id IS NOT NULL");
+                if ($cStmt) {
+                    while ($row = $cStmt->fetch(PDO::FETCH_ASSOC)) {
+                        $orderToStaffMap[(int)$row['id']] = (int)$row['created_by_admin_id'];
+                    }
+                }
+            } catch (\Throwable $e) {}
+        }
+
+        // 2. Map via payments verified_by_admin_id
         try {
-            $bStmt = $pdo->prepare("
-                SELECT 
-                    o.id,
-                    o.order_number,
-                    COALESCE(i.invoice_number, CONCAT('INV-', o.order_number)) as invoice_number,
-                    o.customer_name,
-                    o.customer_phone,
-                    o.payment_mode,
-                    o.payment_status,
-                    o.order_status,
-                    o.total_amount,
-                    o.created_at
-                FROM orders o
-                LEFT JOIN invoices i ON i.order_id = o.id
-                WHERE {$orderDateClause} AND o.order_status != 'Cancelled'
-                ORDER BY o.id DESC
-                LIMIT 50
-            ");
-            $bStmt->execute($orderParams);
-            $periodBills = $bStmt->fetchAll(PDO::FETCH_ASSOC);
-        } catch (\Throwable $be) {}
+            $pMapStmt = $pdo->query("SELECT DISTINCT order_id, verified_by_admin_id FROM payments WHERE verified_by_admin_id IS NOT NULL");
+            if ($pMapStmt) {
+                while ($row = $pMapStmt->fetch(PDO::FETCH_ASSOC)) {
+                    $oId = (int)$row['order_id'];
+                    if (!isset($orderToStaffMap[$oId])) {
+                        $orderToStaffMap[$oId] = (int)$row['verified_by_admin_id'];
+                    }
+                }
+            }
+        } catch (\Throwable $e) {}
 
+        // 3. Map via inventory_transactions created_by_admin_id (joined with invoices)
+        try {
+            $invMapStmt = $pdo->query("
+                SELECT DISTINCT inv.order_id, it.created_by_admin_id 
+                FROM inventory_transactions it
+                JOIN invoices inv ON (it.reference_id = inv.invoice_number OR it.notes LIKE CONCAT('%', inv.invoice_number, '%'))
+                WHERE it.created_by_admin_id IS NOT NULL
+            ");
+            if ($invMapStmt) {
+                while ($row = $invMapStmt->fetch(PDO::FETCH_ASSOC)) {
+                    $oId = (int)$row['order_id'];
+                    if (!isset($orderToStaffMap[$oId])) {
+                        $orderToStaffMap[$oId] = (int)$row['created_by_admin_id'];
+                    }
+                }
+            }
+        } catch (\Throwable $e) {}
+
+        // 4. Map via order_status_history updated_by_admin_id
+        try {
+            $oshStmt = $pdo->query("SELECT DISTINCT order_id, updated_by_admin_id FROM order_status_history WHERE updated_by_admin_id IS NOT NULL");
+            if ($oshStmt) {
+                while ($row = $oshStmt->fetch(PDO::FETCH_ASSOC)) {
+                    $oId = (int)$row['order_id'];
+                    if (!isset($orderToStaffMap[$oId])) {
+                        $orderToStaffMap[$oId] = (int)$row['updated_by_admin_id'];
+                    }
+                }
+            }
+        } catch (\Throwable $e) {}
+
+        // 5. Map via notes pattern matching for each staff
+        foreach ($periodOrders as $pOrd) {
+            $oId = (int)$pOrd['id'];
+            $notes = strtolower($pOrd['notes'] ?? '');
+            if (empty($notes)) continue;
+
+            foreach ($allStaff as $stf) {
+                $sId = (int)$stf['id'];
+                $sName = strtolower(trim($stf['full_name'] ?? ''));
+                $sUser = strtolower(trim($stf['username'] ?? ''));
+                if (!empty($sName) && (strpos($notes, $sName) !== false || strpos($notes, "staff: {$sName}") !== false || strpos($notes, "#{$sId}") !== false)) {
+                    $orderToStaffMap[$oId] = $sId;
+                    break;
+                }
+                if (!empty($sUser) && strpos($notes, $sUser) !== false) {
+                    $orderToStaffMap[$oId] = $sId;
+                    break;
+                }
+            }
+        }
+
+        // Find the primary super admin ID (usually 1 or the one with super_admin role)
+        $primaryAdminId = !empty($allStaff[0]['id']) ? (int)$allStaff[0]['id'] : 1;
+        foreach ($allStaff as $stf) {
+            if (stripos($stf['role_slug'] ?? '', 'super') !== false || stripos($stf['role_name'] ?? '', 'super') !== false) {
+                $primaryAdminId = (int)$stf['id'];
+                break;
+            }
+        }
+
+        // For any legacy or unattributed orders created via POS/counter, attribute to primary super admin so data is not lost
+        foreach ($periodOrders as $pOrd) {
+            $oId = (int)$pOrd['id'];
+            if (!isset($orderToStaffMap[$oId])) {
+                // If it was an offline POS bill created at the main store counter, attribute to primary admin
+                if (!empty($pOrd['is_offline_bill'])) {
+                    $orderToStaffMap[$oId] = $primaryAdminId;
+                }
+            }
+        }
+
+        // Now calculate metrics for EACH staff member based ONLY on their specific assigned orders
         foreach ($allStaff as $stf) {
             $staffId = (int)$stf['id'];
 
-            $staffSumStmt = $pdo->prepare("
+            // Find order IDs belonging strictly to this staff member
+            $staffOrderIds = [];
+            foreach ($orderToStaffMap as $oId => $assignedStaffId) {
+                if ($assignedStaffId === $staffId && in_array($oId, $periodOrderIds, true)) {
+                    $staffOrderIds[] = $oId;
+                }
+            }
+
+            if (empty($staffOrderIds)) {
+                $staffPerformance[] = [
+                    'staff_id'        => $staffId,
+                    'full_name'       => $stf['full_name'],
+                    'username'        => $stf['username'],
+                    'email'           => $stf['email'],
+                    'phone'           => $stf['phone'] ?: 'N/A',
+                    'role_name'       => $stf['role_name'] ?: 'Store Staff',
+                    'role_slug'       => $stf['role_slug'] ?: 'staff',
+                    'total_bills'     => 0,
+                    'total_sales'     => 0.00,
+                    'total_units'     => 0,
+                    'payment_breakdown' => [
+                        'CASH' => 0.00,
+                        'UPI'  => 0.00,
+                        'CARD' => 0.00,
+                        'COD'  => 0.00
+                    ],
+                    'products_sold'   => [],
+                    'recent_bills'    => []
+                ];
+                continue;
+            }
+
+            // In list clause for SQL
+            $inList = implode(',', array_map('intval', $staffOrderIds));
+
+            // 1. Staff Order Totals
+            $staffSumStmt = $pdo->query("
                 SELECT 
                     COUNT(DISTINCT o.id) as total_bills,
                     COALESCE(SUM(o.total_amount), 0) as total_sales,
@@ -388,10 +493,64 @@ try {
                     COALESCE(SUM(CASE WHEN o.payment_mode = 'CARD' THEN o.total_amount ELSE 0 END), 0) as card_sales,
                     COALESCE(SUM(CASE WHEN o.payment_mode = 'COD' THEN o.total_amount ELSE 0 END), 0) as cod_sales
                 FROM orders o
-                WHERE {$orderDateClause} AND o.order_status != 'Cancelled'
+                WHERE o.id IN ({$inList}) AND o.order_status != 'Cancelled'
             ");
-            $staffSumStmt->execute($orderParams);
-            $staffSum = $staffSumStmt->fetch(PDO::FETCH_ASSOC);
+            $staffSum = $staffSumStmt ? $staffSumStmt->fetch(PDO::FETCH_ASSOC) : [];
+
+            // 2. Staff Total Units & Products Sold
+            $staffProducts = [];
+            $staffTotalUnits = 0;
+            try {
+                $spStmt = $pdo->query("
+                    SELECT 
+                        oi.product_name,
+                        oi.product_sku,
+                        COALESCE(c.name, 'Eyewear') as category_name,
+                        SUM(oi.quantity) as units_sold,
+                        COALESCE(AVG(oi.unit_price), 0) as avg_unit_price,
+                        COALESCE(SUM(oi.total_price), 0) as total_revenue
+                    FROM order_items oi
+                    JOIN orders o ON oi.order_id = o.id
+                    LEFT JOIN products p ON oi.product_id = p.id
+                    LEFT JOIN categories c ON p.category_id = c.id
+                    WHERE o.id IN ({$inList}) AND o.order_status != 'Cancelled'
+                    GROUP BY oi.product_name, oi.product_sku, c.name
+                    ORDER BY total_revenue DESC
+                    LIMIT 50
+                ");
+                if ($spStmt) {
+                    $staffProducts = $spStmt->fetchAll(PDO::FETCH_ASSOC);
+                    foreach ($staffProducts as $sp) {
+                        $staffTotalUnits += (int)$sp['units_sold'];
+                    }
+                }
+            } catch (\Throwable $pe) {}
+
+            // 3. Staff Recent Bills
+            $staffBills = [];
+            try {
+                $sbStmt = $pdo->query("
+                    SELECT 
+                        o.id,
+                        o.order_number,
+                        COALESCE(i.invoice_number, CONCAT('INV-', o.order_number)) as invoice_number,
+                        o.customer_name,
+                        o.customer_phone,
+                        o.payment_mode,
+                        o.payment_status,
+                        o.order_status,
+                        o.total_amount,
+                        o.created_at
+                    FROM orders o
+                    LEFT JOIN invoices i ON i.order_id = o.id
+                    WHERE o.id IN ({$inList}) AND o.order_status != 'Cancelled'
+                    ORDER BY o.id DESC
+                    LIMIT 50
+                ");
+                if ($sbStmt) {
+                    $staffBills = $sbStmt->fetchAll(PDO::FETCH_ASSOC);
+                }
+            } catch (\Throwable $be) {}
 
             $staffPerformance[] = [
                 'staff_id'        => $staffId,
@@ -403,15 +562,15 @@ try {
                 'role_slug'       => $stf['role_slug'] ?: 'staff',
                 'total_bills'     => (int)($staffSum['total_bills'] ?? 0),
                 'total_sales'     => (float)($staffSum['total_sales'] ?? 0),
-                'total_units'     => $totalUnitsSold,
+                'total_units'     => $staffTotalUnits,
                 'payment_breakdown' => [
                     'CASH' => (float)($staffSum['cash_sales'] ?? 0),
                     'UPI'  => (float)($staffSum['upi_sales'] ?? 0),
                     'CARD' => (float)($staffSum['card_sales'] ?? 0),
                     'COD'  => (float)($staffSum['cod_sales'] ?? 0)
                 ],
-                'products_sold'   => $periodProducts,
-                'recent_bills'    => $periodBills
+                'products_sold'   => $staffProducts,
+                'recent_bills'    => $staffBills
             ];
         }
     } catch (\Throwable $e) {}
