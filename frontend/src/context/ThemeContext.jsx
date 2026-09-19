@@ -787,47 +787,63 @@ export const ThemeProvider = ({ children }) => {
     const custom = previewOverrides || (serverThemeData?.theme?.slug === effectiveSlug ? serverThemeData : null);
     if (!custom) return baseTheme;
 
+    const s = custom.settings || {};
     const palette = {
-      ...baseTheme.palette,
-      ...(custom.settings?.primary_color && { primary: custom.settings.primary_color }),
-      ...(custom.settings?.secondary_color && { secondary: custom.settings.secondary_color }),
-      ...(custom.settings?.accent_color && { accent: custom.settings.accent_color }),
-      ...(custom.settings?.bg_gradient_start && { bgStart: custom.settings.bg_gradient_start }),
-      ...(custom.settings?.bg_gradient_end && { bgEnd: custom.settings.bg_gradient_end }),
-      ...(custom.settings?.surface_color && { surface: custom.settings.surface_color }),
-      ...(custom.settings?.text_primary && { textPrimary: custom.settings.text_primary }),
-      ...(custom.settings?.text_secondary && { textSecondary: custom.settings.text_secondary }),
-      ...(custom.settings?.text_muted && { textMuted: custom.settings.text_muted }),
-      ...(custom.settings?.heading_color && { heading: custom.settings.heading_color }),
-      ...(custom.settings?.border_color && { border: custom.settings.border_color }),
-      ...(custom.settings?.button_bg && { button: custom.settings.button_bg }),
-      ...(custom.settings?.button_text && { buttonText: custom.settings.button_text }),
-      ...(custom.settings?.button_hover_bg && { buttonHover: custom.settings.button_hover_bg }),
+      primary: s.primary_color || s.primary || baseTheme.palette.primary || '#00B4D8',
+      secondary: s.secondary_color || s.secondary || baseTheme.palette.secondary || '#0A192F',
+      accent: s.accent_color || s.accent || baseTheme.palette.accent || '#00F5D4',
+      bgStart: s.bg_gradient_start || s.bgStart || baseTheme.palette.bgStart || '#FFFFFF',
+      bgEnd: s.bg_gradient_end || s.bgEnd || baseTheme.palette.bgEnd || '#F8FAFC',
+      surface: s.surface_color || s.surface || baseTheme.palette.surface || '#FFFFFF',
+      surfaceGlass: s.surface_glass || s.surfaceGlass || baseTheme.palette.surfaceGlass || 'rgba(255, 255, 255, 0.92)',
+      textPrimary: s.text_primary || s.textPrimary || baseTheme.palette.textPrimary || '#0F172A',
+      textSecondary: s.text_secondary || s.textSecondary || baseTheme.palette.textSecondary || '#334155',
+      textMuted: s.text_muted || s.textMuted || baseTheme.palette.textMuted || '#64748B',
+      heading: s.heading_color || s.heading || baseTheme.palette.heading || '#0A192F',
+      border: s.border_color || s.border || baseTheme.palette.border || '#E2E8F0',
+      button: s.button_bg || s.button || baseTheme.palette.button || '#00B4D8',
+      buttonText: s.button_text || s.buttonText || baseTheme.palette.buttonText || '#FFFFFF',
+      buttonHover: s.button_hover_bg || s.buttonHover || baseTheme.palette.buttonHover || '#0284C7',
+      shadow: s.shadow || baseTheme.palette.shadow || '0 10px 30px -5px rgba(0, 0, 0, 0.1)'
     };
 
     const decorations = {
-      ...baseTheme.decorations,
-      ...(custom.settings?.particles_enabled !== undefined && { particles: Boolean(custom.settings.particles_enabled) }),
-      ...(custom.settings?.decorations_enabled !== undefined && { decorations: Boolean(custom.settings.decorations_enabled) }),
-      ...(custom.settings?.kash_flowers_enabled !== undefined && { kashFlowers: Boolean(custom.settings.kash_flowers_enabled) }),
-      ...(custom.settings?.diyas_enabled !== undefined && { diyas: Boolean(custom.settings.diyas_enabled) }),
-      ...(custom.settings?.snow_enabled !== undefined && { snow: Boolean(custom.settings.snow_enabled) }),
-      ...(custom.settings?.petals_enabled !== undefined && { petals: Boolean(custom.settings.petals_enabled) }),
-      ...(custom.settings?.rain_enabled !== undefined && { rain: Boolean(custom.settings.rain_enabled) }),
-      ...(custom.settings?.santa_enabled !== undefined && { santa: Boolean(custom.settings.santa_enabled) }),
-      ...(custom.settings?.chakra_enabled !== undefined && { chakra: Boolean(custom.settings.chakra_enabled) }),
-      ...(custom.settings?.animation_intensity && { intensity: custom.settings.animation_intensity }),
-      ...(custom.settings?.animation_speed && { speed: parseFloat(custom.settings.animation_speed) }),
-      ...(custom.settings?.loading_duration_ms && { loadingDuration: parseInt(custom.settings.loading_duration_ms) }),
+      particles: s.particles_enabled !== undefined ? Boolean(s.particles_enabled) : baseTheme.decorations.particles,
+      decorations: s.decorations_enabled !== undefined ? Boolean(s.decorations_enabled) : baseTheme.decorations.decorations,
+      kashFlowers: s.kash_flowers_enabled !== undefined ? Boolean(s.kash_flowers_enabled) : baseTheme.decorations.kashFlowers,
+      diyas: s.diyas_enabled !== undefined ? Boolean(s.diyas_enabled) : baseTheme.decorations.diyas,
+      snow: s.snow_enabled !== undefined ? Boolean(s.snow_enabled) : baseTheme.decorations.snow,
+      petals: s.petals_enabled !== undefined ? Boolean(s.petals_enabled) : baseTheme.decorations.petals,
+      rain: s.rain_enabled !== undefined ? Boolean(s.rain_enabled) : baseTheme.decorations.rain,
+      santa: s.santa_enabled !== undefined ? Boolean(s.santa_enabled) : baseTheme.decorations.santa,
+      chakra: s.chakra_enabled !== undefined ? Boolean(s.chakra_enabled) : baseTheme.decorations.chakra,
+      intensity: s.animation_intensity || baseTheme.decorations.intensity || 'subtle',
+      speed: s.animation_speed !== undefined ? parseFloat(s.animation_speed) : baseTheme.decorations.speed,
+      loadingDuration: s.loading_duration_ms ? parseInt(s.loading_duration_ms) : baseTheme.decorations.loadingDuration
     };
 
+    const normalizeLang = (raw, base) => ({
+      announcementBadge: raw?.announcement_badge || raw?.announcementBadge || base.announcementBadge || 'OFFICIAL STORE',
+      announcementText: raw?.announcement_text || raw?.announcementText || base.announcementText || '',
+      festivalGreeting: raw?.festival_greeting || raw?.festivalGreeting || base.festivalGreeting || '',
+      heroTitle: raw?.hero_title || raw?.heroTitle || base.heroTitle || '',
+      heroSubtitle: raw?.hero_subtitle || raw?.heroSubtitle || base.heroSubtitle || '',
+      heroCtaText: raw?.hero_cta_text || raw?.heroCtaText || base.heroCtaText || 'Explore Collection',
+      heroCtaLink: raw?.hero_cta_link || raw?.heroCtaLink || base.heroCtaLink || '/catalog',
+      productBadge: raw?.product_badge || raw?.productBadge || base.productBadge || '',
+      loadingGreeting: raw?.loading_greeting || raw?.loadingGreeting || base.loadingGreeting || 'NETRA UNNAYAN',
+      loadingTagline: raw?.loading_tagline || raw?.loadingTagline || base.loadingTagline || 'CLARITY YOU CAN TRUST',
+      footerMessage: raw?.footer_message || raw?.footerMessage || base.footerMessage || ''
+    });
+
     const content = {
-      en: { ...baseTheme.content.en, ...(custom.content?.en || {}) },
-      bn: { ...baseTheme.content.bn, ...(custom.content?.bn || {}) }
+      en: normalizeLang(custom.content?.en, baseTheme.content.en),
+      bn: normalizeLang(custom.content?.bn, baseTheme.content.bn)
     };
 
     return {
       ...baseTheme,
+      slug: effectiveSlug,
       ...(custom.name && { name: custom.name }),
       ...(custom.description && { description: custom.description }),
       palette,
@@ -838,8 +854,8 @@ export const ThemeProvider = ({ children }) => {
 
   // Current language content
   const activeContent = useMemo(() => {
-    return effectiveTheme.content[language] || effectiveTheme.content.en;
-  }, [effectiveTheme, language]);
+    return effectiveTheme.content?.[language] || effectiveTheme.content?.en || baseTheme.content.en;
+  }, [effectiveTheme, language, baseTheme]);
 
   // Apply CSS custom properties and theme attributes onto <html>
   useEffect(() => {
@@ -860,30 +876,30 @@ export const ThemeProvider = ({ children }) => {
     }
 
     // 2. Seasonal Theme Data Attribute
-    root.setAttribute('data-season-theme', effectiveTheme.slug);
-    body.setAttribute('data-season-theme', effectiveTheme.slug);
+    root.setAttribute('data-season-theme', effectiveTheme.slug || 'default');
+    body.setAttribute('data-season-theme', effectiveTheme.slug || 'default');
 
     // 3. Inject Central Semantic CSS Tokens
     const p = effectiveTheme.palette;
-    root.style.setProperty('--theme-primary', p.primary);
-    root.style.setProperty('--theme-secondary', p.secondary);
-    root.style.setProperty('--theme-accent', p.accent);
-    root.style.setProperty('--theme-accent-secondary', p.secondary);
-    root.style.setProperty('--theme-bg', p.bgStart);
-    root.style.setProperty('--theme-bg-secondary', p.bgEnd);
-    root.style.setProperty('--theme-surface', p.surface);
+    root.style.setProperty('--theme-primary', p.primary || '#00B4D8');
+    root.style.setProperty('--theme-secondary', p.secondary || '#0A192F');
+    root.style.setProperty('--theme-accent', p.accent || '#00F5D4');
+    root.style.setProperty('--theme-accent-secondary', p.secondary || '#0A192F');
+    root.style.setProperty('--theme-bg', p.bgStart || '#FFFFFF');
+    root.style.setProperty('--theme-bg-secondary', p.bgEnd || '#F8FAFC');
+    root.style.setProperty('--theme-surface', p.surface || '#FFFFFF');
     root.style.setProperty('--theme-surface-glass', p.surfaceGlass || 'rgba(255, 255, 255, 0.92)');
-    root.style.setProperty('--theme-text-primary', p.textPrimary);
-    root.style.setProperty('--theme-text-secondary', p.textSecondary);
-    root.style.setProperty('--theme-text-muted', p.textMuted);
-    root.style.setProperty('--theme-heading', p.heading);
-    root.style.setProperty('--theme-border', p.border);
-    root.style.setProperty('--theme-button', p.button);
-    root.style.setProperty('--theme-button-text', p.buttonText);
-    root.style.setProperty('--theme-button-hover', p.buttonHover || p.button);
+    root.style.setProperty('--theme-text-primary', p.textPrimary || '#0F172A');
+    root.style.setProperty('--theme-text-secondary', p.textSecondary || '#334155');
+    root.style.setProperty('--theme-text-muted', p.textMuted || '#64748B');
+    root.style.setProperty('--theme-heading', p.heading || '#0A192F');
+    root.style.setProperty('--theme-border', p.border || '#E2E8F0');
+    root.style.setProperty('--theme-button', p.button || '#00B4D8');
+    root.style.setProperty('--theme-button-text', p.buttonText || '#FFFFFF');
+    root.style.setProperty('--theme-button-hover', p.buttonHover || '#0284C7');
     root.style.setProperty('--theme-shadow', p.shadow || '0 10px 30px -5px rgba(0, 0, 0, 0.1)');
-    root.style.setProperty('--theme-badge-bg', p.primary);
-    root.style.setProperty('--theme-badge-text', p.buttonText);
+    root.style.setProperty('--theme-badge-bg', p.primary || '#00B4D8');
+    root.style.setProperty('--theme-badge-text', p.buttonText || '#FFFFFF');
     root.style.setProperty('--theme-overlay', isDark ? 'rgba(5, 10, 20, 0.75)' : 'rgba(255, 255, 255, 0.75)');
 
     try {
@@ -892,14 +908,14 @@ export const ThemeProvider = ({ children }) => {
         localStorage.setItem('nu_seasonal_theme', effectiveTheme.slug);
       }
     } catch {}
-  }, [theme, effectiveTheme, previewThemeSlug]);
+  }, [theme, effectiveTheme, previewThemeSlug, isDark]);
 
   const toggleTheme = () => {
     setTheme(prev => (prev === 'dark' ? 'light' : 'dark'));
   };
 
   const setSeasonalTheme = (slug) => {
-    if (BUILT_IN_THEMES[slug]) {
+    if (slug) {
       setActiveThemeSlug(slug);
       try { localStorage.setItem('nu_seasonal_theme', slug); } catch {}
     }

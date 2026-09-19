@@ -47,46 +47,57 @@ const AnimatedSantaSleigh = () => (
  */
 export const LoadingScreen = ({ onComplete }) => {
   const { seasonalTheme, activeTheme, content, safeMode } = useTheme();
-  const [progress, setProgress] = useState(15);
+  const [progress, setProgress] = useState(20);
   const [statusText, setStatusText] = useState('CALIBRATING OPTICAL ENGINE');
   const [visible, setVisible] = useState(true);
 
-  const duration = activeTheme.decorations?.loadingDuration || 2000;
+  const onCompleteRef = React.useRef(onComplete);
+  onCompleteRef.current = onComplete;
+
+  const duration = Math.min(activeTheme?.decorations?.loadingDuration || 1800, 2600);
 
   useEffect(() => {
+    let completed = false;
+    const finish = () => {
+      if (completed) return;
+      completed = true;
+      setVisible(false);
+      setTimeout(() => {
+        if (typeof onCompleteRef.current === 'function') {
+          onCompleteRef.current();
+        }
+      }, 300);
+    };
+
     // Stage 1: Initial calibration
     const t1 = setTimeout(() => {
-      setProgress(45);
-      setStatusText(content.loadingGreeting || activeTheme.name.toUpperCase());
-    }, duration * 0.22);
+      setProgress(50);
+      setStatusText(content?.loadingGreeting || activeTheme?.name?.toUpperCase() || 'NETRA UNNAYAN');
+    }, duration * 0.25);
 
-    // Stage 2: Theme Tagline from Admin
+    // Stage 2: Tagline
     const t2 = setTimeout(() => {
-      setProgress(80);
-      setStatusText(content.loadingTagline || 'EXPERIENCE VISIONARY CLARITY');
-    }, duration * 0.52);
+      setProgress(85);
+      setStatusText(content?.loadingTagline || 'EXPERIENCE VISIONARY CLARITY');
+    }, duration * 0.55);
 
-    // Stage 3: Ready
+    // Stage 3: Ready & Fade out
     const t3 = setTimeout(() => {
       setProgress(100);
       setStatusText('EXPERIENCE NETRA UNNAYAN');
-    }, duration * 0.80);
-
-    // Stage 4: Fade out
-    const t4 = setTimeout(() => {
-      setVisible(false);
-      setTimeout(() => {
-        if (onComplete) onComplete();
-      }, 450);
+      finish();
     }, duration);
+
+    // Stage 4: Absolute failsafe (never allow screen to remain blocked)
+    const failsafe = setTimeout(finish, 3200);
 
     return () => {
       clearTimeout(t1);
       clearTimeout(t2);
       clearTimeout(t3);
-      clearTimeout(t4);
+      clearTimeout(failsafe);
     };
-  }, [duration, content, activeTheme, onComplete]);
+  }, [duration]);
 
   // Scene Background per theme
   const getLoaderBackground = () => {
