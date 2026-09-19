@@ -3,14 +3,14 @@ import { Sparkles, X, Gift, Flame, Sun, Snowflake, Flag, CloudRain, Flower2 } fr
 import { useTheme } from '../../context/ThemeContext';
 
 export const FestiveBanner = () => {
-  const { seasonalTheme, content, safeMode } = useTheme();
+  const { seasonalTheme, content, safeMode, festiveBannerEnabled } = useTheme();
   const [dismissed, setDismissed] = useState(false);
 
-  if (dismissed || safeMode) return null;
+  if (dismissed || safeMode || festiveBannerEnabled === false) return null;
 
-  const bannerMessage = content.announcementText;
-  const bannerBadge = content.announcementBadge;
-  const greeting = content.festivalGreeting;
+  const bannerMessage = content?.announcementText;
+  const bannerBadge = content?.announcementBadge || content?.badge;
+  const greeting = content?.festivalGreeting;
 
   if (!bannerMessage) return null;
 

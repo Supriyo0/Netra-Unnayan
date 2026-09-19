@@ -796,16 +796,25 @@ export const ThemeProvider = ({ children }) => {
     };
   }, [syncThemeFromServer]);
 
+  // Live theme text overrides from Admin Settings
+  const [themeTextOverrides, setThemeTextOverrides] = useState({
+    badge: '',
+    greetingBengali: '',
+    greetingEnglish: '',
+    loadingTagline: ''
+  });
+
   // Determine current effective theme slug & base config
   const effectiveSlug = previewThemeSlug || activeThemeSlug;
   const baseTheme = BUILT_IN_THEMES[effectiveSlug] || BUILT_IN_THEMES.default;
 
   // Merge server customizations / preview overrides on top of base
   const effectiveTheme = useMemo(() => {
-    const custom = previewOverrides || (serverThemeData?.theme?.slug === effectiveSlug ? serverThemeData : null);
-    if (!custom) return baseTheme;
+    const custom = previewOverrides || (serverThemeData?.theme?.slug === effectiveSlug ? serverThemeData : serverThemeData);
+    const pub = serverThemeData?.public_settings || {};
+    if (!custom && !Object.keys(pub).length && !themeTextOverrides.badge) return baseTheme;
 
-    const s = custom.settings || {};
+    const s = custom?.settings || {};
     const palette = {
       primary: s.primary_color || s.primary || baseTheme.palette.primary || '#00B4D8',
       secondary: s.secondary_color || s.secondary || baseTheme.palette.secondary || '#0A192F',
@@ -840,35 +849,43 @@ export const ThemeProvider = ({ children }) => {
       loadingDuration: s.loading_duration_ms ? parseInt(s.loading_duration_ms) : baseTheme.decorations.loadingDuration
     };
 
-    const normalizeLang = (raw, base) => ({
-      announcementBadge: raw?.announcement_badge || raw?.announcementBadge || base.announcementBadge || 'OFFICIAL STORE',
-      announcementText: raw?.announcement_text || raw?.announcementText || base.announcementText || '',
-      festivalGreeting: raw?.festival_greeting || raw?.festivalGreeting || base.festivalGreeting || '',
-      heroTitle: raw?.hero_title || raw?.heroTitle || base.heroTitle || '',
-      heroSubtitle: raw?.hero_subtitle || raw?.heroSubtitle || base.heroSubtitle || '',
-      heroCtaText: raw?.hero_cta_text || raw?.heroCtaText || base.heroCtaText || 'Explore Collection',
-      heroCtaLink: raw?.hero_cta_link || raw?.heroCtaLink || base.heroCtaLink || '/catalog',
-      productBadge: raw?.product_badge || raw?.productBadge || base.productBadge || '',
-      loadingGreeting: raw?.loading_greeting || raw?.loadingGreeting || base.loadingGreeting || 'NETRA UNNAYAN',
-      loadingTagline: raw?.loading_tagline || raw?.loadingTagline || base.loadingTagline || 'CLARITY YOU CAN TRUST',
-      footerMessage: raw?.footer_message || raw?.footerMessage || base.footerMessage || ''
-    });
+    const normalizeLang = (raw, base, langKey) => {
+      const activeBadge = themeTextOverrides.badge || pub.theme_badge_text || raw?.announcement_badge || raw?.announcementBadge || raw?.badge || base.announcementBadge || 'OFFICIAL STORE';
+      const activeBannerText = themeTextOverrides.festive_banner_text || pub.festive_banner_text || raw?.announcement_text || raw?.announcementText || base.announcementText || '';
+      const activeGreeting = (langKey === 'bn' ? (themeTextOverrides.greetingBengali || pub.theme_greeting_bengali) : (themeTextOverrides.greetingEnglish || pub.theme_greeting_english)) || raw?.festival_greeting || raw?.festivalGreeting || base.festivalGreeting || '';
+      const activeTagline = themeTextOverrides.loadingTagline || pub.theme_loading_tagline || raw?.loading_tagline || raw?.loadingTagline || base.loadingTagline || 'CLARITY YOU CAN TRUST';
+
+      return {
+        announcementBadge: activeBadge,
+        badge: activeBadge,
+        announcementText: activeBannerText,
+        festivalGreeting: activeGreeting,
+        heroTitle: raw?.hero_title || raw?.heroTitle || base.heroTitle || '',
+        heroSubtitle: raw?.hero_subtitle || raw?.heroSubtitle || base.heroSubtitle || '',
+        heroCtaText: raw?.hero_cta_text || raw?.heroCtaText || base.heroCtaText || 'Explore Collection',
+        heroCtaLink: raw?.hero_cta_link || raw?.heroCtaLink || base.heroCtaLink || '/catalog',
+        productBadge: raw?.product_badge || raw?.productBadge || base.productBadge || '',
+        loadingGreeting: raw?.loading_greeting || raw?.loadingGreeting || base.loadingGreeting || 'NETRA UNNAYAN',
+        loadingTagline: activeTagline,
+        footerMessage: raw?.footer_message || raw?.footerMessage || base.footerMessage || ''
+      };
+    };
 
     const content = {
-      en: normalizeLang(custom.content?.en, baseTheme.content.en),
-      bn: normalizeLang(custom.content?.bn, baseTheme.content.bn)
+      en: normalizeLang(custom?.content?.en, baseTheme.content.en, 'en'),
+      bn: normalizeLang(custom?.content?.bn, baseTheme.content.bn, 'bn')
     };
 
     return {
       ...baseTheme,
       slug: effectiveSlug,
-      ...(custom.name && { name: custom.name }),
-      ...(custom.description && { description: custom.description }),
+      ...(custom?.name && { name: custom.name }),
+      ...(custom?.description && { description: custom.description }),
       palette,
       decorations,
       content
     };
-  }, [baseTheme, effectiveSlug, previewOverrides, serverThemeData]);
+  }, [baseTheme, effectiveSlug, previewOverrides, serverThemeData, themeTextOverrides]);
 
   // Current language content
   const activeContent = useMemo(() => {
@@ -977,6 +994,16 @@ export const ThemeProvider = ({ children }) => {
       setLanguage,
       toggleLanguage,
 
+      // Live text overrides & toggles
+      themeTextOverrides,
+      setThemeTextOverrides,
+      festiveBannerEnabled: (serverThemeData?.public_settings?.festive_banner_enabled !== undefined)
+        ? (serverThemeData.public_settings.festive_banner_enabled === '1' || serverThemeData.public_settings.festive_banner_enabled === true)
+        : true,
+      festiveEffectsEnabled: (serverThemeData?.public_settings?.festive_effects_enabled !== undefined)
+        ? (serverThemeData.public_settings.festive_effects_enabled === '1' || serverThemeData.public_settings.festive_effects_enabled === true)
+        : true,
+
       // Decorations & Safety
       decorations: safeMode ? {
         particles: false,
@@ -1032,6 +1059,10 @@ export const useTheme = () => {
         accentColor: def.palette.accent
       },
       content: def.content.en,
+      themeTextOverrides: { badge: '', greetingBengali: '', greetingEnglish: '', loadingTagline: '' },
+      setThemeTextOverrides: () => {},
+      festiveBannerEnabled: true,
+      festiveEffectsEnabled: true,
       language: 'en',
       setLanguage: () => {},
       toggleLanguage: () => {},

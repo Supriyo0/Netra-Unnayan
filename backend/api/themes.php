@@ -13,20 +13,30 @@ try {
     $autoScheduling = true;
     $scheduledThemeSlug = null;
 
+    $publicSettings = [];
     try {
         $settingsStmt = $pdo->query("
             SELECT setting_key, setting_value 
             FROM settings 
-            WHERE setting_key IN ('active_theme', 'theme_force_safe_mode', 'auto_theme_scheduling')
+            WHERE setting_key IN (
+                'active_theme', 'theme_force_safe_mode', 'auto_theme_scheduling',
+                'theme_badge_text', 'theme_greeting_bengali', 'theme_greeting_english',
+                'theme_loading_tagline', 'festive_banner_text', 'festive_banner_enabled',
+                'festive_effects_enabled'
+            )
         ");
         if ($settingsStmt) {
             while ($row = $settingsStmt->fetch(PDO::FETCH_ASSOC)) {
-                if ($row['setting_key'] === 'active_theme' && !empty($row['setting_value'])) {
-                    $activeSlug = trim($row['setting_value']);
-                } elseif ($row['setting_key'] === 'theme_force_safe_mode') {
-                    $safeMode = ($row['setting_value'] === '1');
-                } elseif ($row['setting_key'] === 'auto_theme_scheduling') {
-                    $autoScheduling = ($row['setting_value'] === '1');
+                $k = $row['setting_key'];
+                $v = $row['setting_value'];
+                $publicSettings[$k] = $v;
+
+                if ($k === 'active_theme' && !empty($v)) {
+                    $activeSlug = trim($v);
+                } elseif ($k === 'theme_force_safe_mode') {
+                    $safeMode = ($v === '1');
+                } elseif ($k === 'auto_theme_scheduling') {
+                    $autoScheduling = ($v === '1');
                 }
             }
         }
@@ -127,11 +137,45 @@ try {
         $themeSettings['animation_speed'] = 0.5;
     }
 
+    // Apply per-theme or global public settings overrides (Badge / Subtitle Label, Festive Banner Text, Greetings)
+    if (!empty($publicSettings['theme_badge_text'])) {
+        $badge = trim($publicSettings['theme_badge_text']);
+        $content['en']['announcement_badge'] = $badge;
+        $content['en']['announcementBadge'] = $badge;
+        $content['bn']['announcement_badge'] = $badge;
+        $content['bn']['announcementBadge'] = $badge;
+    }
+    if (!empty($publicSettings['festive_banner_text'])) {
+        $banner = trim($publicSettings['festive_banner_text']);
+        $content['en']['announcement_text'] = $banner;
+        $content['en']['announcementText'] = $banner;
+        $content['bn']['announcement_text'] = $banner;
+        $content['bn']['announcementText'] = $banner;
+    }
+    if (!empty($publicSettings['theme_greeting_bengali'])) {
+        $gbn = trim($publicSettings['theme_greeting_bengali']);
+        $content['bn']['festival_greeting'] = $gbn;
+        $content['bn']['festivalGreeting'] = $gbn;
+    }
+    if (!empty($publicSettings['theme_greeting_english'])) {
+        $gen = trim($publicSettings['theme_greeting_english']);
+        $content['en']['festival_greeting'] = $gen;
+        $content['en']['festivalGreeting'] = $gen;
+    }
+    if (!empty($publicSettings['theme_loading_tagline'])) {
+        $tag = trim($publicSettings['theme_loading_tagline']);
+        $content['en']['loading_tagline'] = $tag;
+        $content['en']['loadingTagline'] = $tag;
+        $content['bn']['loading_tagline'] = $tag;
+        $content['bn']['loadingTagline'] = $tag;
+    }
+
     Response::success([
         'active_theme'    => $activeSlug,
         'theme'           => $theme,
         'settings'        => $themeSettings,
         'content'         => $content,
+        'public_settings' => $publicSettings,
         'safe_mode'       => $safeMode,
         'is_scheduled'    => !empty($scheduledThemeSlug) && $activeSlug === $scheduledThemeSlug,
         'auto_scheduling' => $autoScheduling
