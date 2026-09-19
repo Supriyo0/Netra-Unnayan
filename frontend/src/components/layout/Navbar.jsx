@@ -1033,20 +1033,46 @@ export const Navbar = () => {
         </nav>
       </div>
 
-      {/* Floating Support Chat Launch Button (Desktop & Tablet) */}
+      {/* Floating Draggable Ultra-Premium Support Chat Launcher */}
       {!supportChatOpen && (
-        <button
-          type="button"
-          onClick={() => setSupportChatOpen(true)}
-          className="fixed bottom-20 sm:bottom-6 right-5 z-40 p-3 sm:px-4 sm:py-3 rounded-2xl bg-gradient-to-r from-brand-cyan to-teal-400 text-slate-950 font-black shadow-2xl hover:scale-105 active:scale-95 transition-all flex items-center gap-2 group cursor-pointer shadow-cyan-500/25"
-          title="Open Netra Live Optical Support & Chatbot"
+        <motion.div
+          drag
+          dragConstraints={{
+            top: -500,
+            bottom: 50,
+            left: -window.innerWidth + 90,
+            right: 20
+          }}
+          dragElastic={0.12}
+          dragMomentum={false}
+          whileDrag={{ scale: 1.08, cursor: 'grabbing' }}
+          whileHover={{ scale: 1.05 }}
+          className="fixed bottom-24 sm:bottom-7 right-4 sm:right-7 z-50 cursor-grab select-none touch-none"
         >
-          <div className="relative">
-            <MessageSquare className="w-5 h-5 fill-slate-950 stroke-none" />
-            <span className="w-2 h-2 rounded-full bg-emerald-700 absolute -top-0.5 -right-0.5 ring-2 ring-white animate-pulse" />
-          </div>
-          <span className="hidden sm:inline text-xs">Help &amp; Live Chat</span>
-        </button>
+          <button
+            type="button"
+            onClick={() => setSupportChatOpen(true)}
+            className="relative flex items-center gap-2.5 px-4 py-3 rounded-full bg-gradient-to-r from-cyan-500 via-teal-400 to-emerald-400 text-slate-950 font-black shadow-[0_10px_30px_rgba(0,180,216,0.45)] border-2 border-white/80 hover:shadow-[0_15px_35px_rgba(0,180,216,0.60)] transition-all duration-300 backdrop-blur-md group"
+            title="Drag to reposition or click to open Live Optical Support"
+          >
+            {/* Specular Highlight Gloss Top */}
+            <div className="absolute top-1 left-3 right-3 h-[2px] rounded-full bg-white/70 blur-[0.5px]" />
+            
+            <div className="relative">
+              <div className="w-8 h-8 rounded-full bg-slate-950/15 flex items-center justify-center">
+                <MessageSquare className="w-4 h-4 fill-slate-950 stroke-none group-hover:scale-110 transition-transform" />
+              </div>
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-700 ring-2 ring-white absolute -top-0.5 -right-0.5 animate-pulse" />
+            </div>
+
+            <div className="flex flex-col text-left">
+              <span className="text-[11px] font-black leading-tight tracking-tight">Need Help?</span>
+              <span className="text-[9px] font-bold text-slate-900/80 leading-none">Live Optical Chat</span>
+            </div>
+
+            <Sparkles className="w-3.5 h-3.5 text-slate-950 opacity-80 animate-spin-slow" />
+          </button>
+        </motion.div>
       )}
 
       {/* Support Chat Widget Component */}

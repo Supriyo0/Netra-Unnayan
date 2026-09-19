@@ -53,14 +53,30 @@ try {
 }
 
 // 2. Resolve optional customer auth
-$authHeader = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
 $customer = null;
-if (!empty($authHeader) && preg_match('/Bearer\s+(.*)$/i', $authHeader, $matches)) {
-    $token = $matches[1];
-    $c = Auth::validateToken($token);
-    if ($c) {
-        $customer = $c;
+try {
+    $payload = getOptionalAuth();
+    if ($payload && !empty($payload['id'])) {
+        if (($payload['type'] ?? '') === 'customer') {
+            $stmt = $pdo->prepare('SELECT id, full_name, email, phone, is_active FROM customers WHERE id = ?');
+            $stmt->execute([(int)$payload['id']]);
+            $customer = $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
+        } elseif (($payload['type'] ?? '') === 'admin') {
+            $stmt = $pdo->prepare('SELECT id, full_name, email, phone FROM admins WHERE id = ?');
+            $stmt->execute([(int)$payload['id']]);
+            $adm = $stmt->fetch(PDO::FETCH_ASSOC);
+            if ($adm) {
+                $customer = [
+                    'id' => (int)$adm['id'],
+                    'full_name' => $adm['full_name'],
+                    'email' => $adm['email'],
+                    'phone' => $adm['phone']
+                ];
+            }
+        }
     }
+} catch (Exception $e) {
+    $customer = null;
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
@@ -128,107 +144,111 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     exit;
 
 } elseif ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $input = json_decode(file_get_contents('php://input'), true) ?? [];
-    $action = $input['action'] ?? 'send_message';
+    try {
+        $input = json_decode(file_get_contents('php://input'), true) ?? [];
+        $action = $input['action'] ?? 'send_message';
 
-    $conversationId = (int)($input['conversation_id'] ?? 0);
-    $messageText = trim((string)($input['message'] ?? ''));
-    $attachmentUrl = trim((string)($input['attachment_url'] ?? ''));
-    $guestName = trim((string)($input['guest_name'] ?? ''));
-    $guestEmail = trim((string)($input['guest_email'] ?? ''));
-    $guestPhone = trim((string)($input['guest_phone'] ?? ''));
-    $subject = trim((string)($input['subject'] ?? 'Live Optical Inquiry'));
+        $conversationId = (int)($input['conversation_id'] ?? 0);
+        $messageText = trim((string)($input['message'] ?? ''));
+        $attachmentUrl = trim((string)($input['attachment_url'] ?? ''));
+        $guestName = trim((string)($input['guest_name'] ?? ''));
+        $guestEmail = trim((string)($input['guest_email'] ?? ''));
+        $guestPhone = trim((string)($input['guest_phone'] ?? ''));
+        $subject = trim((string)($input['subject'] ?? 'Live Optical Inquiry'));
 
-    if (empty($messageText) && empty($attachmentUrl)) {
-        Response::error('Message or image attachment is required.', 400);
-    }
-
-    $customerId = $customer ? (int)$customer['id'] : null;
-    $senderName = $customer ? ($customer['full_name'] ?? $customer['name'] ?? 'Customer') : ($guestName ?: 'Guest Shopper');
-
-    // 1. Resolve or create conversation
-    if ($conversationId > 0) {
-        $checkStmt = $pdo->prepare("SELECT * FROM `support_conversations` WHERE `id` = ?");
-        $checkStmt->execute([$conversationId]);
-        $conv = $checkStmt->fetch(PDO::FETCH_ASSOC);
-        if (!$conv) {
-            $conversationId = 0;
+        if (empty($messageText) && empty($attachmentUrl)) {
+            Response::error('Message or image attachment is required.', 400);
         }
-    }
 
-    if ($conversationId === 0) {
-        // If customer is logged in, check if they have an active open/in_progress thread
-        if ($customerId) {
-            $openStmt = $pdo->prepare("SELECT id FROM `support_conversations` WHERE `customer_id` = ? AND `status` IN ('open', 'in_progress') ORDER BY `id` DESC LIMIT 1");
-            $openStmt->execute([$customerId]);
-            $existingId = $openStmt->fetchColumn();
-            if ($existingId) {
-                $conversationId = (int)$existingId;
+        $customerId = $customer ? (int)$customer['id'] : null;
+        $senderName = $customer ? ($customer['full_name'] ?? $customer['name'] ?? 'Customer') : ($guestName ?: 'Guest Shopper');
+
+        // 1. Resolve or create conversation
+        if ($conversationId > 0) {
+            $checkStmt = $pdo->prepare("SELECT * FROM `support_conversations` WHERE `id` = ?");
+            $checkStmt->execute([$conversationId]);
+            $conv = $checkStmt->fetch(PDO::FETCH_ASSOC);
+            if (!$conv) {
+                $conversationId = 0;
             }
         }
-    }
 
-    if ($conversationId === 0) {
-        // Create new conversation
-        $insConv = $pdo->prepare("
-            INSERT INTO `support_conversations` 
-            (`customer_id`, `guest_name`, `guest_email`, `guest_phone`, `subject`, `status`, `priority`, `unread_admin_count`, `unread_customer_count`, `last_message_text`, `last_message_at`)
-            VALUES (?, ?, ?, ?, ?, 'open', 'medium', 1, 0, ?, NOW())
+        if ($conversationId === 0) {
+            // If customer is logged in, check if they have an active open/in_progress thread
+            if ($customerId) {
+                $openStmt = $pdo->prepare("SELECT id FROM `support_conversations` WHERE `customer_id` = ? AND `status` IN ('open', 'in_progress') ORDER BY `id` DESC LIMIT 1");
+                $openStmt->execute([$customerId]);
+                $existingId = $openStmt->fetchColumn();
+                if ($existingId) {
+                    $conversationId = (int)$existingId;
+                }
+            }
+        }
+
+        if ($conversationId === 0) {
+            // Create new conversation
+            $insConv = $pdo->prepare("
+                INSERT INTO `support_conversations` 
+                (`customer_id`, `guest_name`, `guest_email`, `guest_phone`, `subject`, `status`, `priority`, `unread_admin_count`, `unread_customer_count`, `last_message_text`, `last_message_at`)
+                VALUES (?, ?, ?, ?, ?, 'open', 'medium', 1, 0, ?, NOW())
+            ");
+            $insConv->execute([
+                $customerId,
+                $guestName ?: ($customer ? $customer['full_name'] : 'Guest'),
+                $guestEmail ?: ($customer ? $customer['email'] : null),
+                $guestPhone ?: ($customer ? $customer['phone'] : null),
+                $subject,
+                $messageText ?: '[Image Attachment]'
+            ]);
+            $conversationId = (int)$pdo->lastInsertId();
+        } else {
+            // Update existing conversation
+            $updConv = $pdo->prepare("
+                UPDATE `support_conversations` 
+                SET `status` = CASE WHEN `status` = 'closed' OR `status` = 'resolved' THEN 'open' ELSE `status` END,
+                    `unread_admin_count` = `unread_admin_count` + 1,
+                    `last_message_text` = ?,
+                    `last_message_at` = NOW()
+                WHERE `id` = ?
+            ");
+            $updConv->execute([
+                $messageText ?: '[Image Attachment]',
+                $conversationId
+            ]);
+        }
+
+        // 2. Insert Message
+        $senderType = !empty($input['is_bot']) ? 'bot' : 'customer';
+        $insMsg = $pdo->prepare("
+            INSERT INTO `support_messages`
+            (`conversation_id`, `sender_type`, `sender_id`, `sender_name`, `message`, `attachment_url`, `is_read`, `created_at`)
+            VALUES (?, ?, ?, ?, ?, ?, 0, NOW())
         ");
-        $insConv->execute([
+        $insMsg->execute([
+            $conversationId,
+            $senderType,
             $customerId,
-            $guestName ?: ($customer ? $customer['full_name'] : 'Guest'),
-            $guestEmail ?: ($customer ? $customer['email'] : null),
-            $guestPhone ?: ($customer ? $customer['phone'] : null),
-            $subject,
-            $messageText ?: '[Image Attachment]'
+            $senderName,
+            $messageText,
+            $attachmentUrl ?: null
         ]);
-        $conversationId = (int)$pdo->lastInsertId();
-    } else {
-        // Update existing conversation
-        $updConv = $pdo->prepare("
-            UPDATE `support_conversations` 
-            SET `status` = CASE WHEN `status` = 'closed' OR `status` = 'resolved' THEN 'open' ELSE `status` END,
-                `unread_admin_count` = `unread_admin_count` + 1,
-                `last_message_text` = ?,
-                `last_message_at` = NOW()
-            WHERE `id` = ?
-        ");
-        $updConv->execute([
-            $messageText ?: '[Image Attachment]',
-            $conversationId
-        ]);
+        $messageId = (int)$pdo->lastInsertId();
+
+        // Fetch refreshed conversation & messages
+        $cStmt = $pdo->prepare("SELECT * FROM `support_conversations` WHERE `id` = ?");
+        $cStmt->execute([$conversationId]);
+        $convData = $cStmt->fetch(PDO::FETCH_ASSOC);
+
+        $mStmt = $pdo->prepare("SELECT * FROM `support_messages` WHERE `conversation_id` = ? ORDER BY `id` ASC");
+        $mStmt->execute([$conversationId]);
+        $allMessages = $mStmt->fetchAll(PDO::FETCH_ASSOC);
+
+        Response::success([
+            'conversation_id' => $conversationId,
+            'conversation'    => $convData,
+            'messages'        => $allMessages
+        ], 'Message sent to support.');
+    } catch (Exception $e) {
+        Response::error('Failed to send message: ' . $e->getMessage(), 500);
     }
-
-    // 2. Insert Message
-    $senderType = !empty($input['is_bot']) ? 'bot' : 'customer';
-    $insMsg = $pdo->prepare("
-        INSERT INTO `support_messages`
-        (`conversation_id`, `sender_type`, `sender_id`, `sender_name`, `message`, `attachment_url`, `is_read`, `created_at`)
-        VALUES (?, ?, ?, ?, ?, ?, 0, NOW())
-    ");
-    $insMsg->execute([
-        $conversationId,
-        $senderType,
-        $customerId,
-        $senderName,
-        $messageText,
-        $attachmentUrl ?: null
-    ]);
-    $messageId = (int)$pdo->lastInsertId();
-
-    // Fetch refreshed conversation & messages
-    $cStmt = $pdo->prepare("SELECT * FROM `support_conversations` WHERE `id` = ?");
-    $cStmt->execute([$conversationId]);
-    $convData = $cStmt->fetch(PDO::FETCH_ASSOC);
-
-    $mStmt = $pdo->prepare("SELECT * FROM `support_messages` WHERE `conversation_id` = ? ORDER BY `id` ASC");
-    $mStmt->execute([$conversationId]);
-    $allMessages = $mStmt->fetchAll(PDO::FETCH_ASSOC);
-
-    Response::success([
-        'conversation_id' => $conversationId,
-        'conversation'    => $convData,
-        'messages'        => $allMessages
-    ], 'Message sent to support.');
 }

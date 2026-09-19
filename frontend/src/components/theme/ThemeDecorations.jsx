@@ -331,14 +331,10 @@ export const ThemeDecorations = () => {
       className="fixed inset-0 pointer-events-none z-20 overflow-hidden select-none"
       aria-hidden="true"
     >
-      {/* 1. DURGA PUJA: Ultra-realistic Botanical Kash Flowers + Floating Feathery Kash Drops + Clay Pradips */}
+      {/* 1. DURGA PUJA: Subtle Festive Atmosphere */}
       {seasonalTheme === 'durga_puja' && decorations?.kashFlowers && (
         <>
-          {/* Botanical Kash Flowers Left & Right */}
-          <BotanicalKashReeds position="left" />
-          <BotanicalKashReeds position="right" />
-
-          {/* Floating Silky Kash Flower Drops / Feathery seed tufts drifting in autumn breeze */}
+          {/* Subtle floating autumn breeze particles */}
           <div className="absolute inset-0 pointer-events-none">
             {particles.map((p) => (
               <div
