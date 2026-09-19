@@ -22,7 +22,7 @@ export const Navbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { itemCount, cartTotal } = useCart();
-  const { user, isAdmin, logout } = useAuth();
+  const { user, isAdmin, isSuperAdmin, logout } = useAuth();
   const { theme, toggleTheme, isDark } = useTheme();
   const { wishlistCount } = useWishlist();
   
@@ -383,7 +383,7 @@ export const Navbar = () => {
                         <div className="text-[11px] text-cyan-700 dark:text-brand-cyan font-mono truncate">{user.email || user.phone}</div>
                         {isAdmin && (
                           <span className="mt-1.5 inline-block px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/30 text-[9px] font-black uppercase tracking-wider">
-                            Admin Staff
+                            {isSuperAdmin ? 'Super Administrator' : 'Admin Staff'}
                           </span>
                         )}
                       </div>
